@@ -1,0 +1,195 @@
+.st-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ---- wave ---- */
+
+.st-wave-shape {
+  position: absolute;
+  left: 0;
+  top: -40vh;
+  width: 100%;
+  height: 180vh;
+  animation: st-wave-sweep 950ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  filter: drop-shadow(0 -6px 18px rgba(20, 50, 80, 0.25));
+}
+
+.st-wave-crest {
+  filter: blur(1.5px);
+}
+
+@keyframes st-wave-sweep {
+  0% {
+    transform: translateY(120vh);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-120vh);
+  }
+}
+
+/* ---- cloud ---- */
+
+.st-cloud-puff {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #fdf6ea 55%, rgba(253, 246, 234, 0) 75%);
+  filter: blur(3px);
+  transform: scale(0);
+  opacity: 0;
+  animation: st-cloud-pop 950ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  box-shadow: 0 10px 40px rgba(120, 100, 60, 0.12);
+}
+
+@keyframes st-cloud-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+/* ---- starlight ---- */
+
+.st-star-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 45%, #1c2350 0%, #0a0e24 75%);
+  opacity: 0;
+  animation: st-star-bg-fade 950ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes st-star-bg-fade {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.st-star-point {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, rgba(255, 255, 255, 0.65) 35%, rgba(255, 255, 255, 0) 72%);
+  transform: scale(0);
+  opacity: 0;
+  animation: st-star-pop 950ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes st-star-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+/* ---- albatross ---- */
+
+.st-albatross-shape {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--coral, #d94e2f) 0%, var(--sun, #f6c667) 55%, var(--sun-dark, #c98a2e) 100%);
+  -webkit-mask-image: url('/images/albatross-mask.png');
+  mask-image: url('/images/albatross-mask.png');
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: 9vmax;
+  mask-size: 9vmax;
+  animation: st-albatross-fly 950ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes st-albatross-fly {
+  0% {
+    -webkit-mask-size: 9vmax;
+    mask-size: 9vmax;
+  }
+  50% {
+    /* The fully-opaque "safe" radius around this specific artwork's own
+       center is only ~15px out of a 512px canvas (measured directly,
+       not guessed) — a narrow diagonal wing crossing, not a big solid
+       blob. Reaching every viewport corner (worst case ~0.9x the
+       viewport's own max dimension away from center, for a wide/tall
+       aspect ratio) needs mask-size around 0.9*512/15 ≈ 31 times the
+       viewport's max dimension. 3500vmax clears that with real margin
+       — an earlier, much smaller guess left visible gaps at the
+       corners at the supposed full-coverage moment (caught by
+       screenshotting it, not assumed away). */
+    -webkit-mask-size: 3500vmax;
+    mask-size: 3500vmax;
+  }
+  100% {
+    -webkit-mask-size: 9vmax;
+    mask-size: 9vmax;
+  }
+}
+
+/* A player who's said they want less motion shouldn't get a screen-covering wipe on every navigation — cut straight to a quick fade instead, for every variant. */
+@media (prefers-reduced-motion: reduce) {
+  .st-wave-shape,
+  .st-cloud-puff,
+  .st-star-point,
+  .st-star-bg,
+  .st-albatross-shape {
+    animation-name: st-reduced-fade;
+    animation-duration: 400ms;
+    filter: none;
+    transform: none;
+  }
+
+  /* The mask-size growth is what makes the bird shape cover the whole
+     screen — with only the fade left, the mask would stay pinned at its
+     tiny base size and never actually hide the old screen underneath.
+     Dropping the mask here falls back to a plain solid panel, which
+     the fade alone covers correctly. */
+  .st-albatross-shape {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  @keyframes st-reduced-fade {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}

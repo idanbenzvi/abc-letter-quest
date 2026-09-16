@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap">
+  <style>
+    :where(*) { box-sizing: border-box; }
+    .app {
+      --bg: oklch(96% 0.025 75);
+      --surface: oklch(99% 0.008 75);
+      --surface-2: oklch(94% 0.02 80);
+      --ink: oklch(32% 0.045 50);
+      --ink-soft: oklch(52% 0.035 55);
+      --coral: oklch(70% 0.19 35);
+      --coral-dark: oklch(58% 0.18 32);
+      --coral-wash: oklch(93% 0.05 35);
+      --leaf: oklch(66% 0.15 148);
+      --leaf-dark: oklch(50% 0.13 148);
+      --leaf-wash: oklch(93% 0.06 148);
+      --sky: oklch(75% 0.1 232);
+      --sky-dark: oklch(56% 0.1 232);
+      --sky-wash: oklch(94% 0.03 232);
+      --sun: oklch(83% 0.15 88);
+      --sun-dark: oklch(64% 0.14 75);
+      --sun-wash: oklch(94% 0.06 90);
+      --berry: oklch(64% 0.17 350);
+      --berry-wash: oklch(93% 0.04 350);
+      font-family: 'Nunito', ui-rounded, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    .disp { font-family: 'Baloo 2', ui-rounded, sans-serif; }
+  </style>
+</helmet>
+
+<div class="app" style="position:relative; width:1024px; height:768px; overflow:hidden;">
+
+  <div style="position:absolute; top:150px; left:0; right:0; bottom:0; background:var(--leaf-wash); border-radius:50% 50% 0 0 / 70px 70px 0 0;"></div>
+
+  <!-- top bar -->
+  <div style="position:relative; z-index:3; display:flex; align-items:center; justify-content:space-between; padding:18px 28px; height:64px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <svg viewBox="0 0 64 64" style="width:48px; height:48px; border-radius:50%; background:var(--coral); border:3px solid var(--surface);">
+        <polygon points="18,20 13,6 27,16" fill="var(--surface)"/>
+        <polygon points="46,20 51,6 37,16" fill="var(--surface)"/>
+        <circle cx="26" cy="30" r="3" fill="var(--ink)"/>
+        <circle cx="38" cy="30" r="3" fill="var(--ink)"/>
+        <ellipse cx="32" cy="42" rx="13" ry="9" fill="var(--surface)"/>
+      </svg>
+      <span class="disp" style="font-size:24px; font-weight:700; color:var(--coral-dark);">Hi, Mia!</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div style="display:flex; align-items:center; gap:6px; background:var(--sun-wash); border-radius:20px; padding:8px 14px;">
+        <svg viewBox="0 0 24 24" style="width:16px; height:16px;"><polygon points="12,2 15,9 22,10 17,15 18,22 12,18 6,22 7,15 2,10 9,9" fill="var(--sun-dark)"/></svg>
+        <span style="font-weight:800; font-size:14px; color:var(--sun-dark);">18</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; background:var(--leaf-wash); border-radius:20px; padding:8px 14px;">
+        <svg viewBox="0 0 24 24" style="width:16px; height:16px;"><path d="M12,2 C10,7 6,9 6,14 A6,6 0 0,0 18,14 C18,9 14,7 12,2 Z" fill="var(--leaf-dark)"/></svg>
+        <span style="font-weight:800; font-size:14px; color:var(--leaf-dark);">5-day streak</span>
+      </div>
+      <button style="width:44px; height:44px; border-radius:50%; background:var(--surface); border:2px solid var(--sky-wash); display:flex; align-items:center; justify-content:center; cursor:pointer;">
+        <svg viewBox="0 0 24 24" style="width:20px; height:20px;">
+          <circle cx="12" cy="12" r="3" fill="none" stroke="var(--ink-soft)" stroke-width="1.8"/>
+          <path d="M12,3 L12,6 M12,18 L12,21 M3,12 L6,12 M18,12 L21,12 M5.6,5.6 L7.7,7.7 M16.3,16.3 L18.4,18.4 M5.6,18.4 L7.7,16.3 M16.3,7.7 L18.4,5.6" stroke="var(--ink-soft)" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- decorative flowers -->
+  <sc-for list="{{flowers}}" as="f" hint-placeholder-count="8">
+    <svg viewBox="0 0 30 30" style="position:absolute; left:{{f.x}}px; top:{{f.y}}px; width:{{f.s}}px; height:{{f.s}}px; opacity:0.6;">
+      <circle cx="15" cy="9" r="5" fill="{{f.c}}"/>
+      <circle cx="9" cy="17" r="5" fill="{{f.c}}"/>
+      <circle cx="21" cy="17" r="5" fill="{{f.c}}"/>
+      <circle cx="15" cy="20" r="5" fill="{{f.c}}"/>
+      <circle cx="15" cy="16" r="4" fill="var(--sun)"/>
+    </svg>
+  </sc-for>
+
+  <!-- winding path -->
+  <svg viewBox="0 0 1024 768" style="position:absolute; top:0; left:0; width:1024px; height:768px; z-index:1;">
+    <path d="M70,430 L150,340 L230,260 L320,210 L420,260 L500,350 L580,430 L660,490 L740,430 L820,350 L890,270 L960,210"
+      fill="none" stroke="var(--sky-dark)" stroke-width="6" stroke-linecap="round" stroke-dasharray="2 16" opacity="0.55"/>
+  </svg>
+
+  <!-- letter stones -->
+  <sc-for list="{{stones}}" as="s" hint-placeholder-count="12">
+    <div style="position:absolute; left:{{s.x}}px; top:{{s.y}}px; width:0; height:0; z-index:2;">
+      <div style="position:relative; transform:translate(-50%,-50%);">
+        <sc-if value="{{s.star}}" hint-placeholder-val="{{true}}">
+          <svg viewBox="0 0 24 24" style="position:absolute; top:-8px; right:-8px; width:26px; height:26px; z-index:2;">
+            <circle cx="12" cy="12" r="11" fill="var(--sun)"/>
+            <polygon points="12,5 14,10 19,10.5 15,14 16,19 12,16.5 8,19 9,14 5,10.5 10,10" fill="white"/>
+          </svg>
+        </sc-if>
+        <sc-if value="{{s.locked}}" hint-placeholder-val="{{false}}">
+          <svg viewBox="0 0 24 24" style="position:absolute; bottom:-7px; left:50%; transform:translateX(-50%); width:22px; height:22px; z-index:2;">
+            <circle cx="12" cy="12" r="9.5" fill="none" stroke="var(--sky-dark)" stroke-width="1.6" stroke-dasharray="2.2 4" opacity="0.65"/>
+            <path d="M12,7.2 L13.1,10.9 L16.8,12 L13.1,13.1 L12,16.8 L10.9,13.1 L7.2,12 L10.9,10.9 Z" fill="var(--sun-dark)"/>
+          </svg>
+        </sc-if>
+        <div style="width:{{s.size}}px; height:{{s.size}}px; border-radius:50%; background:{{s.bg}}; display:flex; align-items:center; justify-content:center; box-shadow:{{s.shadow}}; border:{{s.border}}; opacity:{{s.opacity}};">
+          <span class="disp" style="font-size:{{s.fs}}px; font-weight:700; color:{{s.fg}};">{{s.letter}}</span>
+        </div>
+        <sc-if value="{{s.current}}" hint-placeholder-val="{{false}}">
+          <div style="position:absolute; left:50%; top:100%; transform:translateX(-50%); margin-top:10px; white-space:nowrap; background:var(--coral); color:white; font-weight:800; font-size:13px; padding:7px 16px; border-radius:16px; box-shadow:0 6px 14px rgba(210,90,40,0.3);">Play!</div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-for>
+
+  <!-- Buddy standing at current stone -->
+  <svg viewBox="0 0 200 240" style="position:absolute; left:390px; top:130px; width:96px; height:115px; z-index:2;">
+    <path d="M150,190 Q180,175 172,140" stroke="var(--coral)" stroke-width="20" stroke-linecap="round" fill="none"/>
+    <path d="M50,175 Q25,165 30,130" stroke="var(--coral)" stroke-width="20" stroke-linecap="round" fill="none"/>
+    <ellipse cx="100" cy="185" rx="52" ry="48" fill="var(--coral)"/>
+    <ellipse cx="100" cy="196" rx="28" ry="26" fill="var(--surface)"/>
+    <circle cx="100" cy="95" r="56" fill="var(--coral)"/>
+    <polygon points="56,58 42,8 82,50" fill="var(--coral)"/>
+    <polygon points="60,48 53,25 74,47" fill="var(--surface)"/>
+    <polygon points="144,58 158,8 118,50" fill="var(--coral)"/>
+    <polygon points="140,48 147,25 126,47" fill="var(--surface)"/>
+    <ellipse cx="100" cy="115" rx="36" ry="26" fill="var(--surface)"/>
+    <circle cx="81" cy="90" r="7" fill="var(--ink)"/>
+    <circle cx="119" cy="90" r="7" fill="var(--ink)"/>
+    <ellipse cx="100" cy="106" rx="5.5" ry="3.6" fill="var(--ink-soft)"/>
+    <path d="M89,119 Q100,126 111,119" stroke="var(--ink)" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  </svg>
+
+  <!-- fade + more letters -->
+  <div style="position:absolute; top:0; right:0; width:120px; height:768px; background:linear-gradient(to right, transparent, var(--bg)); z-index:3;"></div>
+  <div style="position:absolute; bottom:30px; right:26px; z-index:4; display:flex; align-items:center; gap:6px; background:var(--surface); border-radius:18px; padding:9px 16px; box-shadow:0 6px 14px rgba(80,50,20,0.12);">
+    <span style="font-size:13px; font-weight:700; color:var(--ink-soft);">14 more letters to discover</span>
+    <svg viewBox="0 0 24 24" style="width:14px; height:14px;"><path d="M9,5 L16,12 L9,19" stroke="var(--ink-soft)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const letters = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+    const xs = [70,150,230,320,420,500,580,660,740,820,890,960];
+    const ys = [430,340,260,210,260,350,430,490,430,350,270,210];
+    const mastered = ['A','B','C'];
+    const current = 'D';
+    const stones = letters.map((letter, i) => {
+      const isMastered = mastered.includes(letter);
+      const isCurrent = letter === current;
+      const isLocked = !isMastered && !isCurrent;
+      return {
+        letter, x: xs[i], y: ys[i],
+        size: isCurrent ? 96 : (isMastered ? 64 : 56),
+        fs: isCurrent ? 42 : (isMastered ? 26 : 22),
+        bg: isCurrent ? 'var(--coral)' : (isMastered ? 'var(--leaf)' : 'var(--surface-2)'),
+        fg: isCurrent || isMastered ? 'white' : 'var(--ink-soft)',
+        border: isCurrent ? '4px solid var(--coral-dark)' : (isMastered ? '3px solid var(--leaf-dark)' : '3px solid var(--sky-wash)'),
+        shadow: isCurrent ? '0 10px 24px rgba(210,90,40,0.4)' : (isMastered ? '0 6px 16px rgba(80,150,90,0.3)' : 'none'),
+        opacity: isLocked ? 0.55 : 1,
+        star: isMastered, locked: isLocked, current: isCurrent,
+      };
+    });
+    const colors = ['var(--berry)','var(--sun)','var(--sky)','var(--coral)'];
+    const flowers = [
+      {x:110,y:560,s:26},{x:260,y:610,s:22},{x:420,y:600,s:24},{x:560,y:630,s:20},
+      {x:700,y:590,s:26},{x:820,y:560,s:22},{x:180,y:490,s:20},{x:610,y:520,s:22},
+    ].map((f,i) => ({...f, c: colors[i % colors.length]}));
+    return { stones, flowers };
+  }
+}
+</script>
+</body>
+</html>

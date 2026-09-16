@@ -1,0 +1,1372 @@
+/* ============================================================
+   Flight game — in-flight HUD
+   ============================================================ */
+
+.flight-game {
+  position: relative;
+  width: 100%;
+  height: var(--vh-full, 100vh);
+  overflow: hidden;
+  background: #7fb3d9;
+}
+
+.flight-canvas-wrap {
+  position: absolute;
+  inset: 0;
+  /* The canvas is a drawing surface (tracing) — the browser must never
+     turn a finger drag into a scroll/zoom gesture and cancel our
+     pointer events halfway through a letter. */
+  touch-action: none;
+}
+.flight-canvas-wrap canvas {
+  touch-action: none;
+  display: block;
+}
+
+/* ---- loading veil ---- */
+
+.flight-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: linear-gradient(180deg, #8ec5ea 0%, #cfe7f5 55%, #2d7fb0 56%, #17537f 100%);
+  color: white;
+  animation: fade-up-in 0.3s ease both;
+}
+
+.flight-loading-brand {
+  margin-bottom: 6px;
+}
+.flight-loading-wings {
+  animation: loading-flap 0.9s ease-in-out infinite;
+  filter: drop-shadow(0 6px 12px rgba(20, 60, 90, 0.25));
+}
+
+@keyframes loading-flap {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(-6px) scaleY(0.72);
+  }
+}
+
+.flight-loading-text {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  text-shadow: 0 2px 8px rgba(20, 60, 90, 0.35);
+}
+
+.flight-loading-bar {
+  width: 160px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+}
+.flight-loading-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: white;
+  transition: width 0.25s ease;
+}
+.flight-loading-bar > span.indeterminate {
+  width: 40% !important;
+  animation: loading-slide 1.1s ease-in-out infinite alternate;
+}
+@keyframes loading-slide {
+  from {
+    transform: translateX(-20%);
+  }
+  to {
+    transform: translateX(170%);
+  }
+}
+
+/* ---- top bar ---- */
+
+.flight-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: max(14px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 0 max(18px, env(safe-area-inset-left));
+  z-index: 5;
+  pointer-events: none;
+}
+.flight-topbar > * {
+  pointer-events: auto;
+}
+
+.flight-pause-btn {
+  justify-self: start;
+}
+
+.flight-slots {
+  list-style: none;
+  margin: 0;
+  padding: 6px 10px;
+  display: flex;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(40, 60, 80, 0.14);
+}
+
+.flight-slot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 16px;
+  color: white;
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px dashed rgba(46, 127, 168, 0.45);
+  transition:
+    transform 0.35s var(--ease-pop),
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+.flight-slot.current {
+  border-style: solid;
+  border-color: var(--sky-dark, #2e7fa8);
+  animation: slot-pulse 1.6s ease-in-out infinite;
+}
+.flight-slot.knew {
+  background: var(--leaf, #45a578);
+  border-color: var(--leaf-dark, #2f7a55);
+  border-style: solid;
+  animation: slot-land 0.5s var(--ease-pop) both;
+}
+.flight-slot.bonus {
+  background: linear-gradient(135deg, #ffd77a, #ff9f5a);
+  border-color: #e0912e;
+  border-style: solid;
+  color: #5a3413;
+  animation: slot-land 0.5s var(--ease-pop) both;
+}
+.flight-slot.missed {
+  background: var(--surface-2, #f0e9db);
+  border-color: rgba(122, 107, 90, 0.4);
+  border-style: solid;
+  color: var(--ink-soft, #7a6b5a);
+  animation: slot-land 0.5s var(--ease-pop) both;
+}
+.flight-slot.passed {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(46, 127, 168, 0.25);
+  color: rgba(46, 127, 168, 0.55);
+}
+
+@keyframes slot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(46, 127, 168, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(46, 127, 168, 0);
+  }
+}
+@keyframes slot-land {
+  0% {
+    transform: scale(0.6);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.flight-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--ink, #4a382d);
+  box-shadow: 0 4px 12px rgba(40, 60, 80, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.flight-topbar-right {
+  justify-self: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.flight-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 999px;
+  padding: 8px 14px 8px 12px;
+  font-weight: 900;
+  font-size: 16px;
+  color: var(--sun-dark, #c98a2e);
+  box-shadow: 0 4px 12px rgba(40, 60, 80, 0.15);
+  min-width: 64px;
+  justify-content: center;
+}
+.flight-stars-count {
+  display: inline-block;
+  animation: stars-bump 0.5s var(--ease-pop) both;
+  font-variant-numeric: tabular-nums;
+}
+@keyframes stars-bump {
+  0% {
+    transform: scale(1.5);
+    color: var(--coral, #d94e2f);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---- combo streak badge ----
+   Appears once 2+ correct catches land in a row (see FlightGameScreen's
+   registerStreak/breakStreak); remounted (key={streak}) on every
+   increment so it replays its pop-in as a little "bump" each time,
+   same idiom as flight-stars-count's own bump above. Three tiers
+   (mild/warm/hot) escalate the glow/pulse as the streak climbs, so a
+   long streak visibly feels hotter without the number alone having to
+   carry that. */
+.flight-combo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--coral-wash, #f8ded2);
+  color: var(--coral-dark, #b23a1f);
+  border-radius: 999px;
+  padding: 5px 11px 5px 9px;
+  font-weight: 900;
+  font-size: 13px;
+  box-shadow: 0 3px 10px rgba(180, 70, 30, 0.2);
+  animation: combo-pop 0.4s var(--ease-pop, ease) both;
+  font-variant-numeric: tabular-nums;
+}
+@keyframes combo-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.flight-combo-warm {
+  background: var(--coral, #d94e2f);
+  color: white;
+  box-shadow: 0 3px 14px rgba(180, 70, 30, 0.4);
+}
+.flight-combo-hot {
+  background: linear-gradient(135deg, var(--coral, #d94e2f), var(--sun-dark, #c98a2e));
+  color: white;
+  box-shadow: 0 3px 16px rgba(200, 80, 20, 0.5);
+  animation:
+    combo-pop 0.4s var(--ease-pop, ease) both,
+    combo-hot-pulse 0.7s ease-in-out infinite 0.4s;
+}
+@keyframes combo-hot-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+/* ---- toast ---- */
+
+.flight-toast {
+  position: absolute;
+  top: calc(max(14px, env(safe-area-inset-top)) + 54px);
+  right: max(18px, env(safe-area-inset-right));
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sun-wash, #fbf1cf);
+  color: var(--sun-dark, #c98a2e);
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: 0 6px 16px rgba(40, 60, 80, 0.15);
+  animation: flight-toast 1.3s var(--ease-out) forwards;
+  pointer-events: none;
+  max-width: min(360px, calc(100vw - 40px));
+}
+.flight-toast.bonus {
+  background: linear-gradient(135deg, #ffd77a, #ff9f5a);
+  color: #5a3413;
+  font-size: 15px;
+  box-shadow: 0 8px 20px rgba(200, 120, 20, 0.35);
+  animation-duration: 1.5s;
+}
+.flight-toast.gentle {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink, #4a382d);
+  animation-duration: 1.7s;
+}
+
+@keyframes flight-toast {
+  0% {
+    transform: translateY(-8px) scale(0.92);
+    opacity: 0;
+  }
+  12% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+}
+
+/* ---- plane-choice round prompt ----
+   The only encounter path with no glyph on screen to read — the spoken
+   letter IS the prompt (see FlightGameScreen's speak-on-mount effect),
+   so this banner (plus a replay button, for when a child needs it said
+   again) has to stay up for the whole round, unlike the toast above. */
+
+.plane-challenge-banner {
+  position: absolute;
+  top: calc(max(14px, env(safe-area-inset-top)) + 64px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink, #4a382d);
+  border-radius: 999px;
+  padding: 10px 12px 10px 20px;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 6px 18px rgba(40, 60, 80, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fade-up-in 0.4s var(--ease-out, ease) both;
+  max-width: min(90vw, 420px);
+}
+.plane-challenge-prompt {
+  margin: 0;
+}
+.plane-challenge-replay {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--sky-wash, #e8f3f8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.plane-challenge-replay:active {
+  transform: scale(0.92);
+}
+
+/* ---- bottom bar (mic + hint) ---- */
+
+.flight-bottombar {
+  position: absolute;
+  left: max(18px, env(safe-area-inset-left));
+  right: max(18px, env(safe-area-inset-right));
+  /* env(safe-area-inset-bottom) only accounts for the device's own home
+     indicator — it knows nothing about a third-party browser's own UI.
+     iOS Safari's chrome collapses out of the way on scroll, but Chrome,
+     Firefox, and Edge on iOS all render inside Apple's WKWebView, which
+     doesn't get that collapsing behavior: their bottom toolbar (tabs,
+     search) stays a persistent ~50px bar that can sit directly over
+     page content pinned to the true bottom edge (a real, oft-reported
+     iOS-WKWebView gotcha, not a dvh/viewport-math bug — --vh-full above
+     already correctly sizes .flight-game to the visible area). Reported
+     directly by the user on iPhone Chrome, not assumed from a device
+     list — a flat, generous floor clears it on every iOS browser
+     without needing to detect which one is running. */
+  bottom: max(56px, calc(env(safe-area-inset-bottom) + 40px));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+}
+.flight-bottombar > * {
+  pointer-events: auto;
+}
+
+.flight-bottom-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.case-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--sky-dark, #2e7fa8);
+  border: none;
+  border-radius: 999px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 16px;
+  font-weight: 800;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(40, 60, 80, 0.16);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fade-up-in 0.4s var(--ease-out, ease) both;
+}
+.case-switch-btn:active {
+  transform: scale(0.95);
+}
+
+.flight-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink-soft, #7a6b5a);
+  border-radius: 999px;
+  padding: 7px 14px 7px 12px;
+  font-weight: 700;
+  font-size: 12.5px;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fade-up-in 0.5s var(--ease-out) both;
+}
+
+/* ---- HUD card ---- */
+
+.flight-hud-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 16px max(40px, env(safe-area-inset-bottom));
+  z-index: 10;
+  pointer-events: none;
+}
+
+.flight-hud-card {
+  pointer-events: auto;
+  background: var(--surface, #fffaf1);
+  border-radius: 30px;
+  padding: 20px 30px 26px;
+  box-shadow: 0 20px 44px rgba(20, 50, 80, 0.28);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  animation: flight-hud-in 0.38s var(--ease-pop) both;
+  max-width: calc(100vw - 32px);
+}
+
+@keyframes flight-hud-in {
+  from {
+    transform: translateY(24px) scale(0.94);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* The big letter is deliberately NOT Baloo 2 — its playful terminals
+   distort the letterform a child is learning to recognise. See
+   docs/03-design-system.md "Typography". */
+.flight-hud-letter {
+  font-family: 'Nunito', ui-rounded, sans-serif;
+  font-size: 76px;
+  font-weight: 900;
+  color: var(--coral, #d94e2f);
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.flight-hud-cases {
+  display: inline-flex;
+  gap: 10px;
+  font-family: 'Nunito', ui-rounded, sans-serif;
+  font-weight: 900;
+  font-size: 20px;
+  color: var(--ink-soft, #7a6b5a);
+  background: var(--surface-2, #f0e9db);
+  border-radius: 999px;
+  padding: 3px 14px;
+  line-height: 1.3;
+}
+.flight-hud-cases .is-shown {
+  color: var(--coral-dark, #b8391c);
+}
+
+.flight-hud-replay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--sky-wash, #e8f3f8);
+  color: var(--sky-dark, #2e7fa8);
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-weight: 800;
+  font-size: 13px;
+  min-height: 40px;
+}
+
+.flight-hud-question {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  margin: 4px 0 0;
+}
+
+.flight-hud-arrows {
+  display: flex;
+  gap: 14px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.flight-hud-arrow-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 24px;
+  min-height: 54px;
+  font-weight: 800;
+  font-size: 16px;
+  font-family: 'Baloo 2', sans-serif;
+}
+.flight-hud-arrow-btn.no {
+  background: var(--surface-2, #f0e9db);
+  color: var(--ink-soft, #7a6b5a);
+}
+.flight-hud-arrow-btn.yes {
+  background: var(--leaf, #45a578);
+  color: white;
+  box-shadow: 0 8px 18px rgba(69, 165, 120, 0.35);
+}
+
+/* ---- pause ---- */
+
+.flight-pause-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(16, 40, 64, 0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fade-up-in 0.25s ease both;
+}
+
+.flight-pause-card {
+  background: var(--surface, #fffaf1);
+  border-radius: 30px;
+  padding: 26px 30px 24px;
+  box-shadow: var(--shadow-lift);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(380px, 100%);
+  animation: pop-in 0.35s var(--ease-pop) both;
+}
+.flight-pause-avatar {
+  margin-bottom: -6px;
+}
+.flight-pause-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--coral-dark, #b8391c);
+}
+.flight-pause-sub {
+  margin: -6px 0 6px;
+  color: var(--ink-soft, #7a6b5a);
+  font-size: 14px;
+}
+.flight-pause-card .btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.flight-pause-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+/* ---- about (albatross story) overlay ---- */
+
+.flight-about-overlay {
+  /* Fixed, not absolute: unlike .flight-game (exactly viewport-sized,
+     overflow hidden), .flight-intro is a scrollable, content-height
+     container (min-height: 100vh but can grow taller, overflow: hidden
+     auto) — centering "inset: 0" inside THAT centers within its full
+     scrollable height, not the currently-visible viewport, which pushed
+     this card below the fold on shorter screens. Fixed anchors to the
+     real viewport regardless of the intro's own height or scroll
+     position. Caught by measuring the rendered card's position at a
+     600px-tall viewport, not by eyeballing a screenshot. */
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(16, 40, 64, 0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fade-up-in 0.25s ease both;
+}
+.flight-about-card {
+  position: relative;
+  background: var(--surface, #fffaf1);
+  border-radius: 30px;
+  padding: 30px 30px 26px;
+  box-shadow: var(--shadow-lift);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: min(560px, 100%);
+  max-height: min(88vh, 640px);
+  overflow-y: auto;
+  animation: pop-in 0.35s var(--ease-pop) both;
+}
+.flight-about-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-2, #f3e8d8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.flight-about-body {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  text-align: left;
+}
+.flight-about-nest {
+  flex: 0 0 auto;
+}
+.flight-about-text h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  color: var(--sky-dark, #2e7fa8);
+}
+.flight-about-text p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink, #4a382d);
+}
+.flight-about-text p:last-child {
+  margin-bottom: 0;
+}
+.flight-about-card > .btn {
+  width: 100%;
+}
+
+@media (max-width: 560px) {
+  .flight-about-body {
+    flex-direction: column;
+    text-align: center;
+  }
+  .flight-about-nest {
+    width: 140px;
+  }
+}
+
+.flight-sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--surface-2, #f0e9db);
+  color: var(--ink, #4a382d);
+  border: none;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-weight: 800;
+  font-size: 13px;
+  min-height: 42px;
+}
+.flight-sound-toggle[aria-pressed='false'] {
+  color: var(--ink-soft, #7a6b5a);
+}
+
+.flight-grownups-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink-soft, #7a6b5a);
+  border: 2px solid rgba(46, 127, 168, 0.18);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 800;
+  font-size: 13px;
+  min-height: 42px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.flight-grownups-btn.holding {
+  color: var(--sky-dark, #2e7fa8);
+}
+
+/* ============================================================
+   Intro + end screens — plain DOM, no Canvas mounted
+   ============================================================ */
+
+.flight-intro,
+.flight-end {
+  position: relative;
+  width: 100%;
+  min-height: var(--vh-full, 100vh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px 40px;
+  text-align: center;
+  overflow: hidden auto;
+}
+
+.flight-intro-content,
+.flight-end-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 560px;
+}
+
+.flight-about-btn-wrap {
+  position: relative;
+}
+
+.flight-intro-corner,
+.flight-end-corner {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.flight-end-corner {
+  position: static;
+  margin-top: 4px;
+}
+
+.flight-intro-keyart {
+  position: relative;
+  width: min(600px, 100%);
+}
+.flight-intro-avatar {
+  position: absolute;
+  right: -10px;
+  bottom: -14px;
+  background: var(--surface, #fffaf1);
+  border-radius: 50%;
+  padding: 4px;
+  box-shadow: var(--shadow-soft);
+  animation: pop-in 0.5s var(--ease-pop) 0.5s both;
+}
+
+.flight-intro-title,
+.flight-end-title {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: clamp(30px, 5vw, 46px);
+}
+.flight-intro-title {
+  font-size: clamp(24px, 3.6vw, 34px);
+  margin-top: 6px;
+  font-weight: 800;
+  color: var(--coral-dark, #d94e2f);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.flight-intro-sub,
+.flight-end-sub {
+  font-size: 16px;
+  color: var(--ink-soft, #7a6b5a);
+  max-width: 440px;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.flight-ways {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.flight-way {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--sky-dark, #2e7fa8);
+  border-radius: 999px;
+  padding: 6px 14px 6px 8px;
+  font-weight: 800;
+  font-size: 13px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.flight-way-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--sky-wash, #e8f3f8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flight-intro-card,
+.flight-end-card {
+  background: var(--surface, #fffaf1);
+  border-radius: 30px;
+  padding: 24px 30px 28px;
+  box-shadow: var(--shadow-lift);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(460px, 100%);
+}
+
+.flight-mode-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2, #f0e9db);
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.flight-mode-btn {
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 9px 20px;
+  min-height: 42px;
+  font-weight: 800;
+  font-size: 14px;
+  font-family: 'Baloo 2', sans-serif;
+  color: var(--ink-soft, #7a6b5a);
+}
+.flight-mode-btn.active {
+  background: var(--sky-dark, #2e7fa8);
+  color: white;
+  box-shadow: 0 4px 12px rgba(46, 127, 168, 0.35);
+}
+
+.flight-mode-desc {
+  font-size: 13.5px;
+  color: var(--ink-soft, #7a6b5a);
+  text-align: center;
+  margin: 0;
+  max-width: 340px;
+  min-height: 2.6em;
+}
+
+.flight-mission-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.flight-mission-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sky-wash, #e8f3f8);
+  color: var(--sky-dark, #2e7fa8);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.flight-takeoff-btn {
+  margin-top: 4px;
+  min-width: 200px;
+  animation: takeoff-breathe 2.4s ease-in-out infinite;
+}
+@keyframes takeoff-breathe {
+  0%,
+  100% {
+    box-shadow: 0 10px 22px rgba(210, 90, 40, 0.32);
+  }
+  50% {
+    box-shadow: 0 14px 30px rgba(210, 90, 40, 0.48);
+  }
+}
+
+/* ---- living sky (intro) ---- */
+
+.sky-stage {
+  background: linear-gradient(180deg, #8ec5ea 0%, #cfe7f5 62%, #fdf6ea 100%);
+}
+
+.sky-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.sky-sun {
+  position: absolute;
+  top: 6%;
+  right: 12%;
+  width: 22vmin;
+  height: 22vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6c4 0%, #ffe38a 38%, rgba(255, 227, 138, 0) 72%);
+  animation: sun-glow 6s ease-in-out infinite;
+}
+@keyframes sun-glow {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+.sky-cloud {
+  position: absolute;
+  width: 34vmin;
+  height: 12vmin;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  filter: blur(1px);
+  box-shadow:
+    -8vmin 4vmin 0 -2vmin rgba(255, 255, 255, 0.85),
+    9vmin 3vmin 0 -3vmin rgba(255, 255, 255, 0.85),
+    2vmin -5vmin 0 -1vmin rgba(255, 255, 255, 0.85);
+  animation: cloud-drift linear infinite;
+}
+.sky-cloud.c1 {
+  top: 14%;
+  left: -40vmin;
+  animation-duration: 58s;
+}
+.sky-cloud.c2 {
+  top: 60%;
+  left: -40vmin;
+  transform: scale(0.7);
+  opacity: 0.8;
+  animation-duration: 74s;
+  animation-delay: -30s;
+}
+.sky-cloud.c3 {
+  top: 6%;
+  left: -40vmin;
+  transform: scale(0.55);
+  opacity: 0.7;
+  animation-duration: 90s;
+  animation-delay: -60s;
+}
+.sky-cloud.c4 {
+  top: 72%;
+  left: -40vmin;
+  transform: scale(0.85);
+  opacity: 0.65;
+  animation-duration: 66s;
+  animation-delay: -12s;
+}
+@keyframes cloud-drift {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: calc(100vw + 80vmin) 0;
+  }
+}
+.sky-sea {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 18%;
+  background: linear-gradient(180deg, rgba(45, 127, 176, 0) 0%, rgba(45, 127, 176, 0.22) 35%, rgba(23, 83, 127, 0.35) 100%);
+}
+
+/* ---- evening sky (end) ---- */
+
+.night-stage {
+  background: linear-gradient(180deg, #172552 0%, #2c4a7f 42%, #d8a26b 62%, #fdf6ea 100%);
+}
+.flight-end .flight-end-title {
+  color: #ffffff;
+  text-shadow: 0 4px 18px rgba(10, 20, 50, 0.45);
+}
+.flight-end .flight-end-sub {
+  color: rgba(255, 255, 255, 0.86);
+  text-shadow: 0 2px 10px rgba(10, 20, 50, 0.4);
+}
+.night-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.night-star {
+  position: absolute;
+  border-radius: 50%;
+  background: white;
+  opacity: 0.6;
+  animation: star-twinkle 2.6s ease-in-out infinite;
+}
+@keyframes star-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+.night-moon {
+  position: absolute;
+  top: 8%;
+  left: 12%;
+  width: 11vmin;
+  height: 11vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, #fffbe6 0%, #e7ddb8 70%, #d9cfa8 100%);
+  box-shadow: 0 0 40px 10px rgba(255, 250, 220, 0.25);
+}
+.night-sea {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22%;
+  background: linear-gradient(180deg, rgba(60, 90, 140, 0) 0%, rgba(60, 90, 140, 0.25) 40%, rgba(40, 60, 110, 0.45) 100%);
+}
+
+/* ---- end screen contents ---- */
+
+.flight-end-nest {
+  animation: nest-bob 3.2s ease-in-out infinite;
+  margin: -6px 0 -10px;
+}
+@keyframes nest-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.flight-end-stars {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  background: var(--sun-wash, #fbf1cf);
+  border-radius: 999px;
+  padding: 8px 20px 8px 16px;
+  color: var(--sun-dark, #c98a2e);
+}
+.flight-end-stars svg {
+  align-self: center;
+}
+.flight-end-stars-count {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+}
+.flight-end-stars-label {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.flight-end-letters {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 380px;
+}
+.flight-end-letter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 64px;
+  padding: 10px 4px 8px;
+  border-radius: 18px;
+  background: var(--surface-2, #f0e9db);
+  animation: pop-in 0.45s var(--ease-pop) both;
+}
+.flight-end-letter:nth-child(1) { animation-delay: 0.1s; }
+.flight-end-letter:nth-child(2) { animation-delay: 0.17s; }
+.flight-end-letter:nth-child(3) { animation-delay: 0.24s; }
+.flight-end-letter:nth-child(4) { animation-delay: 0.31s; }
+.flight-end-letter:nth-child(5) { animation-delay: 0.38s; }
+.flight-end-letter:nth-child(6) { animation-delay: 0.45s; }
+.flight-end-letter:nth-child(n + 7) { animation-delay: 0.52s; }
+.flight-end-letter.knew {
+  background: var(--leaf-wash, #e5f3ec);
+}
+.flight-end-letter.bonus {
+  background: linear-gradient(135deg, #ffe4a3, #ffc48a);
+}
+.flight-end-letter-glyph {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--ink, #4a382d);
+}
+.flight-end-letter.knew .flight-end-letter-glyph {
+  color: var(--leaf-dark, #2f7a55);
+}
+.flight-end-letter.bonus .flight-end-letter-glyph {
+  color: #8a4a12;
+}
+.flight-end-letter.missed .flight-end-letter-glyph {
+  color: var(--ink-soft, #7a6b5a);
+}
+.flight-end-letter-note {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--ink-soft, #7a6b5a);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.flight-end-empty {
+  margin: 0;
+  color: var(--ink-soft, #7a6b5a);
+  font-size: 14px;
+}
+
+.flight-end-link {
+  background: none;
+  border: none;
+  color: var(--ink-soft, #7a6b5a);
+  font-weight: 800;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 999px;
+}
+.flight-end-link:hover {
+  color: var(--ink, #4a382d);
+  background: var(--surface-2, #f0e9db);
+}
+
+.flight-mastered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px 12px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #fff6dc 0%, #ffedc2 100%);
+  box-shadow: inset 0 0 0 2px rgba(201, 138, 46, 0.25);
+  width: 100%;
+}
+.flight-mastered-eyebrow {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--sun-dark, #c98a2e);
+}
+.flight-mastered-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.flight-mastered-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 26px;
+  color: #5a3413;
+  background: radial-gradient(circle at 35% 30%, #fff2b3 0%, #ffd06e 60%, #f0a83a 100%);
+  box-shadow: 0 6px 16px rgba(240, 168, 58, 0.45);
+  animation: badge-pop 0.6s var(--ease-pop) both;
+}
+@keyframes badge-pop {
+  0% {
+    transform: scale(0) rotate(-30deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+.flight-mastered-line {
+  font-size: 12.5px;
+  color: var(--ink-soft, #7a6b5a);
+  font-style: italic;
+}
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+.confetti-piece {
+  position: absolute;
+  top: -20px;
+  border-radius: 2px;
+  opacity: 0;
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: 2;
+}
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(var(--rot, 0deg));
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(calc(var(--rot, 0deg) + 540deg));
+    opacity: 0.9;
+  }
+}
+
+@media (max-width: 560px) {
+  .flight-hud-card {
+    padding: 16px 20px 20px;
+  }
+  .flight-hud-letter {
+    font-size: 64px;
+  }
+  .flight-hud-arrow-btn {
+    padding: 12px 18px;
+    font-size: 15px;
+  }
+  .flight-slot {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
+  .flight-intro-card,
+  .flight-end-card {
+    padding: 20px 18px 24px;
+  }
+  .flight-hint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-cloud,
+  .sky-sun,
+  .night-star,
+  .flight-end-nest,
+  .flight-takeoff-btn,
+  .flight-loading-wings,
+  .flight-slot.current {
+    animation: none;
+  }
+  .confetti {
+    display: none;
+  }
+}

@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap">
+  <style>
+    :where(*) { box-sizing: border-box; }
+    .app {
+      --bg: oklch(96% 0.025 75);
+      --surface: oklch(99% 0.008 75);
+      --surface-2: oklch(94% 0.02 80);
+      --ink: oklch(32% 0.045 50);
+      --ink-soft: oklch(52% 0.035 55);
+      --coral: oklch(70% 0.19 35);
+      --coral-dark: oklch(58% 0.18 32);
+      --coral-wash: oklch(93% 0.05 35);
+      --leaf: oklch(66% 0.15 148);
+      --leaf-dark: oklch(50% 0.13 148);
+      --leaf-wash: oklch(93% 0.06 148);
+      --sky: oklch(75% 0.1 232);
+      --sky-dark: oklch(56% 0.1 232);
+      --sky-wash: oklch(94% 0.03 232);
+      --sun: oklch(83% 0.15 88);
+      --sun-dark: oklch(64% 0.14 75);
+      --sun-wash: oklch(94% 0.06 90);
+      --berry: oklch(64% 0.17 350);
+      font-family: 'Nunito', ui-rounded, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    .disp { font-family: 'Baloo 2', ui-rounded, sans-serif; }
+  </style>
+</helmet>
+
+<div class="app" style="position:relative; width:1024px; height:768px; overflow:hidden; background:var(--sun-wash);">
+
+  <div style="position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); width:520px; height:520px; border-radius:50%; background:var(--coral-wash); opacity:0.7;"></div>
+
+  <!-- confetti -->
+  <sc-for list="{{confetti}}" as="c" hint-placeholder-count="26">
+    <sc-if value="{{c.round}}" hint-placeholder-val="{{true}}">
+      <div style="position:absolute; left:{{c.x}}px; top:{{c.y}}px; width:{{c.s}}px; height:{{c.s}}px; border-radius:50%; background:{{c.color}}; opacity:0.85;"></div>
+    </sc-if>
+    <sc-if value="{{c.round}}" hint-placeholder-val="{{false}}">
+      <div style="position:absolute; left:{{c.x}}px; top:{{c.y}}px; width:{{c.s}}px; height:{{c.s}}px; background:{{c.color}}; border-radius:3px; transform:rotate({{c.r}}deg); opacity:0.85;"></div>
+    </sc-if>
+  </sc-for>
+
+  <div style="position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; padding-top:56px;">
+    <h1 class="disp" style="margin:0; font-size:54px; font-weight:800; color:var(--coral-dark); text-shadow:0 4px 0 rgba(255,255,255,0.5);">You found it!</h1>
+    <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+      <p style="margin:0; font-size:19px; color:var(--ink); font-weight:700;">You knew the sound. Now you know its shape:</p>
+      <div style="background:var(--coral); color:white; border-radius:14px; padding:4px 16px;">
+        <span class="disp" style="font-size:22px; font-weight:700;">Dd</span>
+      </div>
+    </div>
+
+    <!-- Buddy jumping -->
+    <svg viewBox="0 0 200 240" style="width:210px; height:252px; margin-top:6px;">
+      <ellipse cx="100" cy="226" rx="46" ry="9" fill="var(--coral-dark)" opacity="0.15"/>
+      <path d="M38,150 Q6,95 40,55" stroke="var(--coral)" stroke-width="22" stroke-linecap="round" fill="none"/>
+      <path d="M162,150 Q194,95 160,55" stroke="var(--coral)" stroke-width="22" stroke-linecap="round" fill="none"/>
+      <path d="M75,200 L68,222" stroke="var(--coral)" stroke-width="22" stroke-linecap="round"/>
+      <path d="M125,200 L132,222" stroke="var(--coral)" stroke-width="22" stroke-linecap="round"/>
+      <ellipse cx="100" cy="160" rx="54" ry="48" fill="var(--coral)"/>
+      <ellipse cx="100" cy="170" rx="29" ry="25" fill="var(--surface)"/>
+      <circle cx="100" cy="72" r="58" fill="var(--coral)"/>
+      <polygon points="56,35 42,-15 82,25" fill="var(--coral)"/>
+      <polygon points="60,25 53,2 74,24" fill="var(--surface)"/>
+      <polygon points="144,35 158,-15 118,25" fill="var(--coral)"/>
+      <polygon points="140,25 147,2 126,24" fill="var(--surface)"/>
+      <ellipse cx="100" cy="92" rx="37" ry="26" fill="var(--surface)"/>
+      <circle cx="81" cy="68" r="8" fill="var(--ink)"/>
+      <circle cx="119" cy="68" r="8" fill="var(--ink)"/>
+      <circle cx="83.5" cy="65.5" r="2.4" fill="white"/>
+      <circle cx="121.5" cy="65.5" r="2.4" fill="white"/>
+      <ellipse cx="100" cy="98" rx="11" ry="8" fill="var(--ink)"/>
+      <path d="M4,30 L20,42 M196,30 L180,42 M100,0 L100,18 M30,0 L42,16 M170,0 L158,16" stroke="var(--sun-dark)" stroke-width="3.4" stroke-linecap="round"/>
+    </svg>
+
+    <!-- badge strip -->
+    <span style="font-size:13px; font-weight:800; color:var(--sun-dark); margin-top:4px;">Buddy's Letter-Song grows stronger!</span>
+    <div style="display:flex; gap:14px; margin-top:8px; background:var(--surface); border-radius:26px; padding:16px 24px; box-shadow:0 14px 30px rgba(120,70,30,0.16);">
+      <sc-for list="{{badges}}" as="b" hint-placeholder-count="10">
+        <div style="position:relative; width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:{{b.bg}}; border:{{b.border}}; box-shadow:{{b.shadow}};">
+          <sc-if value="{{b.filled}}" hint-placeholder-val="{{true}}">
+            <span class="disp" style="color:white; font-weight:700; font-size:16px;">{{b.ch}}</span>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:20px;">
+      <button style="background:var(--coral); color:white; border:none; border-radius:28px; padding:15px 46px; font-family:'Baloo 2', sans-serif; font-weight:700; font-size:19px; cursor:pointer; box-shadow:0 12px 24px rgba(210,90,40,0.35);">Keep Going!</button>
+      <a href="#" style="font-size:13px; color:var(--ink-soft); font-weight:700;">Back to my path</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const colors = ['var(--leaf)', 'var(--sky)', 'var(--sun)', 'var(--berry)', 'var(--coral)'];
+    const confetti = Array.from({ length: 26 }, (_, i) => ({
+      x: 30 + ((i * 137) % 960),
+      y: 20 + ((i * 71) % 700),
+      s: 8 + (i % 4) * 3,
+      r: (i * 47) % 360,
+      round: i % 2 === 0,
+      color: colors[i % colors.length],
+    }));
+    const letters = ['A','B','C','D'];
+    const badges = Array.from({ length: 10 }, (_, i) => {
+      const ch = letters[i];
+      const filled = !!ch;
+      const isNew = ch === 'D';
+      return {
+        ch: ch || '',
+        filled,
+        bg: filled ? 'var(--leaf)' : 'var(--surface-2)',
+        border: isNew ? '3px solid var(--sun-dark)' : (filled ? '3px solid var(--leaf-dark)' : '3px dashed var(--sky-wash)'),
+        shadow: isNew ? '0 0 0 5px var(--sun-wash)' : 'none',
+      };
+    });
+    return { confetti, badges };
+  }
+}
+</script>
+</body>
+</html>

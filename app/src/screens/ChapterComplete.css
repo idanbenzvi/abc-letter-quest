@@ -1,0 +1,51 @@
+.chapter {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+}
+
+.chapter-eyebrow {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chapter-title {
+  font-size: clamp(30px, 5.5vw, 46px);
+  font-weight: 800;
+  margin: 6px 0 4px;
+  text-align: center;
+}
+
+.chapter-sub {
+  font-size: 16px;
+  color: var(--ink-soft);
+  text-align: center;
+  max-width: 480px;
+}
+
+.companion-frame {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 18px 0;
+}
+
+.companion-name {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.companion-blurb {
+  font-size: 15px;
+  color: var(--ink-soft);
+  max-width: 420px;
+  text-align: center;
+  margin-top: 6px;
+}

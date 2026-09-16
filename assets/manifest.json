@@ -1,0 +1,116 @@
+{
+  "_comment": "Starter manifest — proves the pipeline on Buddy + the first two letters (A, D) already used in the design canvas. Extend the assets[] array to cover the rest of the alphabet before a full production run. tier 'pro' = gemini-3-pro-image-preview (best character consistency, ~$0.134/image at GA pricing, check current pricing before a big run). tier 'flash' = gemini-3.1-flash-image (cheaper, fine for simple single-object icons once the style is locked).",
+  "referenceImages": {
+    "buddy": "reference/buddy-model-sheet.png"
+  },
+  "assets": [
+    {
+      "id": "buddy-standing-wave",
+      "category": "mascot",
+      "tier": "pro",
+      "usesReference": null,
+      "aspectRatio": "1:1",
+      "prompt": "Buddy the fox standing upright, one paw raised in a friendly wave, warm welcoming smile, looking at the viewer. This image becomes the character reference for every other Buddy pose — make it a clean, clear, neutral full-body view."
+    },
+    {
+      "id": "buddy-cheering",
+      "category": "mascot",
+      "tier": "pro",
+      "usesReference": "buddy",
+      "aspectRatio": "1:1",
+      "prompt": "Buddy the fox cheering with both arms raised high, big delighted open-mouth smile, small motion lines around him suggesting excitement."
+    },
+    {
+      "id": "buddy-jumping",
+      "category": "mascot",
+      "tier": "pro",
+      "usesReference": "buddy",
+      "aspectRatio": "1:1",
+      "prompt": "Buddy the fox mid-air jumping for joy, arms up, legs tucked slightly, a small soft shadow beneath him on the ground, joyful expression."
+    },
+    {
+      "id": "buddy-curious",
+      "category": "mascot",
+      "tier": "pro",
+      "usesReference": "buddy",
+      "aspectRatio": "1:1",
+      "prompt": "Buddy the fox with head tilted to one side, one ear perked up, curious and thoughtful expression, as if listening closely for a sound."
+    },
+    {
+      "id": "buddy-sleepy",
+      "category": "mascot",
+      "tier": "pro",
+      "usesReference": "buddy",
+      "aspectRatio": "1:1",
+      "prompt": "Buddy the fox mid-yawn, eyes half closed, one paw stretched up, sleepy and cozy expression."
+    },
+    {
+      "id": "buddy-pointing",
+      "category": "mascot",
+      "tier": "pro",
+      "usesReference": "buddy",
+      "aspectRatio": "1:1",
+      "prompt": "Buddy the fox pointing off to one side with one paw, eyebrows raised, inviting the viewer to look that way."
+    },
+    {
+      "id": "word-apple",
+      "category": "word-illustration",
+      "tier": "flash",
+      "usesReference": "buddy",
+      "aspectRatio": "1:1",
+      "word": "apple",
+      "letter": "A",
+      "prompt": "A single bright red apple with a green leaf and brown stem, simple flat icon illustration, centered."
+    },
+    {
+      "id": "word-ball",
+      "category": "word-illustration",
+      "tier": "flash",
+      "usesReference": "buddy",
+      "aspectRatio": "1:1",
+      "word": "ball",
+      "letter": "B",
+      "prompt": "A single round striped play ball (red and gold stripes), simple flat icon illustration, centered."
+    },
+    {
+      "id": "word-cat",
+      "category": "word-illustration",
+      "tier": "flash",
+      "usesReference": "buddy",
+      "aspectRatio": "1:1",
+      "word": "cat",
+      "letter": "C",
+      "prompt": "A single friendly cartoon cat face, sitting, simple flat icon illustration, centered."
+    },
+    {
+      "id": "word-dog",
+      "category": "word-illustration",
+      "tier": "flash",
+      "usesReference": "buddy",
+      "aspectRatio": "1:1",
+      "word": "dog",
+      "letter": "D",
+      "prompt": "A single friendly cartoon dog with floppy ears sitting, simple flat icon illustration, centered."
+    },
+    {
+      "id": "word-elephant",
+      "category": "word-illustration",
+      "tier": "flash",
+      "usesReference": "buddy",
+      "aspectRatio": "1:1",
+      "word": "elephant",
+      "letter": "E",
+      "prompt": "A single friendly cartoon baby elephant, simple flat icon illustration, centered."
+    },
+    {
+      "id": "word-fish",
+      "category": "word-illustration",
+      "tier": "flash",
+      "usesReference": "buddy",
+      "aspectRatio": "1:1",
+      "word": "fish",
+      "letter": "F",
+      "prompt": "A single friendly cartoon fish with big fins, simple flat icon illustration, centered."
+    }
+  ]
+}

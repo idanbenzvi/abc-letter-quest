@@ -1,0 +1,32 @@
+@keyframes stroke-draw {
+  from {
+    stroke-dashoffset: 700;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes stroke-dot-move {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+
+.stroke-anim-path {
+  stroke-dasharray: 700;
+  stroke-dashoffset: 700;
+  animation-name: stroke-draw;
+  animation-timing-function: ease;
+  animation-fill-mode: forwards;
+}
+
+.stroke-anim-dot {
+  animation-name: stroke-dot-move;
+  animation-timing-function: ease;
+  animation-fill-mode: forwards;
+  offset-rotate: 0deg;
+}

@@ -1,0 +1,113 @@
+.player-select {
+  min-height: var(--vh-full, 100vh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 16px 60px;
+  background:
+    radial-gradient(60vmax 40vmax at 80% -10%, rgba(191, 224, 242, 0.7) 0%, rgba(191, 224, 242, 0) 60%),
+    var(--bg);
+}
+
+.player-select-header {
+  text-align: center;
+  max-width: 480px;
+  margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.player-select-title {
+  font-size: clamp(28px, 5vw, 38px);
+  font-weight: 800;
+  color: var(--coral-dark);
+  margin: 6px 0 6px;
+}
+
+.player-select-subtitle {
+  color: var(--ink-soft);
+  font-size: 15px;
+  margin: 0;
+}
+
+.player-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+  max-width: 720px;
+}
+
+.player-tile {
+  width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 2px solid var(--sky-wash);
+  border-radius: var(--radius-lg, 28px);
+  padding: 20px 12px 18px;
+  box-shadow: var(--shadow-soft);
+}
+.player-tile:hover {
+  border-color: var(--sky);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+.player-tile.is-active {
+  border-color: var(--coral);
+}
+
+.player-tile-avatar {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-tile-active-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--leaf);
+  border: 2px solid var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-tile-name {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--ink);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.player-tile-add {
+  border-style: dashed;
+  background: var(--surface-2);
+  box-shadow: none;
+}
+.player-tile-add:hover {
+  box-shadow: none;
+}
+
+.player-tile-add-icon {
+  background: var(--sky-wash);
+}
+
+.player-tile-add .player-tile-name {
+  color: var(--sky-dark);
+}

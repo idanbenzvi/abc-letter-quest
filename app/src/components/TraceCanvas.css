@@ -1,0 +1,33 @@
+.trace-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.trace-canvas {
+  touch-action: none;
+  background: var(--surface);
+  border-radius: 28px;
+  box-shadow: var(--shadow-soft);
+  cursor: crosshair;
+}
+
+.trace-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.trace-score-ring-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.trace-feedback {
+  font-size: 14px;
+  font-weight: 700;
+  min-height: 20px;
+}

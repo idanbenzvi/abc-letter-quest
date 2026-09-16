@@ -1,0 +1,68 @@
+.bonus {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 24px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.bonus-prompt {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.mic-btn {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: none;
+  background: var(--coral);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 22px rgba(210, 90, 40, 0.32);
+}
+.mic-btn.listening {
+  background: var(--berry);
+  animation: pulse 1s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.bonus-result {
+  font-size: 15px;
+  font-weight: 700;
+}
+.bonus-result.match {
+  color: var(--leaf-dark);
+}
+.bonus-result.no-match {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.bonus-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.bonus-skip {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: underline;
+}

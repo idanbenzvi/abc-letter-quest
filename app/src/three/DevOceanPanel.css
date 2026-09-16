@@ -1,0 +1,100 @@
+.dev-ocean-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 300px;
+  z-index: 50;
+  background: rgba(20, 24, 32, 0.88);
+  color: #e8edf2;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 12px;
+  overflow-y: auto;
+  padding: 14px 16px 24px;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
+}
+
+.dev-ocean-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.dev-ocean-header button {
+  background: none;
+  border: none;
+  color: #e8edf2;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.dev-ocean-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.dev-ocean-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dev-ocean-row-color {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dev-ocean-row-color input[type='color'] {
+  width: 36px;
+  height: 20px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.dev-ocean-label {
+  display: flex;
+  justify-content: space-between;
+  color: #b8c2cc;
+}
+
+.dev-ocean-value {
+  color: #7fd4ff;
+}
+
+.dev-ocean-row input[type='range'] {
+  width: 100%;
+}
+
+.dev-ocean-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dev-ocean-actions button {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8edf2;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dev-ocean-actions button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}

@@ -1,0 +1,19 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1024, "h": 768 },
+    { "file": "HomePath.dc.html", "x": 1124, "y": 0, "w": 1024, "h": 768 },
+    { "file": "LetterLearning.dc.html", "x": 2248, "y": 0, "w": 1024, "h": 768 },
+    { "file": "Tracing.dc.html", "x": 3372, "y": 0, "w": 1024, "h": 768 },
+    { "file": "Dashboard.dc.html", "x": 4496, "y": 0, "w": 1024, "h": 768 },
+    { "file": "Celebration.dc.html", "x": 5620, "y": 0, "w": 1024, "h": 768 }
+  ],
+  "annotations": [
+    { "id": "lbl-1", "x": 0, "y": -50, "w": 300, "text": "1. Onboarding" },
+    { "id": "lbl-2", "x": 1124, "y": -50, "w": 300, "text": "2. Home / Learning Path" },
+    { "id": "lbl-3", "x": 2248, "y": -50, "w": 300, "text": "3. Letter Learning (Phase 1)" },
+    { "id": "lbl-4", "x": 3372, "y": -50, "w": 300, "text": "4. Tracing (Phase 2)" },
+    { "id": "lbl-5", "x": 4496, "y": -50, "w": 300, "text": "5. Parent Dashboard" },
+    { "id": "lbl-6", "x": 5620, "y": -50, "w": 300, "text": "6. Celebration" }
+  ],
+  "launch": { "view": "canvas" }
+}

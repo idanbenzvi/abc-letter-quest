@@ -1,0 +1,76 @@
+.hold-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hold-btn {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.hold-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  background: conic-gradient(var(--sky-dark, #2e7fa8) var(--hold-progress, 0%), transparent 0);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.hold-btn.holding .hold-ring {
+  opacity: 1;
+  animation: hold-fill var(--hold-ms, 1100ms) linear forwards;
+}
+
+/* The animatable custom property — lets the conic gradient sweep. */
+@property --hold-progress {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+@keyframes hold-fill {
+  from {
+    --hold-progress: 0%;
+  }
+  to {
+    --hold-progress: 100%;
+  }
+}
+
+.hold-content {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.hold-hint {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translate(-50%, -4px);
+  white-space: nowrap;
+  background: var(--ink, #4a382d);
+  color: white;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 5px 10px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s var(--ease-out, ease);
+  z-index: 20;
+}
+
+.hold-wrap.show-hint .hold-hint {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}

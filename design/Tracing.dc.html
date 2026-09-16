@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap">
+  <style>
+    :where(*) { box-sizing: border-box; }
+    .app {
+      --bg: oklch(96% 0.025 75);
+      --surface: oklch(99% 0.008 75);
+      --surface-2: oklch(94% 0.02 80);
+      --ink: oklch(32% 0.045 50);
+      --ink-soft: oklch(52% 0.035 55);
+      --coral: oklch(70% 0.19 35);
+      --coral-dark: oklch(58% 0.18 32);
+      --coral-wash: oklch(93% 0.05 35);
+      --leaf: oklch(66% 0.15 148);
+      --leaf-dark: oklch(50% 0.13 148);
+      --leaf-wash: oklch(93% 0.06 148);
+      --sky: oklch(75% 0.1 232);
+      --sky-dark: oklch(56% 0.1 232);
+      --sky-wash: oklch(94% 0.03 232);
+      --sun: oklch(83% 0.15 88);
+      --sun-dark: oklch(64% 0.14 75);
+      --sun-wash: oklch(94% 0.06 90);
+      --berry: oklch(64% 0.17 350);
+      --berry-wash: oklch(93% 0.04 350);
+      font-family: 'Nunito', ui-rounded, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    .disp { font-family: 'Baloo 2', ui-rounded, sans-serif; }
+  </style>
+</helmet>
+
+<div class="app" style="position:relative; width:1024px; height:768px; overflow:hidden;">
+
+  <div style="position:absolute; top:-80px; left:-80px; width:280px; height:280px; border-radius:50%; background:var(--sun-wash); opacity:0.5;"></div>
+  <div style="position:absolute; bottom:-90px; right:-70px; width:300px; height:300px; border-radius:50%; background:var(--sky-wash); opacity:0.5;"></div>
+
+  <!-- top bar -->
+  <div style="position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; padding:20px 32px;">
+    <button style="width:42px; height:42px; border-radius:50%; background:var(--surface); border:2px solid var(--sky-wash); display:flex; align-items:center; justify-content:center; cursor:pointer;">
+      <svg viewBox="0 0 24 24" style="width:18px; height:18px;"><path d="M15,5 L8,12 L15,19" stroke="var(--ink-soft)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="disp" style="font-size:26px; font-weight:700; color:var(--coral-dark);">Trace the letter!</span>
+
+    <div style="display:flex; flex-direction:column; align-items:center;">
+      <svg viewBox="0 0 80 80" style="width:64px; height:64px;">
+        <circle cx="40" cy="40" r="32" fill="none" stroke="var(--surface-2)" stroke-width="9"/>
+        <circle cx="40" cy="40" r="32" fill="none" stroke="var(--leaf)" stroke-width="9" stroke-linecap="round"
+          stroke-dasharray="157" stroke-dashoffset="35" transform="rotate(-90 40 40)"/>
+        <text x="40" y="46" text-anchor="middle" font-family="Nunito" font-weight="800" font-size="20" fill="var(--leaf-dark)">78%</text>
+      </svg>
+      <span style="font-size:12px; font-weight:800; color:var(--leaf-dark); margin-top:2px;">Great!</span>
+    </div>
+  </div>
+
+  <!-- tracing card -->
+  <div style="position:relative; z-index:2; display:flex; justify-content:center; margin-top:6px;">
+    <div style="width:460px; height:460px; background:var(--surface); border-radius:32px; box-shadow:0 16px 34px rgba(120,70,30,0.14); display:flex; align-items:center; justify-content:center;">
+      <svg viewBox="0 0 400 400" style="width:380px; height:380px;">
+        <path d="M160,90 L160,310 Q290,310 290,200 Q290,90 160,90"
+          fill="none" stroke="var(--sky)" stroke-width="46" stroke-linecap="round" opacity="0.15"/>
+        <path d="M160,90 L160,310 Q290,310 290,200 Q290,90 160,90"
+          fill="none" stroke="var(--sky-dark)" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 15" opacity="0.55"/>
+        <path d="M160,90 L160,310 Q290,310 290,200 Q290,90 160,90"
+          fill="none" stroke="var(--coral)" stroke-width="10" stroke-linecap="round"
+          pathLength="100" stroke-dasharray="62 100"/>
+
+        <circle cx="160" cy="90" r="17" fill="var(--coral-wash)"/>
+        <circle cx="160" cy="90" r="11" fill="var(--coral)"/>
+        <text x="160" y="95" text-anchor="middle" font-family="Nunito" font-weight="800" font-size="13" fill="white">1</text>
+        <path d="M160,120 L160,140 M152,132 L160,142 L168,132" stroke="var(--coral-dark)" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+        <g>
+          <polygon points="252,322 258,308 264,322 258,332" fill="var(--sun)"/>
+          <polygon points="270,300 275,290 280,300 275,308" fill="var(--sun)"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- attempt + actions -->
+  <div style="position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; gap:14px; margin-top:16px;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:13px; color:var(--ink-soft); font-weight:700;">Attempt 2 of 3</span>
+      <div style="display:flex; gap:6px;">
+        <div style="width:9px; height:9px; border-radius:50%; background:var(--coral);"></div>
+        <div style="width:9px; height:9px; border-radius:50%; background:var(--coral);"></div>
+        <div style="width:9px; height:9px; border-radius:50%; background:var(--surface-2);"></div>
+      </div>
+    </div>
+    <div style="display:flex; gap:16px;">
+      <button style="background:var(--surface); color:var(--sky-dark); border:2px solid var(--sky-wash); border-radius:24px; padding:12px 28px; font-weight:800; font-size:15px; cursor:pointer;">Try Again</button>
+      <button style="background:var(--coral); color:white; border:none; border-radius:24px; padding:12px 32px; font-weight:800; font-size:15px; cursor:pointer; box-shadow:0 10px 22px rgba(210,90,40,0.32);">Next Letter</button>
+    </div>
+  </div>
+
+  <!-- Buddy cheering + speech bubble -->
+  <div style="position:absolute; bottom:16px; right:28px; z-index:2; display:flex; align-items:flex-end; gap:10px;">
+    <div style="background:var(--surface); border-radius:16px 16px 4px 16px; padding:10px 16px; box-shadow:0 6px 14px rgba(80,50,20,0.12); margin-bottom:36px;">
+      <span style="font-size:13px; font-weight:700; color:var(--ink);">You're doing great!</span>
+    </div>
+    <svg viewBox="0 0 200 240" style="width:104px; height:125px;">
+      <path d="M40,180 Q10,120 40,80" stroke="var(--coral)" stroke-width="20" stroke-linecap="round" fill="none"/>
+      <path d="M160,180 Q190,120 160,80" stroke="var(--coral)" stroke-width="20" stroke-linecap="round" fill="none"/>
+      <ellipse cx="100" cy="190" rx="52" ry="46" fill="var(--coral)"/>
+      <ellipse cx="100" cy="200" rx="28" ry="24" fill="var(--surface)"/>
+      <circle cx="100" cy="100" r="56" fill="var(--coral)"/>
+      <polygon points="56,63 42,13 82,55" fill="var(--coral)"/>
+      <polygon points="60,53 53,30 74,52" fill="var(--surface)"/>
+      <polygon points="144,63 158,13 118,55" fill="var(--coral)"/>
+      <polygon points="140,53 147,30 126,52" fill="var(--surface)"/>
+      <ellipse cx="100" cy="120" rx="36" ry="24" fill="var(--surface)"/>
+      <circle cx="81" cy="96" r="7.5" fill="var(--ink)"/>
+      <circle cx="119" cy="96" r="7.5" fill="var(--ink)"/>
+      <ellipse cx="100" cy="126" rx="10" ry="7" fill="var(--ink)"/>
+      <path d="M20,60 L34,72 M180,60 L166,72 M100,30 L100,46" stroke="var(--sun-dark)" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "ABCtross",
+  "short_name": "ABCtross",
+  "description": "Fly an albatross home across the sea and gather the letters hiding in the clouds.",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#ffe9c2",
+  "theme_color": "#f6a96a",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

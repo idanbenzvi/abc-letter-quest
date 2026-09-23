@@ -103,6 +103,113 @@ export function createStarTexture(): THREE.CanvasTexture {
   return starTexture;
 }
 
+export interface ConstellationEdge {
+  a: number;
+  b: number;
+}
+
+export interface Constellation {
+  points: CloudPoint[];
+  edges: ConstellationEdge[];
+}
+
+/**
+ * A Euclidean minimum spanning tree over `points` (Prim's algorithm) —
+ * "connect every star with the shortest total thread," the same
+ * technique a hand-drawn constellation figure follows. Shared by
+ * cloudIcon.ts's word-icon constellations and this module's
+ * buildLetterConstellation below (moved here, rather than duplicated,
+ * once letters needed the identical algorithm). The edges come out in
+ * TREE-GROWTH order — edge i's `b` endpoint is the i-th point to join
+ * the tree — which callers rely on to animate a "growing" reveal instead
+ * of just picking a reveal order arbitrarily.
+ */
+export function buildMstEdges(points: CloudPoint[]): ConstellationEdge[] {
+  const n = points.length;
+  const edges: ConstellationEdge[] = [];
+  if (n < 2) return edges;
+
+  const inTree = new Array<boolean>(n).fill(false);
+  const dist = new Array<number>(n).fill(Infinity);
+  const parent = new Array<number>(n).fill(-1);
+  dist[0] = 0;
+
+  for (let iter = 0; iter < n; iter++) {
+    let u = -1;
+    let best = Infinity;
+    for (let i = 0; i < n; i++) {
+      if (!inTree[i] && dist[i] < best) {
+        best = dist[i];
+        u = i;
+      }
+    }
+    if (u === -1) break;
+    inTree[u] = true;
+    if (parent[u] !== -1) edges.push({ a: parent[u], b: u });
+
+    for (let v = 0; v < n; v++) {
+      if (inTree[v]) continue;
+      const dx = points[u].x - points[v].x;
+      const dy = points[u].y - points[v].y;
+      const d = dx * dx + dy * dy;
+      if (d < dist[v]) {
+        dist[v] = d;
+        parent[v] = u;
+      }
+    }
+  }
+  return edges;
+}
+
+/**
+ * Only the glyph's outline pixels (at least one transparent neighbor at
+ * the same grid step) — same reasoning as cloudIcon.ts's
+ * sampleOutlinePoints: a filled interior grid's MST draws a comb/lattice,
+ * not a recognizable shape. Local to buildLetterConstellation below.
+ */
+function sampleLetterOutlinePoints(letter: string, fontPx: number, step: number): CloudPoint[] {
+  const size = Math.round(fontPx * 1.3);
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return [];
+  ctx.clearRect(0, 0, size, size);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `900 ${fontPx}px Nunito, Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(letter, size / 2, size / 2 + fontPx * 0.05);
+
+  const { data } = ctx.getImageData(0, 0, size, size);
+  const alphaAt = (x: number, y: number): number => {
+    if (x < 0 || y < 0 || x >= size || y >= size) return 0;
+    return data[(x + y * size) * 4 + 3];
+  };
+
+  const points: CloudPoint[] = [];
+  for (let y = 0; y < size; y += step) {
+    for (let x = 0; x < size; x += step) {
+      if (alphaAt(x, y) <= 80) continue;
+      const isBoundary =
+        alphaAt(x - step, y) <= 80 || alphaAt(x + step, y) <= 80 || alphaAt(x, y - step) <= 80 || alphaAt(x, y + step) <= 80;
+      if (isBoundary) points.push({ x: x - size / 2, y: -(y - size / 2) });
+    }
+  }
+  return points;
+}
+
+/**
+ * Night-mode alternative to sampleLetterPoints' dense puff cloud: a
+ * sparse constellation of star joints tracing the glyph's outline,
+ * connected by a minimum spanning tree — see NightLetterCloud.tsx for
+ * how the reveal is animated against live trace progress.
+ */
+export function buildLetterConstellation(letter: string, fontPx = 240, step = 10): Constellation {
+  const points = sampleLetterOutlinePoints(letter, fontPx, step);
+  return { points, edges: buildMstEdges(points) };
+}
+
 export interface PuffSeed {
   maxScale: number;
   phase: number;

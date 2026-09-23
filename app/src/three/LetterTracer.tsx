@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { checkpointsAlong, nearestStrokeIndex, type Pt, type TraceProgress } from '../engine/strokeGeometry';
@@ -74,6 +74,8 @@ interface LetterTracerProps {
   /** World units per sampled canvas pixel — must match the sibling LetterCloud's own `scale` so the trace lines up with what's actually drawn. */
   scale: number;
   isNight: boolean;
+  /** Owned by the parent (EncounterCloud) so the sibling LetterCloud can read the same live object for NightLetterCloud's reveal — this component only writes to it. */
+  progressRef: RefObject<TraceProgress>;
   onTap: () => void;
   onTraceComplete: () => void;
   /** Fires true on the pointer-down that starts a trace and false on the pointer-up (or unmount) that ends it — FlightGameScreen freezes the flight around it. */
@@ -109,13 +111,12 @@ interface LetterTracerProps {
  * (fairly small) hit-volume would silently stop registering moves
  * mid-trace. A camera-facing plane has no edges to fall off.
  */
-export function LetterTracer({ letter, scale, isNight, onTap, onTraceComplete, onTraceActive, glow = false }: LetterTracerProps) {
+export function LetterTracer({ letter, scale, isNight, progressRef, onTap, onTraceComplete, onTraceActive, glow = false }: LetterTracerProps) {
   const { gl, camera } = useThree();
   const groupRef = useRef<THREE.Group>(null);
 
   const strokes = useMemo(() => getGuideStrokes(letter), [letter]);
   const checkpoints = useMemo<Pt[][]>(() => strokes.map((s) => checkpointsAlong(s, CHECKPOINT_SPACING_PX)), [strokes]);
-  const progressRef = useRef<TraceProgress>({ covered: [], done: [], version: 0 });
   const completedRef = useRef(false);
   // All strokes done, but the letter only resolves once the finger LIFTS —
   // resolving mid-stroke (glow, burst, next cloud) while a child is still
@@ -139,6 +140,7 @@ export function LetterTracer({ letter, scale, isNight, onTap, onTraceComplete, o
     allStrokesDoneRef.current = false;
     activeStrokeRef.current = null;
     trailPointsRef.current = [];
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- progressRef is a stable ref identity from the parent (EncounterCloud's useRef), not reactive state; including it would just be noise.
   }, [checkpoints]);
 
   const coreTex = useMemo(() => createCoreTexture(), []);

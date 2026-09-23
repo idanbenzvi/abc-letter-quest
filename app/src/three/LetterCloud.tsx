@@ -2,6 +2,8 @@ import { useMemo, useRef, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { sampleLetterPoints, createPuffTexture, createBubbleTexture, makePuffSeeds, type CloudPoint, type PuffSeed } from './cloudLetter';
+import { NightLetterCloud } from './NightLetterCloud';
+import type { TraceProgress } from '../engine/strokeGeometry';
 
 interface LetterCloudProps {
   letter: string;
@@ -23,6 +25,10 @@ interface LetterCloudProps {
   tint?: 'none' | 'gold';
   /** 0 = full daylight, 1 = deep night; read every frame (never a React prop, it changes continuously). Cools the puffs toward a moonlit blue-grey so clouds stop glowing pure white against a night sky. */
   nightDimRef?: RefObject<number>;
+  /** Past the day/night threshold: swaps the whole letter to NightLetterCloud's constellation rendering instead of the puff cloud below (a React prop, not continuous like nightDimRef — the swap only needs to happen once the sky has actually gone dark, not track every intermediate shade). */
+  isNight?: boolean;
+  /** Live tracing progress (shared with the sibling LetterTracer) — only read by the night constellation, to reveal stars as the child traces. */
+  progressRef?: RefObject<TraceProgress>;
   onFadeComplete?: () => void;
 }
 
@@ -97,7 +103,20 @@ const GLOW_COLOR = new THREE.Color(1.3, 1.18, 0.8);
 const GLOW_EASE_SECONDS = 0.1;
 const GLOW_SWELL = 0.16;
 
-export function LetterCloud({ letter, scale = 0.045, color = '#ffffff', opacity = 0.92, fadeOut = false, burst = false, glow = false, tint = 'none', nightDimRef, onFadeComplete }: LetterCloudProps) {
+export function LetterCloud({
+  letter,
+  scale = 0.045,
+  color = '#ffffff',
+  opacity = 0.92,
+  fadeOut = false,
+  burst = false,
+  glow = false,
+  tint = 'none',
+  nightDimRef,
+  isNight = false,
+  progressRef,
+  onFadeComplete,
+}: LetterCloudProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const materialRef = useRef<THREE.MeshBasicMaterial>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -137,6 +156,10 @@ export function LetterCloud({ letter, scale = 0.045, color = '#ffffff', opacity 
   onFadeCompleteRef.current = onFadeComplete;
   const spawnElapsed = useRef(0);
   const spawnDoneRef = useRef(false);
+  // Combines the spawn-in and fade-out/pass timers below into one 0..1
+  // multiplier NightLetterCloud reads for its own opacity, instead of
+  // duplicating this component's fade timing logic.
+  const nightFadeRef = useRef(1);
 
   useFrame(({ clock, camera }, delta) => {
     const mesh = meshRef.current;
@@ -286,12 +309,29 @@ export function LetterCloud({ letter, scale = 0.045, color = '#ffffff', opacity 
       // Fully opaque at the peak of the glow — the flash reads as solid light, not a brighter mist.
       materialRef.current.opacity = (opacity + (1 - opacity) * glowAmount.current) * overallSpawnEase;
     }
+
+    nightFadeRef.current = Math.max(0, Math.min(1, (opacity > 0 ? currentOpacity.current / opacity : 1) * overallSpawnEase));
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, MAX_INSTANCES]}>
-      <planeGeometry args={[1, 1]} />
-      <meshBasicMaterial ref={materialRef} map={texture} color={color} transparent opacity={opacity} depthWrite={false} />
-    </instancedMesh>
+    <group>
+      <group visible={!isNight || burst}>
+        <instancedMesh ref={meshRef} args={[undefined, undefined, MAX_INSTANCES]}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial ref={materialRef} map={texture} color={color} transparent opacity={opacity} depthWrite={false} />
+        </instancedMesh>
+      </group>
+      {isNight && (
+        <NightLetterCloud
+          letter={letter}
+          scale={scale}
+          progressRef={progressRef}
+          visible={!burst}
+          fadeRef={nightFadeRef}
+          tintAmountRef={tintAmount}
+          glowAmountRef={glowAmount}
+        />
+      )}
+    </group>
   );
 }

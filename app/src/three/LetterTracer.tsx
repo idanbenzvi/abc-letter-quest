@@ -51,11 +51,19 @@ const TRAIL_CORE_SIZE = 24;
 const TRAIL_HALO_SIZE = 64;
 const TIP_CORE_SIZE = 40;
 const TIP_HALO_SIZE = 130;
-// How fast the guide's comet/arrows fade while the child is drawing and
-// return afterwards (the dots and numbers stay — they are the progress).
+// How fast the guide fades out once the whole letter is finished (the
+// comet has nowhere left to demonstrate at that point — the burst/glow
+// celebration takes over immediately after). It USED to also fade out
+// the moment the child started dragging, on the reasoning that the
+// moving comet would "fight their own hand" — reverted: the guide is
+// the actual point (a still-forming demonstration of how to write the
+// letter), the ribbon already renders on top of it at a higher
+// renderOrder (see coreMeshRef/haloMeshRef below vs. StrokeGuide's own
+// renderOrder), so nothing is actually competing for legibility — and
+// hiding it exactly while the child is using it made the feature read
+// as having vanished rather than as intentionally out of the way.
 const GUIDE_FADE_OUT_PER_SECOND = 4;
 const GUIDE_FADE_IN_PER_SECOND = 1.2;
-const GUIDE_RETURN_DELAY_SECONDS = 1.6;
 const RIBBON_GLOW_EASE_SECONDS = 0.1;
 
 const TRAIL_CORE_COLOR = '#ffd45e';
@@ -81,9 +89,12 @@ interface LetterTracerProps {
  * starts, dashed path, arrowheads, travelling comet) shows the correct
  * stroke order and direction; its dots light up as the finger covers
  * them, a finished stroke's arrow and number light up with them, and
- * the comet only cycles over strokes still to do. The comet and arrows
- * fade while the child is actually drawing so they don't fight their
- * own hand; the dots stay, because they ARE the progress.
+ * the comet only cycles over strokes still to do. The whole guide stays
+ * visible the entire time, including while the child is actively
+ * dragging — it's the actual demonstration of how to write the letter,
+ * and the ribbon already renders on top of it (higher renderOrder, see
+ * below), so there's nothing to fight for legibility. It only fades
+ * once the letter is fully traced, since there's nothing left to show.
  *
  * Completion is strict about the parts and lenient about the manner:
  * every stroke must be traced (see the constants above), but order and
@@ -326,9 +337,11 @@ export function LetterTracer({ letter, scale, isNight, onTap, onTraceComplete, o
   }, [gl, camera, scale, checkpoints]);
 
   useFrame(({ camera: cam, clock }, delta) => {
-    // Comet/arrows fade out fast while drawing, come back slowly after a pause.
-    const drawingRecently = draggingRef.current || performance.now() - lastDrawAtRef.current < GUIDE_RETURN_DELAY_SECONDS * 1000;
-    const target = drawingRecently || completedRef.current ? 0 : 1;
+    // Visible throughout — including while the child is actively
+    // dragging, which is exactly when the demonstration matters most —
+    // and only fades once the whole letter is done (nothing left to
+    // demonstrate; the completion glow/burst takes over immediately).
+    const target = completedRef.current ? 0 : 1;
     const rate = target < guideVisibilityRef.current ? GUIDE_FADE_OUT_PER_SECOND : GUIDE_FADE_IN_PER_SECOND;
     guideVisibilityRef.current += (target - guideVisibilityRef.current) * Math.min(1, delta * rate);
 

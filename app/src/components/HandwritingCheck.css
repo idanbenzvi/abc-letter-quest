@@ -1,0 +1,155 @@
+.handwriting-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(16, 40, 64, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fade-up-in 0.25s ease both;
+}
+
+.handwriting-card {
+  position: relative;
+  background: var(--surface, #fffaf1);
+  border-radius: 30px;
+  padding: 28px 26px 24px;
+  box-shadow: var(--shadow-lift);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(480px, 100%);
+  max-height: min(92vh, 680px);
+  overflow-y: auto;
+  animation: pop-in 0.35s var(--ease-pop) both;
+}
+
+.handwriting-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-2, #f3e8d8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.handwriting-instructions {
+  margin: 4px 30px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--ink, #4a382d);
+}
+.handwriting-instructions strong {
+  color: var(--coral-dark, #b8391c);
+}
+
+.handwriting-preview {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #1a1410;
+  box-shadow: inset 0 0 0 3px var(--sky-wash, #e8f3f8);
+}
+
+.handwriting-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.handwriting-guide {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.handwriting-star-target {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 22px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.handwriting-guide-box {
+  position: absolute;
+  border: 2px dashed rgba(255, 214, 130, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.28);
+}
+
+.handwriting-preview-veil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 8, 6, 0.55);
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.handwriting-check-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.handwriting-check-btn:disabled {
+  opacity: 0.6;
+}
+
+.handwriting-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  padding: 20px 10px;
+  font-size: 15px;
+  color: var(--ink, #4a382d);
+}
+.handwriting-result.matched {
+  color: var(--leaf-dark, #3a7d4f);
+  font-weight: 800;
+  font-size: 18px;
+}
+.handwriting-result-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+@media (max-width: 480px) {
+  .handwriting-card {
+    padding: 22px 16px 18px;
+  }
+  .handwriting-instructions {
+    margin-right: 0;
+  }
+}

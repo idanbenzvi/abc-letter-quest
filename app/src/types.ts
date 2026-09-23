@@ -56,6 +56,28 @@ export interface Settings {
    * 'always-assisted': the guide shows every time. 'off': no writing rounds.
    */
   writingPractice: WritingPracticeMode;
+  /**
+   * "Which one did I say?" rounds (three/LetterMatchup.tsx) — two
+   * commonly-confused lowercase letters (b/d, h/n, m/w...) shown side by
+   * side, motionless, so a child can carefully compare their shapes
+   * rather than pick one out of a moving scene. Occasional, like the
+   * plane-choice bonus, and only ever offered for a letter that actually
+   * has a look-alike (see data/confusablePairs.ts) — this toggle is the
+   * parent's way to turn that off entirely if it's not helpful yet.
+   */
+  lookAlikePractice: boolean;
+  /**
+   * "Write it on paper" — an opt-in webcam bonus (components/
+   * HandwritingCheck.tsx): the child writes the current letter on real
+   * paper with a real pencil, the camera takes one photo once they say
+   * they're done, and a shape-match against the letter's own outline
+   * (engine/handwritingMatch.ts) decides whether it counts. Off by
+   * default — unlike every other bonus path in this game it needs real
+   * setup (a camera positioned at a piece of paper, plus a permission
+   * grant), so a parent opts in deliberately rather than it appearing
+   * unannounced mid-flight.
+   */
+  handwritingCheck: boolean;
 }
 
 export type WritingPracticeMode = 'off' | 'first-assisted' | 'always-assisted';

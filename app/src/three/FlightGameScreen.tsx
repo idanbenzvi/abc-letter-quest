@@ -189,6 +189,8 @@ function spawnEncounter(item: QueueItem, distance: number): Encounter {
  */
 export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => void }) {
   const { state, answer, logSession, awardStars, setSoundEnabled } = useApp();
+  // CompanionFlock's unlock threshold — see FlightScene.tsx/CompanionFlock.tsx.
+  const masteredLetterCount = useMemo(() => Object.values(state.letters).filter((l) => l.box >= 4).length, [state.letters]);
   const [phase, setPhase] = useState<Phase>('intro');
   const [mode, setMode] = useState<Mode>('classic');
   const [missionPlan, setMissionPlan] = useState<QueueItem[]>([]);
@@ -1247,6 +1249,7 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
               cvcRound={cvcRound}
               wrongCvcIndex={wrongCvcIndex}
               onCvcSlotTap={handleCvcSlotTap}
+              masteredCount={masteredLetterCount}
             />
           </Suspense>
           {devPanelOpen && <DevOceanPanel params={devOceanParams} onChange={setDevOceanParams} onClose={() => setDevPanelOpen(false)} />}

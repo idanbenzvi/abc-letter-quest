@@ -141,6 +141,17 @@ export interface TraceProgress {
   version: number;
 }
 
+/** Fraction of all checkpoints (across every stroke) covered so far — a single 0..1 number for anything that wants an overall "how much of the letter is traced" readout, e.g. NightLetterCloud's constellation reveal. */
+export function traceProgressFraction(progress: TraceProgress): number {
+  let covered = 0;
+  let total = 0;
+  for (const row of progress.covered) {
+    total += row.length;
+    for (const c of row) if (c) covered++;
+  }
+  return total > 0 ? covered / total : 0;
+}
+
 /**
  * Which checkpoint-set (stroke) `point` is closest to, considering only
  * strokes for which `eligible(si)` is true. Used to gate coverage

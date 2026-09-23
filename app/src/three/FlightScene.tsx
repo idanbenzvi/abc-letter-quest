@@ -10,9 +10,11 @@ import { NounSkyIcon } from './NounSkyIcon';
 import { PlaneChoice } from './PlaneChoice';
 import { LetterMatchup } from './LetterMatchup';
 import { CvcWordRound } from './CvcWordRound';
+import { CompanionFlock } from './CompanionFlock';
 import type { Encounter } from './flightTypes';
 import { OCEAN_QUALITY_HIGH, OCEAN_QUALITY_LOW, type OceanDevParams } from './oceanSky';
 import type { PictureChoiceEntry } from '../engine/pictureChoice';
+import type { TraceProgress } from '../engine/strokeGeometry';
 import { subscribeTilt, isTiltLive } from '../engine/tilt';
 import { isLowPowerDevice } from '../engine/preload';
 
@@ -132,6 +134,8 @@ interface FlightSceneProps {
   cvcRound?: { id: string; letters: [string, string, string]; nextIndex: number } | null;
   wrongCvcIndex?: number | null;
   onCvcSlotTap?: (index: number) => void;
+  /** How many letters the child has mastered (box >= 4) — see FlightGameScreen.tsx. Drives CompanionFlock, the small creatures that join the bird's formation as a persistent, visible collection reward. */
+  masteredCount?: number;
 }
 
 function EncounterCloud({
@@ -187,6 +191,12 @@ function EncounterCloud({
 
   useEffect(() => clearHoverTimer, []);
 
+  // Shared with LetterTracer (writes, as the child traces) and LetterCloud
+  // (reads, only at night — NightLetterCloud's constellation reveal). One
+  // ref per encounter so LetterCloud can see live progress without owning
+  // any of the scoring logic itself.
+  const traceProgressRef = useRef<TraceProgress>({ covered: [], done: [], version: 0 });
+
   return (
     <group position={[encounter.laneX, altitude + 2.5, -encounter.distance]}>
       <LetterCloud
@@ -197,6 +207,8 @@ function EncounterCloud({
         glow={encounter.status === 'glowing'}
         tint={encounter.status === 'answered' && encounter.knew ? 'gold' : 'none'}
         nightDimRef={nightDimRef}
+        isNight={isNight}
+        progressRef={traceProgressRef}
         onFadeComplete={onFadeComplete}
       />
       {/* Invisible, larger-than-the-puffs hover target for the case-swap
@@ -214,6 +226,7 @@ function EncounterCloud({
           letter={encounter.displayChar}
           scale={LETTER_CLOUD_SCALE}
           isNight={isNight}
+          progressRef={traceProgressRef}
           onTap={handleTap}
           onTraceComplete={onTraceComplete}
           onTraceActive={onTraceActive}
@@ -271,8 +284,17 @@ export function FlightScene({
   cvcRound,
   wrongCvcIndex,
   onCvcSlotTap,
+  masteredCount = 0,
 }: FlightSceneProps) {
   const birdGroupRef = useRef<THREE.Group>(null);
+  // CompanionFlock's own anchor — synced to the bird's POSITION only, not
+  // its look-around rotation (see the useFrame block below): the flock's
+  // formation offsets are large enough (a few world units, to read as a
+  // trailing wedge, not a huddle) that inheriting the bird's own
+  // mouse-parallax pitch/roll would swing them wildly at that radius —
+  // confirmed by screenshot, an earlier version nested them directly
+  // inside birdGroupRef and they ended up down near the ocean surface.
+  const flockGroupRef = useRef<THREE.Group>(null);
   const [isNightIcons, setIsNightIcons] = useState(false);
   const isNightIconsRef = useRef(false);
   const lookTarget = useRef(new THREE.Vector3());
@@ -625,6 +647,9 @@ export function FlightScene({
       birdGroupRef.current.rotation.x = mouseY * 0.08;
       birdGroupRef.current.rotation.z = totalRoll * 1.4;
     }
+    if (flockGroupRef.current) {
+      flockGroupRef.current.position.set(flightX, altitude + bob, worldZ);
+    }
 
     // The camera's horizontal aim (yaw, i.e. panning left/right) still
     // never follows the mouse — that's what swung the fixed-in-world-
@@ -738,6 +763,9 @@ export function FlightScene({
 
       <group ref={birdGroupRef}>
         <AlbatrossModel scale={2.3} />
+      </group>
+      <group ref={flockGroupRef}>
+        <CompanionFlock masteredCount={masteredCount} />
       </group>
 
       {encounter && encounter.status !== 'gone' && (

@@ -1,5 +1,8 @@
-import type { CloudPoint } from './cloudLetter';
+import type { CloudPoint, Constellation, ConstellationEdge } from './cloudLetter';
+import { buildMstEdges } from './cloudLetter';
 import { drawIconSilhouette } from './nounShapes';
+
+export type { Constellation, ConstellationEdge };
 
 /**
  * Same rasterize-and-sample technique as cloudLetter.ts's
@@ -68,61 +71,18 @@ function sampleOutlinePoints(id: string, sizePx: number, step: number): CloudPoi
   return points;
 }
 
-export interface ConstellationEdge {
-  a: number;
-  b: number;
-}
-
-export interface Constellation {
-  points: CloudPoint[];
-  edges: ConstellationEdge[];
-}
-
 /**
  * "Night" mode wants a sparse handful of star joints connected by lines,
  * like the zodiac-constellation reference image — not a dense puff
  * cloud. Sampling the silhouette's outline (see sampleOutlinePoints)
  * gives a natural, shape-preserving set of joints (no per-word hand
- * authoring), and a Euclidean minimum spanning tree over them is a
- * general way to connect every star into one figure without manual
- * topology per word: it's exactly the "connect the dots with the
- * shortest total thread" problem, which is what a hand-drawn
- * constellation figure looks like.
+ * authoring), and a Euclidean minimum spanning tree over them (see
+ * cloudLetter.ts's buildMstEdges) is a general way to connect every star
+ * into one figure without manual topology per word: it's exactly the
+ * "connect the dots with the shortest total thread" problem, which is
+ * what a hand-drawn constellation figure looks like.
  */
 export function buildConstellation(id: string, sizePx = 260, step = 12): Constellation {
   const points = sampleOutlinePoints(id, sizePx, step);
-  const n = points.length;
-  const edges: ConstellationEdge[] = [];
-  if (n < 2) return { points, edges };
-
-  const inTree = new Array<boolean>(n).fill(false);
-  const dist = new Array<number>(n).fill(Infinity);
-  const parent = new Array<number>(n).fill(-1);
-  dist[0] = 0;
-
-  for (let iter = 0; iter < n; iter++) {
-    let u = -1;
-    let best = Infinity;
-    for (let i = 0; i < n; i++) {
-      if (!inTree[i] && dist[i] < best) {
-        best = dist[i];
-        u = i;
-      }
-    }
-    if (u === -1) break;
-    inTree[u] = true;
-    if (parent[u] !== -1) edges.push({ a: parent[u], b: u });
-
-    for (let v = 0; v < n; v++) {
-      if (inTree[v]) continue;
-      const dx = points[u].x - points[v].x;
-      const dy = points[u].y - points[v].y;
-      const d = dx * dx + dy * dy;
-      if (d < dist[v]) {
-        dist[v] = d;
-        parent[v] = u;
-      }
-    }
-  }
-  return { points, edges };
+  return { points, edges: buildMstEdges(points) };
 }

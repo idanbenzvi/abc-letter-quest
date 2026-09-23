@@ -13,8 +13,12 @@ export interface PlaneChoiceProps {
 
 // A friendly, non-threatening accent per plane — cycled by lane, not
 // meaningful individually (the letter itself is the only thing that
-// matters for the answer).
-const PLANE_COLORS = ['#d94e2f', '#3f9e6d', '#3d7fb0'];
+// matters for the answer). Blue/gold/purple rather than the more
+// obvious red/green/blue: red and green together is the single most
+// common colorblind-confusable pairing, and this game has no other way
+// to tell the planes apart besides color and letter — worth just not
+// using it, not something to leave as a "maybe fix later."
+const PLANE_COLORS = ['#2e7fa8', '#c98a2e', '#8a4fb2'];
 // Vertical lanes (world units, relative to the whole group's own Y) so
 // planes never visually collide even when their X positions coincide —
 // same reasoning as EncounterCloud/NounSkyIcon staying spatially apart.

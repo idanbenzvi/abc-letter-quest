@@ -16,6 +16,8 @@ type Action =
   | { type: 'SET_MISSION_DURATION'; seconds: number }
   | { type: 'SET_SOUND_ENABLED'; enabled: boolean }
   | { type: 'SET_WRITING_PRACTICE'; mode: WritingPracticeMode }
+  | { type: 'SET_LOOK_ALIKE_PRACTICE'; enabled: boolean }
+  | { type: 'SET_HANDWRITING_CHECK'; enabled: boolean }
   | { type: 'RESET_PROGRESS' };
 
 function newPlayerId(): string {
@@ -84,6 +86,12 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_WRITING_PRACTICE': {
       return updateActivePlayer(state, (p) => ({ ...p, settings: { ...p.settings, writingPractice: action.mode } }));
     }
+    case 'SET_LOOK_ALIKE_PRACTICE': {
+      return updateActivePlayer(state, (p) => ({ ...p, settings: { ...p.settings, lookAlikePractice: action.enabled } }));
+    }
+    case 'SET_HANDWRITING_CHECK': {
+      return updateActivePlayer(state, (p) => ({ ...p, settings: { ...p.settings, handwritingCheck: action.enabled } }));
+    }
     case 'RESET_PROGRESS': {
       // Wipes learning progress (letter mastery, stars, session history)
       // back to a fresh start, but keeps the child's profile and
@@ -137,6 +145,8 @@ interface AppContextValue {
   setMissionDuration: (seconds: number) => void;
   setSoundEnabled: (enabled: boolean) => void;
   setWritingPractice: (mode: WritingPracticeMode) => void;
+  setLookAlikePractice: (enabled: boolean) => void;
+  setHandwritingCheck: (enabled: boolean) => void;
   resetProgress: () => void;
 }
 
@@ -169,6 +179,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setMissionDuration: (seconds) => dispatch({ type: 'SET_MISSION_DURATION', seconds }),
     setSoundEnabled: (enabled) => dispatch({ type: 'SET_SOUND_ENABLED', enabled }),
     setWritingPractice: (mode) => dispatch({ type: 'SET_WRITING_PRACTICE', mode }),
+    setLookAlikePractice: (enabled) => dispatch({ type: 'SET_LOOK_ALIKE_PRACTICE', enabled }),
+    setHandwritingCheck: (enabled) => dispatch({ type: 'SET_HANDWRITING_CHECK', enabled }),
     resetProgress: () => dispatch({ type: 'RESET_PROGRESS' }),
   };
 

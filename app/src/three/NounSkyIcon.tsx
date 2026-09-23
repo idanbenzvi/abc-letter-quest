@@ -1,44 +1,8 @@
 import { useMemo, useRef } from 'react';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
-import { createPuffTexture, makePuffSeeds } from './cloudLetter';
+import { createPuffTexture, createStarTexture, makePuffSeeds } from './cloudLetter';
 import { sampleIconPoints, buildConstellation } from './cloudIcon';
-
-/**
- * A small bright core + crossed diffraction-spike glow, for the
- * "night" constellation joints — brighter and higher-contrast than
- * cloudLetter.ts's soft puff texture, which reads as cloud, not star.
- */
-function createStarTexture(): THREE.CanvasTexture {
-  const size = 64;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    const c = size / 2;
-    const g = ctx.createRadialGradient(c, c, 0, c, c, c);
-    g.addColorStop(0, 'rgba(255,255,255,1)');
-    g.addColorStop(0.25, 'rgba(220,240,255,0.9)');
-    g.addColorStop(0.6, 'rgba(180,210,255,0.22)');
-    g.addColorStop(1, 'rgba(180,210,255,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, size, size);
-    ctx.strokeStyle = 'rgba(255,255,255,0.65)';
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.moveTo(c, 3);
-    ctx.lineTo(c, size - 3);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(3, c);
-    ctx.lineTo(size - 3, c);
-    ctx.stroke();
-  }
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.needsUpdate = true;
-  return tex;
-}
 
 interface NounSkyIconProps {
   wordId: string;

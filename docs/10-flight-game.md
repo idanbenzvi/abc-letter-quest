@@ -914,6 +914,153 @@ the nearest not-yet-done template stroke from its first point.
 Both scorers' fixes live behind the same shared `nearestStrokeIndex`
 helper so the two implementations can't drift apart on this rule again.
 
+
+## Handwriting-check model: polarity bug found and fixed (Sep 2026)
+
+A trained classifier (`public/models/letters/` — 52-class A-Z/a-z,
+28x28 grayscale, reported 87.46% test accuracy) was dropped in behind
+the "write it on paper" webcam bonus (`components/HandwritingCheck.tsx`,
+`engine/handwritingMatch.ts`, `engine/handwritingModel.ts`) per the
+existing "drop a file in, no code changes" contract
+(`public/models/letters/README.md`). It loaded and ran inference
+without error — but that only proves the plumbing works, not that the
+predictions mean anything, and a decisive check showed they didn't:
+
+**The bug:** `classifyHandwriting` fed the model a normal photo —
+dark pencil ink on light paper, upright, exactly what
+`handwritingMatch.ts`'s own `DARK_THRESHOLD` contract expects and a
+real webcam photo produces. Single-channel classifiers trained the
+EMNIST/MNIST way expect the opposite polarity — white ink on a black
+background — and this one was no exception. Fed the natural photo
+as-is, it scored **2/52 (3.8%)**, indistinguishable from random
+guessing across 52 classes.
+
+**How it was found:** tried all 8 rotation/flip combinations first
+(the OTHER classic EMNIST gotcha, transpose-and-flip on the raw byte
+order) — all landed at 2-8%, ruling that out. Colour polarity was the
+real axis: plain upright orientation with colours inverted scored
+**45/52 (86.5%)**, matching the model's own reported accuracy almost
+exactly, while every rotation combined with inversion scored far
+worse. Decisive, not a guess — the accuracy jump from 3.8% to 86.5%
+on the IDENTICAL images (same renders, only the polarity changed)
+leaves no other explanation.
+
+**The fix:** `handwritingModel.ts` now inverts the normalized image
+(`1 - value`) before feeding the model, but ONLY when `channels === 1`
+— the same input-shape signal the file already used to distinguish an
+EMNIST-style classifier from a Teachable-Machine-style one (224x224
+RGB, MobileNet-based, trained on natural un-inverted photos, where
+inverting would break it instead). Re-verified after the fix by
+feeding the SAME natural, un-touched photos straight through the
+public `classifyHandwriting` function with no test-side compensation:
+**45/52 (86.5%) at bold weight, 43/52 (82.7%) at a thinner plain
+weight** — both land right at the model's own claimed accuracy. Every
+uppercase letter classified correctly; the handful of misses are
+lowercase shapes a printed sans-serif font renders ambiguously even to
+a human (g/q, i/l, n/h, p/b, r/l, y/v) — expected model behavior, not
+a remaining app bug.
+
+**A second, smaller bug found while verifying the fix end-to-end:**
+driving the actual "Write the letter on paper for a bonus" button
+through a real (fake-device) camera reproduced a genuine "Something
+went wrong reaching the camera" failure — but only against the DEV
+server, never against a production build. Cause: React 19 StrictMode
+(dev-only) double-invokes `HandwritingCheck`'s camera-start effect
+(mount → cleanup → mount); the first call's `getUserMedia` can resolve
+AFTER the second mount has flipped `mountedRef` back to `true`, so it
+passes the "still mounted" guard, opens its own stream, and gets
+silently overwritten in `streamRef` by the second call's stream —
+occasionally surfacing as the generic error state. Fixed with a
+per-call generation id (`requestIdRef`, bumped on every `startCamera()`
+call including manual "Try again" retries) checked alongside
+`mountedRef` before touching state — a stale call recognizes it's been
+superseded and just closes its stream instead of racing. Confirmed
+fixed by rerunning the same driven-camera check three times against
+the dev server (where the race actually reproduces); the production
+build was never affected (StrictMode's double-invoke doesn't run there).
+
+Practical effect: before this fix, `checkHandwriting`'s model signal
+was voting essentially at random, so `modelAgrees` (which requires
+≥60% confidence AND the right letter) almost never fired — the "smart"
+check was silently running as plain shape-match 100% of the time
+despite `isHandwritingModelAvailable()` reporting true. It now
+genuinely adds a second, mostly-accurate signal on top of the
+shape-match baseline, as designed.
+
+
+## Every letter guaranteed a traceable cloud (Sep 2026)
+
+The three mini-game rounds (plane-choice, letter-matchup, CVC word)
+were each written to REPLACE a letter's normal cloud turn outright —
+correct in isolation, but the interaction wasn't considered: once all
+three existed together, only about 62% of a mission's letter-turns
+still became an actual, traceable classic cloud (measured by
+simulating `presentItem`'s exact scheduling logic across 200,000
+missions). A child who happened to draw several of the mini-game turns
+in a row could go a whole mission — or several — without a single
+traceable letter, which is what prompted this fix.
+
+`presentItem` now treats a mini-game strictly as a BONUS INTERLUDE in
+front of a letter's turn, never a substitute for it: every branch that
+opens one (plane, matchup, CVC — CVC already worked this way) stashes
+the letter in `pendingPresentRef` first. `resumeAfterSpecialRound` (one
+function now, replacing the old separate `advanceAfterSpecialRound`/
+`advanceAfterCvcRound`) fires once that round resolves and hands the
+stashed letter straight to a new `presentClassicCloud` — bypassing
+`presentItem`'s own lottery entirely, so a letter that already got
+diverted into one bonus round can't roll into a second one before its
+real cloud ever shows. At most one mini-game per letter turn, then its
+cloud, always — tap/trace/type/say/picture-choice all stay available on
+it exactly as before.
+
+Re-ran the same simulation against the new logic: every one of the
+1.2M simulated letter-turns now reaches `presentClassicCloud` (100%,
+by construction — no branch skips it), with 44.3% preceded by a bonus
+round instead of the old ~38% that used to vanish entirely. Confirmed
+against the real running app too, not just the simulation: drove a
+live mission and logged the actual sequence of what appeared —
+`matchup -> classic(n)`, `cvc -> classic(H)`, `plane -> classic(C)` —
+every mini-game immediately followed by its own letter's real cloud.
+
+Side effect worth knowing: this also directly eases the lined
+writing-page's "every 3rd trace" cadence (see the "Trace at the
+child's own pace" section above) — with every letter now eligible to
+become a classic cloud, there are more genuine chances to trace per
+mission than there were with mini-games eating a third of the turns
+outright. Not a full fix for that cadence resetting every mission (a
+separate, still-open question — see the roadmap), but a meaningful
+partial one.
+
+
+## The guide fading during tracing was the other half of "it disappeared" (Sep 2026)
+
+A second, distinct cause behind "the glowing guide is gone," found by
+re-verifying the mission-scheduling fix above with fresh eyes rather
+than assuming the earlier screenshot proof settled it: the guide's
+comet and arrowheads were designed to fade to fully invisible within
+about 0.75s of the child starting to drag (`GUIDE_FADE_OUT_PER_SECOND
+= 4`), on the original reasoning that a moving comet under the child's
+own finger would "fight their hand." In practice that meant the single
+most eye-catching part of the guide — the actual glowing demonstration
+of how to write the letter — vanished right as the child started
+using it, which is exactly the moment they'd want it. The dashed dots
+and numbers stayed (by design, as the progress display), but a child
+describing "the glow that showed me how" was almost certainly
+describing the comet specifically.
+
+Confirmed with a live, sustained two-second drag, screenshotting every
+500ms: at 1s and 2s into the trace, the numbered markers, dashed path,
+and arrows were all still clearly visible alongside the child's own
+ribbon — no legibility conflict, since the ribbon already renders on
+top of the guide at a higher `renderOrder`. The "fight the child's
+hand" concern the original fade was solving for wasn't actually real.
+
+Fix: removed the drag-triggered fade entirely (`LetterTracer.tsx`) —
+the guide now stays fully visible throughout the whole trace and only
+fades once the letter is completely finished, when there's nothing
+left to demonstrate and the completion glow/burst takes over
+immediately anyway.
+
 ## Not yet built
 
 - The STL has no color/material data — the flap animation is real

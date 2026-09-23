@@ -92,6 +92,15 @@ export function GearIcon({ color = 'var(--ink-soft)', size = 20 }: { color?: str
   );
 }
 
+export function CameraIcon({ color = 'currentColor', size = 16 }: { color?: string; size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+      <path d="M4,8 L8,8 L9.5,5.5 L14.5,5.5 L16,8 L20,8 A1.5,1.5 0 0,1 21.5,9.5 L21.5,18 A1.5,1.5 0 0,1 20,19.5 L4,19.5 A1.5,1.5 0 0,1 2.5,18 L2.5,9.5 A1.5,1.5 0 0,1 4,8 Z" fill="none" stroke={color} strokeWidth="1.7" strokeLinejoin="round" />
+      <circle cx="12" cy="13.5" r="4" fill="none" stroke={color} strokeWidth="1.7" />
+    </svg>
+  );
+}
+
 export function CloseIcon({ color = 'currentColor', size = 16 }: { color?: string; size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">

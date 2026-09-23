@@ -6,7 +6,7 @@ import { displayWordForLetter } from '../engine/wordBank';
 import { computeStreak, last7Days, weeklyMinutes } from '../engine/stats';
 import { useApp } from '../state/AppContext';
 import { AvatarIcon } from '../components/icons/AvatarIcon';
-import { ChevronLeftIcon, ChevronRightIcon, CheckIcon, StarIcon, SoundOnIcon, SoundOffIcon, BookIcon, CloseIcon, NestIcon } from '../components/icons/Misc';
+import { ChevronLeftIcon, ChevronRightIcon, CheckIcon, StarIcon, SoundOnIcon, SoundOffIcon, BookIcon, CloseIcon, NestIcon, CameraIcon } from '../components/icons/Misc';
 import * as sfx from '../engine/sfx';
 import './Dashboard.css';
 
@@ -19,7 +19,7 @@ function boxClass(box: number): string {
 const MISSION_DURATION_PRESETS = [120, 240, 360, 480]; // 2 / 4 / 6 / 8 minutes
 
 export function Dashboard({ onBack, onSwitchPlayer }: { onBack: () => void; onSwitchPlayer: () => void }) {
-  const { state, players, setMissionDuration, setSoundEnabled, setWritingPractice, resetProgress } = useApp();
+  const { state, players, setMissionDuration, setSoundEnabled, setWritingPractice, setLookAlikePractice, setHandwritingCheck, resetProgress } = useApp();
   const { letters, profile } = state;
   // Two-step, in-app confirmation instead of a browser confirm() dialog —
   // the native dialog looks like a crash to a parent and can be styled
@@ -275,6 +275,49 @@ export function Dashboard({ onBack, onSwitchPlayer }: { onBack: () => void; onSw
           >
             {soundOn ? <SoundOnIcon size={18} /> : <SoundOffIcon size={18} />}
             {soundOn ? 'Sounds on' : 'Sounds off'}
+          </button>
+        </div>
+
+        <div className="card dash-card">
+          <h2 className="font-display dash-card-title">Look-Alike Letters</h2>
+          <p className="dash-card-note">
+            Some letters get mixed up by shape — b/d, p/q, m/w, h/n. When this is on, the game occasionally shows two
+            look-alikes side by side and says which one to pick, so {profile.name} can practice telling them apart.
+          </p>
+          <button
+            type="button"
+            className={`dash-toggle${state.settings.lookAlikePractice ? ' on' : ''}`}
+            role="switch"
+            aria-checked={state.settings.lookAlikePractice}
+            onClick={() => {
+              sfx.play('tap');
+              setLookAlikePractice(!state.settings.lookAlikePractice);
+            }}
+          >
+            {state.settings.lookAlikePractice ? 'Practice on' : 'Practice off'}
+          </button>
+        </div>
+
+        <div className="card dash-card">
+          <h2 className="font-display dash-card-title">
+            <CameraIcon size={16} color="var(--ink)" /> Write It On Paper
+          </h2>
+          <p className="dash-card-note">
+            An offline bonus: point a camera at real paper, {profile.name} writes the letter with a real pencil, and the game
+            checks it once they say they're done. Needs a working camera and a bit of setup (paper, pencil, good light) — off
+            by default.
+          </p>
+          <button
+            type="button"
+            className={`dash-toggle${state.settings.handwritingCheck ? ' on' : ''}`}
+            role="switch"
+            aria-checked={state.settings.handwritingCheck}
+            onClick={() => {
+              sfx.play('tap');
+              setHandwritingCheck(!state.settings.handwritingCheck);
+            }}
+          >
+            {state.settings.handwritingCheck ? 'Camera bonus on' : 'Camera bonus off'}
           </button>
         </div>
 

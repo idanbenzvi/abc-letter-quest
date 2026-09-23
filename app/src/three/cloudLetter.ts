@@ -64,6 +64,45 @@ export function createPuffTexture(): THREE.CanvasTexture {
   return texture;
 }
 
+/**
+ * A small bright core + crossed diffraction-spike glow — brighter and
+ * higher-contrast than the soft puff texture above, which reads as
+ * cloud, not star. Originally local to NounSkyIcon.tsx's night-mode
+ * constellation joints; moved here (with everything else that
+ * generates a small sprite texture at runtime) once CvcWordRound.tsx
+ * needed the same glow for its blend-sparkles.
+ */
+export function createStarTexture(): THREE.CanvasTexture {
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    const c = size / 2;
+    const g = ctx.createRadialGradient(c, c, 0, c, c, c);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.25, 'rgba(220,240,255,0.9)');
+    g.addColorStop(0.6, 'rgba(180,210,255,0.22)');
+    g.addColorStop(1, 'rgba(180,210,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+    ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(c, 3);
+    ctx.lineTo(c, size - 3);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(3, c);
+    ctx.lineTo(size - 3, c);
+    ctx.stroke();
+  }
+  const starTexture = new THREE.CanvasTexture(canvas);
+  starTexture.needsUpdate = true;
+  return starTexture;
+}
+
 export interface PuffSeed {
   maxScale: number;
   phase: number;

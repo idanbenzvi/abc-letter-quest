@@ -8,6 +8,8 @@ import { LetterCloud } from './LetterCloud';
 import { LetterTracer } from './LetterTracer';
 import { NounSkyIcon } from './NounSkyIcon';
 import { PlaneChoice } from './PlaneChoice';
+import { LetterMatchup } from './LetterMatchup';
+import { CvcWordRound } from './CvcWordRound';
 import type { Encounter } from './flightTypes';
 import { OCEAN_QUALITY_HIGH, OCEAN_QUALITY_LOW, type OceanDevParams } from './oceanSky';
 import type { PictureChoiceEntry } from '../engine/pictureChoice';
@@ -20,12 +22,13 @@ import { isLowPowerDevice } from '../engine/preload';
 const oceanQuality = isLowPowerDevice() ? OCEAN_QUALITY_LOW : OCEAN_QUALITY_HIGH;
 
 const HOVER_CASE_SWAP_MS = 2000;
-// How far ahead of the frozen camera the plane-choice round's planes sit
-// — same ballpark as MIN_VIEW_DISTANCE below (picture-choice's own
-// "close enough to read, far enough to see the whole flight path"
-// distance), not tied to FlightGameScreen's cloud-spawn cadence since a
-// plane round has no encounter/distance of its own.
-const PLANE_CHALLENGE_DISTANCE_AHEAD = 15;
+// How far ahead of the frozen camera a "special round" (plane-choice,
+// letter-matchup) sits — same ballpark as MIN_VIEW_DISTANCE below
+// (picture-choice's own "close enough to read, far enough to see the
+// whole flight path" distance), not tied to FlightGameScreen's
+// cloud-spawn cadence since neither round has an encounter/distance of
+// its own.
+const SPECIAL_ROUND_DISTANCE_AHEAD = 15;
 
 const PASS_BUFFER = 4; // world units past a cloud's distance before it counts as "flown through"
 // The mission's day arc runs dawn -> noon -> sunset -> deep night, not just
@@ -121,6 +124,14 @@ interface FlightSceneProps {
   planeChallenge?: { options: string[] } | null;
   wrongPlaneOption?: string | null;
   onPlanePick?: (option: string) => void;
+  /** "Which one did I say?" round — see LetterMatchup.tsx and FlightGameScreen's letterMatchup. Same "replaces the encounter entirely" shape as planeChallenge above. */
+  letterMatchup?: { options: [string, string] } | null;
+  wrongMatchupOption?: string | null;
+  onMatchupPick?: (option: string) => void;
+  /** "Catch the letters in order, blend them into a word" bonus — see CvcWordRound.tsx and FlightGameScreen's cvcRound. `id` is stable for the whole round (unlike the object itself, which gets a new `nextIndex` every tap) — see FlightScene's cvcRoundDistance for why that distinction matters. */
+  cvcRound?: { id: string; letters: [string, string, string]; nextIndex: number } | null;
+  wrongCvcIndex?: number | null;
+  onCvcSlotTap?: (index: number) => void;
 }
 
 function EncounterCloud({
@@ -254,6 +265,12 @@ export function FlightScene({
   planeChallenge,
   wrongPlaneOption,
   onPlanePick,
+  letterMatchup,
+  wrongMatchupOption,
+  onMatchupPick,
+  cvcRound,
+  wrongCvcIndex,
+  onCvcSlotTap,
 }: FlightSceneProps) {
   const birdGroupRef = useRef<THREE.Group>(null);
   const [isNightIcons, setIsNightIcons] = useState(false);
@@ -279,7 +296,13 @@ export function FlightScene({
   // snapshotting it once when a round starts — identity-keyed on the
   // planeChallenge object itself, not every render — is enough to place
   // the planes a fixed distance ahead and have them hold still there.
-  const planeChallengeDistance = useMemo(() => distanceRef.current + PLANE_CHALLENGE_DISTANCE_AHEAD, [planeChallenge]);
+  const planeChallengeDistance = useMemo(() => distanceRef.current + SPECIAL_ROUND_DISTANCE_AHEAD, [planeChallenge]);
+  // Same reasoning as planeChallengeDistance above, for the letter-matchup round.
+  const letterMatchupDistance = useMemo(() => distanceRef.current + SPECIAL_ROUND_DISTANCE_AHEAD, [letterMatchup]);
+  // Same reasoning again, for the CVC round — keyed on `id`, not the
+  // whole object, since `nextIndex` changes on every correct tap within
+  // the SAME round and must not re-anchor the position each time.
+  const cvcRoundDistance = useMemo(() => distanceRef.current + SPECIAL_ROUND_DISTANCE_AHEAD, [cvcRound?.id]);
   const missionElapsedRef = useRef(0);
   const timeUpFiredRef = useRef(false);
   // Set once the mode's own day-arc condition is first met; from then on
@@ -806,6 +829,24 @@ export function FlightScene({
       {planeChallenge && (
         <group position={[0, altitude + 2.5, -planeChallengeDistance]}>
           <PlaneChoice options={planeChallenge.options} wrongOption={wrongPlaneOption} onPick={(opt) => onPlanePick?.(opt)} />
+        </group>
+      )}
+
+      {letterMatchup && (
+        <group position={[0, altitude + 2.5, -letterMatchupDistance]}>
+          <LetterMatchup options={letterMatchup.options} wrongOption={wrongMatchupOption} nightDimRef={nightDimRef} onPick={(opt) => onMatchupPick?.(opt)} />
+        </group>
+      )}
+
+      {cvcRound && (
+        <group position={[0, altitude + 2.5, -cvcRoundDistance]}>
+          <CvcWordRound
+            letters={cvcRound.letters}
+            nextIndex={cvcRound.nextIndex}
+            wrongIndex={wrongCvcIndex ?? null}
+            nightDimRef={nightDimRef}
+            onTapSlot={(i) => onCvcSlotTap?.(i)}
+          />
         </group>
       )}
     </>

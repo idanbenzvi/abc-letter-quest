@@ -1,0 +1,322 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "ABCtross Flight Game Engine",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "letter-turn",
+        "label": "One letter turn",
+        "focus": [
+          "takeoff",
+          "queue",
+          "lottery",
+          "cloud",
+          "score",
+          "next",
+          "landing"
+        ],
+        "note": "Beginners start with 6 letters (one more per mastered letter). Each becomes a cloud the child taps, traces, types, says or writes."
+      },
+      {
+        "id": "bonus-rounds",
+        "label": "Bonus interludes",
+        "focus": [
+          "lottery",
+          "interlude",
+          "cloud",
+          "score",
+          "writing",
+          "next"
+        ],
+        "note": "At most one mini-game runs before a letter, then its real cloud always follows. Bonus rounds never lower mastery."
+      },
+      {
+        "id": "learning-loop",
+        "label": "Spaced repetition",
+        "focus": [
+          "score",
+          "scheduler",
+          "progress",
+          "queue"
+        ],
+        "note": "Answers move letters between Leitner boxes. Lowercase appears as a letter's box rises, and a missed letter comes back sooner."
+      }
+    ],
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "Screen / encounter"
+        },
+        "backend": {
+          "label": "Engine step"
+        },
+        "security": {
+          "label": "Scheduler"
+        },
+        "messagebus": {
+          "label": "Bonus round"
+        },
+        "database": {
+          "label": "Saved progress"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "child",
+      "label": "Screens"
+    },
+    {
+      "id": "engine",
+      "label": "Flight Engine"
+    },
+    {
+      "id": "bonus",
+      "label": "Bonus Interludes",
+      "variant": "exception"
+    },
+    {
+      "id": "learning",
+      "label": "Learning Model & Storage"
+    }
+  ],
+  "phases": [
+    {
+      "id": "setup",
+      "label": "Take off",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "turn",
+      "label": "Letter turn",
+      "fromCol": 2,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "wrap",
+      "label": "Next or land",
+      "fromCol": 5,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "takeoff",
+    "queue",
+    "lottery",
+    "cloud",
+    "score",
+    "next",
+    "landing"
+  ],
+  "nodes": [
+    {
+      "id": "takeoff",
+      "lane": "child",
+      "col": 0,
+      "type": "frontend",
+      "label": "Take Off",
+      "sublabel": "pick flight mode",
+      "width": 150
+    },
+    {
+      "id": "cloud",
+      "lane": "engine",
+      "col": 3,
+      "type": "frontend",
+      "label": "Letter Cloud",
+      "sublabel": "5 ways to catch",
+      "tag": "3D sky",
+      "width": 150
+    },
+    {
+      "id": "landing",
+      "lane": "child",
+      "col": 5,
+      "type": "frontend",
+      "label": "Landing Screen",
+      "sublabel": "session logged",
+      "width": 150
+    },
+    {
+      "id": "queue",
+      "lane": "engine",
+      "col": 1,
+      "type": "backend",
+      "label": "Build Letter Queue",
+      "sublabel": "pool + casing",
+      "tag": "6 letters",
+      "width": 150
+    },
+    {
+      "id": "lottery",
+      "lane": "engine",
+      "col": 2,
+      "type": "backend",
+      "label": "presentItem",
+      "sublabel": "roll a bonus round?",
+      "width": 150
+    },
+    {
+      "id": "score",
+      "lane": "engine",
+      "col": 4,
+      "type": "backend",
+      "label": "Score the Turn",
+      "sublabel": "stars + streak",
+      "width": 150
+    },
+    {
+      "id": "next",
+      "lane": "engine",
+      "col": 5,
+      "type": "backend",
+      "label": "Advance",
+      "sublabel": "next letter or finish",
+      "width": 150
+    },
+    {
+      "id": "interlude",
+      "lane": "bonus",
+      "col": 2,
+      "type": "messagebus",
+      "label": "Mini-game",
+      "sublabel": "6 kinds of round",
+      "width": 150
+    },
+    {
+      "id": "writing",
+      "lane": "bonus",
+      "col": 5,
+      "type": "messagebus",
+      "label": "Lined Writing Page",
+      "sublabel": "handwriting check",
+      "width": 150
+    },
+    {
+      "id": "progress",
+      "lane": "learning",
+      "col": 1,
+      "type": "database",
+      "label": "Letter Progress",
+      "sublabel": "localStorage",
+      "width": 150
+    },
+    {
+      "id": "scheduler",
+      "lane": "learning",
+      "col": 3,
+      "type": "security",
+      "label": "Leitner Scheduler",
+      "sublabel": "boxes 0 to 4",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "id": "start-queue",
+      "from": "takeoff",
+      "to": "queue",
+      "variant": "default"
+    },
+    {
+      "id": "queue-present",
+      "from": "queue",
+      "to": "lottery",
+      "variant": "default"
+    },
+    {
+      "id": "present-cloud",
+      "from": "lottery",
+      "to": "cloud",
+      "label": "no bonus",
+      "variant": "emphasis"
+    },
+    {
+      "id": "present-bonus",
+      "from": "lottery",
+      "to": "interlude",
+      "label": "bonus rolled",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "bonus-cloud",
+      "from": "interlude",
+      "to": "cloud",
+      "label": "then its cloud",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "cloud-score",
+      "from": "cloud",
+      "to": "score",
+      "label": "answer",
+      "variant": "emphasis"
+    },
+    {
+      "id": "score-next",
+      "from": "score",
+      "to": "next",
+      "variant": "default"
+    },
+    {
+      "id": "score-writing",
+      "from": "score",
+      "to": "writing",
+      "label": "every 3rd trace",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "writing-next",
+      "from": "writing",
+      "to": "next",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "next-loop",
+      "from": "next",
+      "to": "lottery",
+      "label": "next letter",
+      "variant": "default",
+      "role": "return"
+    },
+    {
+      "id": "next-land",
+      "from": "next",
+      "to": "landing",
+      "label": "queue done / night",
+      "variant": "emphasis"
+    },
+    {
+      "id": "score-scheduler",
+      "from": "score",
+      "to": "scheduler",
+      "label": "right / wrong",
+      "variant": "security"
+    },
+    {
+      "id": "scheduler-save",
+      "from": "scheduler",
+      "to": "progress",
+      "label": "save box",
+      "variant": "default",
+      "role": "return"
+    },
+    {
+      "id": "progress-queue",
+      "from": "progress",
+      "to": "queue",
+      "label": "pool + casing",
+      "variant": "default"
+    }
+  ]
+}

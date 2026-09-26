@@ -1,15 +1,43 @@
 .player-select {
+  position: relative;
+  overflow: hidden auto;
   min-height: var(--vh-full, 100vh);
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: max(20px, env(safe-area-inset-top)) 16px 60px;
-  background:
-    radial-gradient(60vmax 40vmax at 80% -10%, rgba(191, 224, 242, 0.7) 0%, rgba(191, 224, 242, 0) 60%),
-    var(--bg);
+}
+
+.player-select-topbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 4px;
+}
+
+/* The mute toggle reads as a small brass instrument dial rather than a
+   flat app icon-button — same porthole-ring language as the avatars. */
+.player-select-topbar .icon-btn {
+  background: var(--surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 0 0 2.5px var(--sky-dark),
+    0 4px 10px rgba(20, 50, 70, 0.18);
+}
+.player-select-topbar .icon-btn:hover {
+  box-shadow:
+    inset 0 0 0 2.5px var(--coral),
+    0 4px 10px rgba(20, 50, 70, 0.18);
 }
 
 .player-select-header {
+  position: relative;
+  z-index: 1;
   text-align: center;
   max-width: 480px;
   margin-bottom: 28px;
@@ -31,35 +59,80 @@
   margin: 0;
 }
 
+/* A hand-drawn wave standing in for a divider rule — the same crest
+   language as ScreenTransition's wave sweep, at rest instead of in
+   motion. */
+.player-select-wave {
+  width: 160px;
+  height: 12px;
+  margin-top: 16px;
+  opacity: 0.6;
+}
+
 .player-grid {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 18px;
+  gap: 20px;
   max-width: 720px;
 }
 
+/* ---- player tile: a chamfered plaque, not a rounded card ----
+   The outer <button> is the hit target and carries the lift shadow as a
+   `filter: drop-shadow`, which (unlike box-shadow) follows the clipped
+   silhouette of its content instead of the button's own rectangular box
+   — so the shadow reads as the plaque's shape, not a rectangle peeking
+   out from behind it. The inner .player-tile-plaque carries the actual
+   clipped shape, fill, and edge ring (an inset box-shadow, which clips
+   correctly since it never paints outside the box in the first place —
+   a plain `border` would not, since clip-path only cuts the box's
+   straight edges and a rectangular border has no geometry to draw along
+   a diagonal cut). */
 .player-tile {
   width: 140px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: block;
+  filter: drop-shadow(0 8px 14px rgba(20, 50, 70, 0.22));
+  transition:
+    transform 0.14s var(--ease-out),
+    filter 0.2s ease;
+}
+.player-tile:hover {
+  transform: translateY(-3px);
+  filter: drop-shadow(0 12px 20px rgba(20, 50, 70, 0.28));
+}
+
+.player-tile-plaque {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   background: var(--surface);
-  border: 2px solid var(--sky-wash);
-  border-radius: var(--radius-lg, 28px);
-  padding: 20px 12px 18px;
-  box-shadow: var(--shadow-soft);
+  clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+  padding: 24px 14px 18px;
+  box-shadow:
+    inset 0 0 0 2px var(--sky-wash),
+    inset 0 2px 0 rgba(255, 255, 255, 0.7);
 }
-.player-tile:hover {
-  border-color: var(--sky);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lift);
+.player-tile:hover .player-tile-plaque {
+  box-shadow:
+    inset 0 0 0 2px var(--sky),
+    inset 0 2px 0 rgba(255, 255, 255, 0.7);
 }
-.player-tile.is-active {
-  border-color: var(--coral);
+.player-tile.is-active .player-tile-plaque {
+  box-shadow:
+    inset 0 0 0 2.5px var(--coral),
+    inset 0 2px 0 rgba(255, 255, 255, 0.7);
 }
 
+/* ---- avatar: a porthole, not a plain bubble ----
+   Two stacked inset rings (a cream gap, then a dark rim) read as a
+   framed instrument rather than a flat-app avatar circle — genuinely
+   round for once, on purpose: a ship's porthole IS a circle. */
 .player-tile-avatar {
   position: relative;
   width: 76px;
@@ -68,6 +141,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--sky-wash);
+  box-shadow:
+    inset 0 0 0 3px var(--surface),
+    inset 0 0 0 7px var(--sky-dark);
 }
 
 .player-tile-active-badge {
@@ -95,13 +172,20 @@
   max-width: 100%;
 }
 
-.player-tile-add {
-  border-style: dashed;
+/* Same chamfered shape as the other plaques (a `border`/`outline` can't
+   follow the clip-path's diagonal cuts, and a plain rounded-rect here
+   would break the shape family instead of reading as an empty slot) —
+   distinguished by a muted, ghosted fill and ring instead. */
+.player-tile-add .player-tile-plaque {
   background: var(--surface-2);
-  box-shadow: none;
+  box-shadow:
+    inset 0 0 0 2px var(--sky-wash),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5);
 }
-.player-tile-add:hover {
-  box-shadow: none;
+.player-tile-add:hover .player-tile-plaque {
+  box-shadow:
+    inset 0 0 0 2px var(--sky),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5);
 }
 
 .player-tile-add-icon {

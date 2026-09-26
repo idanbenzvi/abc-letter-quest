@@ -121,73 +121,123 @@ a:hover {
   color: var(--coral);
 }
 
+/* ---- buttons: carved plaques, not pills ----
+   Each .btn is a chamfered plaque with a solid color "depth" layer
+   (::before, same clip-path, offset behind it) standing in for a drop
+   shadow — a real stacked shape rather than a blur, so it survives the
+   clip-path cleanly (a blurred box-shadow would get cut off hard at the
+   clipped edge; this doesn't, because it's an actual second shape, not
+   an effect trying to escape one). Pressing a button slides it down
+   toward its own depth layer instead of just scaling down, which is
+   what makes it read as a physical carved button being pushed rather
+   than a web element shrinking. --chamfer/--btn-depth are set per
+   variant below and inherited into ::before automatically. */
 .btn {
+  --chamfer: 12px;
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   border: none;
-  border-radius: 999px;
+  clip-path: polygon(var(--chamfer) 0, 100% 0, 100% calc(100% - var(--chamfer)), calc(100% - var(--chamfer)) 100%, 0 100%, 0 var(--chamfer));
   font-weight: 800;
   padding: 12px 26px;
   font-size: 16px;
   min-height: 48px;
   min-width: 44px;
 }
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  clip-path: polygon(var(--chamfer) 0, 100% 0, 100% calc(100% - var(--chamfer)), calc(100% - var(--chamfer)) 100%, 0 100%, 0 var(--chamfer));
+  background: var(--btn-depth, rgba(0, 0, 0, 0.25));
+  transform: translate(3px, 4px);
+  transition: transform 0.15s ease;
+}
+.btn:hover:not(:disabled)::before {
+  transform: translate(4px, 5px);
+}
+.btn:active:not(:disabled) {
+  transform: translate(3px, 4px);
+}
+.btn:active:not(:disabled)::before {
+  transform: translate(0, 0);
+}
+.btn:disabled {
+  filter: grayscale(0.6);
+  opacity: 0.7;
+}
+.btn:disabled::before {
+  transform: translate(3px, 4px);
+}
 
 .btn-primary {
+  --btn-depth: var(--coral-dark);
   background: var(--coral);
   color: white;
-  box-shadow: 0 10px 22px rgba(210, 90, 40, 0.32);
-}
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 26px rgba(210, 90, 40, 0.36);
-}
-.btn-primary:active:not(:disabled) {
-  transform: scale(0.96);
-  box-shadow: 0 6px 14px rgba(210, 90, 40, 0.3);
-}
-.btn-primary:disabled {
-  opacity: 0.55;
-  box-shadow: none;
 }
 
+/* Flat, not a plaque with depth: a near-white face over a coincidentally
+   near-identical-in-effect z-index:-1 layer hit a real paint-order bug
+   in at least one Chromium build (the depth layer painted over the
+   face instead of behind it — confirmed via computed styles being
+   correct while the actual pixels weren't, so this is a renderer
+   quirk, not a CSS mistake). Ghost/secondary actions read fine without
+   the chunky 3D treatment anyway — that's reserved for primary actions. */
 .btn-secondary {
   background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--sky-wash);
   color: var(--sky-dark);
-  border: 2px solid var(--sky-wash);
+}
+.btn-secondary::before {
+  display: none;
 }
 .btn-secondary:hover:not(:disabled) {
-  border-color: var(--sky);
+  box-shadow: inset 0 0 0 2px var(--sky);
 }
 
 .btn-lg {
+  --chamfer: 16px;
   font-size: 20px;
   padding: 16px 38px;
   min-height: 60px;
 }
 
+/* A panel cut from the same cloth as the buttons, at a gentler angle —
+   content lives inside it, so the chamfer stays shallow and only two
+   corners cut, leaving room for text/grids to sit safely away from the
+   diagonal. */
 .card {
+  --chamfer: 18px;
+  position: relative;
   background: var(--surface);
-  border-radius: var(--radius-lg);
+  clip-path: polygon(var(--chamfer) 0, 100% 0, 100% calc(100% - var(--chamfer)), calc(100% - var(--chamfer)) 100%, 0 100%, 0 var(--chamfer));
   box-shadow: var(--shadow-soft);
 }
 
-/* Small round icon button used across the game chrome (pause, back, sound, gear). */
+/* Small round icon button used across the game chrome (pause, back,
+   sound, gear) — a porthole/instrument-dial ring instead of a flat
+   drop-shadow disc, same rim language as an avatar porthole. */
 .icon-btn {
   width: 46px;
   height: 46px;
   border-radius: 50%;
   border: none;
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--surface);
   color: var(--ink);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(40, 60, 80, 0.16);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  box-shadow:
+    inset 0 0 0 2.5px var(--sky-dark),
+    0 4px 10px rgba(20, 50, 70, 0.18);
   padding: 0;
 }
 .icon-btn:hover {
-  background: #ffffff;
+  box-shadow:
+    inset 0 0 0 2.5px var(--coral),
+    0 4px 10px rgba(20, 50, 70, 0.18);
 }
 
 /* Text-style back link with a chevron, used by every secondary screen. */

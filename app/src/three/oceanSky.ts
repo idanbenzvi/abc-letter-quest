@@ -39,9 +39,26 @@ export interface OceanQuality {
   iterFragment: number;
 }
 
+/**
+ * The compiled-in loop CEILINGS. The loops actually run to the live
+ * uMarchSteps/uIterGeometry/uIterFragment uniforms (see
+ * oceanDetailUniforms), so detail can glide up and down at runtime —
+ * adaptiveQuality.ts's frame-rate calibration — with no shader
+ * recompile, which would itself be a visible hitch.
+ */
 export const OCEAN_QUALITY_HIGH: OceanQuality = { numSteps: 32, iterGeometry: 3, iterFragment: 5 };
-/** Roughly halves the raymarch step budget and drops one wave octave from each height-field pass — the two costliest loops in the shader — while keeping every visual parameter (palette, sun/moon, stars) identical, so a low-power device still looks like the same ocean, just less finely traced. */
-export const OCEAN_QUALITY_LOW: OceanQuality = { numSteps: 16, iterGeometry: 2, iterFragment: 3 };
+/** The least detail calibration will go to — still recognisably the same sea (the two big swell octaves always stay). */
+const OCEAN_DETAIL_FLOOR: OceanQuality = { numSteps: 10, iterGeometry: 2, iterFragment: 2.5 };
+
+/** Maps a 0..1 detail level to the shader's live loop budgets. Octave counts are fractional on purpose: the last octave's weight fades rather than popping. */
+export function oceanDetailUniforms(detail: number): OceanQuality {
+  const lerp = (a: number, b: number) => a + (b - a) * detail;
+  return {
+    numSteps: lerp(OCEAN_DETAIL_FLOOR.numSteps, OCEAN_QUALITY_HIGH.numSteps),
+    iterGeometry: lerp(OCEAN_DETAIL_FLOOR.iterGeometry, OCEAN_QUALITY_HIGH.iterGeometry),
+    iterFragment: lerp(OCEAN_DETAIL_FLOOR.iterFragment, OCEAN_QUALITY_HIGH.iterFragment),
+  };
+}
 
 export function buildOceanFragmentShader(quality: OceanQuality): string {
   return /* glsl */ `
@@ -75,6 +92,27 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
   uniform float uCameraRotZ;
   uniform float uZoom;
   uniform vec2 uCameraOffset;
+  // The storm round (StormWeather.tsx): uStorm 0 = clear, 1 = full storm,
+  // briefly negative as it clears (a warm sunburst); uFlash = lightning.
+  uniform float uStorm;
+  uniform float uFlash;
+  // Live detail budgets, each <= its compiled ceiling above — see oceanDetailUniforms.
+  uniform float uMarchSteps;
+  uniform float uIterGeometry;
+  uniform float uIterFragment;
+
+  // Streak-reward rainbow (see OceanSky.tsx's \`rainbow\` prop). Drawn
+  // HERE rather than as a mesh because the ocean's reflections are
+  // computed in this shader — the same reason Oceanara's beach ball
+  // lived in its shader: anything outside it can't show up in the water.
+  // A child's rainbow: six solid bands, red outside to purple inside.
+  uniform float uRainbowAlpha;      // 0 = off (whole feature skipped), 1 = fully faded in
+  uniform vec3 uRainbowCenter;      // arc centre, world space; the arc faces +z (toward the camera)
+  uniform float uRainbowRadius;     // outer (red) edge
+  uniform float uRainbowWidth;      // all six bands together
+  uniform float uRainbowGlow;       // index of the breathing band, -1 for none
+  uniform float uRainbowBreath;     // 0..1, the glow's current swell
+  uniform vec3 uRainbowColors[6];   // outermost first, pre-compensated for mainImage's output curve
 
   const int NUM_STEPS = ${quality.numSteps};
   const float PI      = 3.141592;
@@ -232,9 +270,11 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
 
       float d, h = 0.0;
       for(int i = 0; i < ITER_GEOMETRY; i++) {
+          float w = clamp(uIterGeometry - float(i), 0.0, 1.0);
+          if (w <= 0.0) break;
           d = sea_octave((uv+SEA_TIME)*freq,choppy);
           d += sea_octave((uv-SEA_TIME)*freq,choppy);
-          h += d * amp;
+          h += d * amp * w;
           uv *= octave_m; freq *= 1.9; amp *= 0.22;
           choppy = mix(choppy,1.0,0.2);
       }
@@ -249,9 +289,11 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
 
       float d, h = 0.0;
       for(int i = 0; i < ITER_FRAGMENT; i++) {
+          float w = clamp(uIterFragment - float(i), 0.0, 1.0);
+          if (w <= 0.0) break;
           d = sea_octave((uv+SEA_TIME)*freq,choppy);
           d += sea_octave((uv-SEA_TIME)*freq,choppy);
-          h += d * amp;
+          h += d * amp * w;
           uv *= octave_m; freq *= 1.9; amp *= 0.22;
           choppy = mix(choppy,1.0,0.2);
       }
@@ -263,12 +305,67 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
       return p.y - h;
   }
 
+  // The rainbow as seen along one ray (direct view, or reflected off the
+  // sea): one ray-plane intersection against the arc's vertical plane,
+  // cheap enough to run twice per pixel. Deliberately a child's drawing
+  // of a rainbow — six solid, clearly separate bands — not the physical
+  // phenomenon: an Airy-theory version was built and tried (see
+  // docs/10-flight-game.md) and read as strange and washed out in play.
+  // Returns premultiplied colour in .rgb, coverage in .a; tHit is the ray
+  // distance to the plane, for occlusion against the sea.
+  vec4 rainbowSample(vec3 ori, vec3 dir, out float tHit) {
+      tHit = 1e9;
+      if (uRainbowAlpha <= 0.0 || abs(dir.z) < 1e-4) return vec4(0.0);
+      float t = (uRainbowCenter.z - ori.z) / dir.z;
+      if (t <= 0.0) return vec4(0.0);
+      vec2 d = (ori + dir * t).xy - uRainbowCenter.xy;
+      if (d.y < 0.0) return vec4(0.0);
+      // 0 at the outer (red) edge, 6 at the inner (purple) edge.
+      float band = (uRainbowRadius - length(d)) / uRainbowWidth * 6.0;
+      if (band < -2.0 || band > 8.0) return vec4(0.0);
+      tHit = t;
+
+      // Screen-space softness for the seams: about one pixel wide at any
+      // distance, so the bands stay crisp up close and never alias far off.
+      float aa = clamp(fwidth(band) * 0.75, 0.02, 0.3);
+      vec3 col = vec3(0.0);
+      for (int i = 0; i < 6; i++) {
+          float fi = float(i);
+          float w = smoothstep(0.5 + aa, 0.5 - aa, abs(band - (fi + 0.5)));
+          vec3 c = uRainbowColors[i];
+          if (fi == uRainbowGlow) c = mix(c, vec3(1.0), 0.22 * uRainbowBreath);
+          col += c * w;
+      }
+      float edge = smoothstep(-aa, aa, band) * smoothstep(6.0 + aa, 6.0 - aa, band);
+      float inGlow = uRainbowGlow >= 0.0 ? smoothstep(0.5 + aa, 0.5 - aa, abs(band - (uRainbowGlow + 0.5))) : 0.0;
+      // Nearly opaque, like a crayon rainbow; the other bands ease back
+      // a touch as the glowing one swells, so the pulse also reads by contrast.
+      float a = mix(0.92 - 0.2 * uRainbowBreath, 1.0, inGlow) * edge;
+
+      // The breathing halo spills past the band onto its neighbours,
+      // tinted (not white) so the glowing band still reads as its colour.
+      vec3 halo = vec3(0.0);
+      if (uRainbowGlow >= 0.0) {
+          float g = (band - (uRainbowGlow + 0.5)) / 0.85;
+          vec3 gc = uRainbowColors[0];
+          for (int i = 0; i < 6; i++) if (float(i) == uRainbowGlow) gc = uRainbowColors[i];
+          halo = mix(gc, vec3(1.0), 0.1) * exp(-g * g) * uRainbowBreath * 0.6;
+      }
+      return vec4((col * a + halo) * uRainbowAlpha, a * uRainbowAlpha);
+  }
+
   vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
       float fresnel = clamp(1.0 - dot(n, -eye), 0.0, 1.0);
       fresnel = min(fresnel * fresnel * fresnel, 0.5);
 
       vec3 reflected_dir = reflect(eye, n);
       vec3 reflected = getSkyColor(reflected_dir, l);
+      // Reflected off the real wave normal, so the rainbow's image in the
+      // water breaks up and shimmers with the swell rather than being a
+      // flat mirrored copy.
+      float tReflRainbow;
+      vec4 reflRainbow = rainbowSample(p, reflected_dir, tReflRainbow);
+      reflected = reflected * (1.0 - reflRainbow.a) + reflRainbow.rgb;
 
       float sun_cycle = sin((uTimeOfDay / 24.0) * PI * 2.0 - PI/2.0);
       float day_blend = clamp(sun_cycle * 2.0 + 0.2, 0.0, 1.0);
@@ -279,6 +376,11 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
       vec3 refracted = current_base + diffuse(n, l, 80.0) * current_water * 0.12;
 
       vec3 color = mix(refracted, reflected, fresnel);
+      // Fresnel alone (capped at 0.5 above) leaves a far-off object's
+      // reflection as scattered glints; a little extra on top lets the
+      // rainbow's mirror image read as a shape in the water, like the
+      // original demo's ball did.
+      color += reflRainbow.rgb * 0.35;
 
       float atten = max(1.0 - dot(dist, dist) * 0.001, 0.0);
       color += current_water * (p.y - uSeaHeight) * 0.18 * atten;
@@ -307,6 +409,7 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
       }
       float hm = map(ori);
       for(int i = 0; i < NUM_STEPS; i++) {
+          if (float(i) >= uMarchSteps) break;
           float tmid = mix(tm, tx, hm / (hm - hx));
           p = ori + dir * tmid;
           float hmid = map(p);
@@ -352,7 +455,7 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
       dirLevel = normalize(dirLevel) * fromEuler(vec3(ang.x, ang.y, 0.0));
 
       vec3 p;
-      heightMapTracing(ori,dir,p);
+      float tSea = heightMapTracing(ori,dir,p);
       vec3 dist = p - ori;
 
       float theta = (uTimeOfDay / 24.0) * PI * 2.0 - PI/2.0;
@@ -368,12 +471,29 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
           pow(smoothstep(0.0,-0.02,dirLevel.y),0.2)
       );
 
+      // Only where the rainbow's plane is nearer than the sea along this
+      // ray — the arc's feet sit just under the waterline, so the swell
+      // in front of them occludes them the way it would a real object.
+      float tRainbow;
+      vec4 rainbow = rainbowSample(ori, dir, tRainbow);
+      if (tRainbow < tSea) base_color = base_color * (1.0 - rainbow.a) + rainbow.rgb;
+
       return base_color;
   }
 
   void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
       float time = iTime;
       vec3 color = getPixel(fragCoord, time);
+      if (uStorm > 0.0) {
+          // Storm light: grey, dark and cool — sky and sea alike.
+          float lum = dot(color, vec3(0.299, 0.587, 0.114));
+          vec3 stormy = vec3(lum) * vec3(0.5, 0.55, 0.62);
+          color = mix(color, stormy, uStorm * 0.8);
+      } else if (uStorm < 0.0) {
+          // The storm clearing: a warm burst of sunlight, then back to normal.
+          color = mix(color, color * 1.25 + vec3(0.07, 0.05, 0.0), -uStorm);
+      }
+      color += vec3(0.8, 0.85, 1.0) * uFlash * 0.45;
       fragColor = vec4(pow(color,vec3(0.65)), 1.0);
   }
 

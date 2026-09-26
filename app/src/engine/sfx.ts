@@ -20,7 +20,9 @@ export type SfxName =
   | 'takeoff' // mission start — wing-beat whoosh + rising swell
   | 'land' // mission end — a settling, resolved chord
   | 'stroke' // one stroke of a traced letter finished — a single soft bell
-  | 'mastered'; // a letter reaching mastery on the end screen — fanfare
+  | 'mastered' // a letter reaching mastery on the end screen — fanfare
+  | 'splash' // the albatross belly-dipping into the sea — a comic sploosh
+  | 'thunder'; // the storm round's lightning — a crack, then a long low rumble
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -194,6 +196,21 @@ export function play(name: SfxName): void {
       tone(c, out, { freq: E6, type: 'sine', attack: 0.005, hold: 0.04, release: 0.4, peak: 0.16 });
       tone(c, out, { freq: E6 * 2, type: 'sine', attack: 0.005, hold: 0.02, release: 0.2, peak: 0.04 });
       break;
+    case 'splash':
+      // Body: a burst of water noise sweeping down (the "shhh" of spray
+      // falling), plus two quick downward "bloop"s for the comedy.
+      noise(c, out, { attack: 0.01, hold: 0.05, release: 0.55, peak: 0.2, filterType: 'bandpass', freq: 1800, freqTo: 400, q: 0.7 });
+      noise(c, out, { start: 0.05, attack: 0.02, hold: 0.1, release: 0.7, peak: 0.07, filterType: 'highpass', freq: 3500 });
+      tone(c, out, { freq: 520, type: 'sine', attack: 0.005, hold: 0.02, release: 0.14, peak: 0.16, glideTo: 180 });
+      tone(c, out, { freq: 700, type: 'sine', start: 0.09, attack: 0.005, hold: 0.02, release: 0.12, peak: 0.1, glideTo: 260 });
+      break;
+    case 'thunder':
+      // Kept soft and far-off-sounding (it's a 5-year-old's game, not a
+      // jump scare): a quick high crackle, then a long low rumble.
+      noise(c, out, { attack: 0.005, hold: 0.04, release: 0.25, peak: 0.06, filterType: 'highpass', freq: 2500 });
+      noise(c, out, { start: 0.05, attack: 0.15, hold: 0.5, release: 2.2, peak: 0.22, filterType: 'lowpass', freq: 220, freqTo: 90, q: 0.8 });
+      noise(c, out, { start: 0.4, attack: 0.3, hold: 0.3, release: 1.6, peak: 0.1, filterType: 'lowpass', freq: 160, freqTo: 70, q: 0.6 });
+      break;
     case 'mastered':
       [C5, E5, G5, C6].forEach((f, i) => tone(c, out, { freq: f, type: 'triangle', start: i * 0.12, attack: 0.02, hold: 0.12, release: 0.5, peak: 0.16 }));
       [C6, E6, G6].forEach((f, i) => tone(c, out, { freq: f, type: 'sine', start: 0.5 + i * 0.07, attack: 0.02, hold: 0.3, release: 1.2, peak: 0.14 }));
@@ -269,4 +286,51 @@ export function haptic(pattern: number | number[] = 12): void {
   } catch {
     // Some browsers throw on vibrate() without a user gesture — never let a haptic break gameplay.
   }
+}
+
+let rain: { gain: GainNode; stop: () => void } | null = null;
+
+/** A soft, steady rain bed for the storm round — two filtered noise layers (patter + hiss). Fades in; stopRain() fades it out. */
+export function startRain(): void {
+  const r = ready();
+  if (!r || rain) return;
+  const { c, out } = r;
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0, c.currentTime);
+  gain.gain.linearRampToValueAtTime(1, c.currentTime + 1.5);
+  gain.connect(out);
+  const sources: AudioScheduledSourceNode[] = [];
+  for (const [type, freq, q, level] of [
+    ['bandpass', 2600, 0.5, 0.09],
+    ['highpass', 6000, 0.3, 0.03],
+  ] as const) {
+    const src = c.createBufferSource();
+    src.buffer = getNoise(c);
+    src.loop = true;
+    const f = c.createBiquadFilter();
+    f.type = type;
+    f.frequency.value = freq;
+    f.Q.value = q;
+    const g = c.createGain();
+    g.gain.value = level;
+    src.connect(f).connect(g).connect(gain);
+    src.start();
+    sources.push(src);
+  }
+  rain = {
+    gain,
+    stop: () => {
+      const now = c.currentTime;
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(gain.gain.value, now);
+      gain.gain.linearRampToValueAtTime(0, now + 2);
+      sources.forEach((n) => n.stop(now + 2.1));
+    },
+  };
+}
+
+export function stopRain(): void {
+  if (!rain) return;
+  rain.stop();
+  rain = null;
 }

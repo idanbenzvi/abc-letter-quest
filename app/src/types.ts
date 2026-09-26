@@ -78,7 +78,26 @@ export interface Settings {
    * unannounced mid-flight.
    */
   handwritingCheck: boolean;
+  /**
+   * What the game says for a letter (engine/audio.ts's sayLetter): its
+   * name ("bee"), its sound ("buh" — see data/letterSounds.ts), or both,
+   * name then sound (the default). Letter SOUNDS, not names, are what
+   * predict learning to read (docs/02-pedagogy.md), so 'names' is there
+   * for a grown-up who wants it, not as the default. The word-blending
+   * round uses sounds unless this is 'names' — blending c-a-t only works
+   * with sounds.
+   */
+  letterVoice: LetterVoice;
+  /**
+   * Letters a grown-up wants practised (uppercase), e.g. the week's
+   * letters at school or a stubborn b/d. When set, about half of every
+   * flight is drawn from them — even ones the curriculum pool hasn't
+   * reached yet (see engine/flightMission.ts's FOCUS_SHARE). Empty = off.
+   */
+  focusLetters: string[];
 }
+
+export type LetterVoice = 'names' | 'sounds' | 'both';
 
 export type WritingPracticeMode = 'off' | 'first-assisted' | 'always-assisted';
 
@@ -89,6 +108,8 @@ export interface PlayerState {
   sessions: SessionSummary[];
   starsTotal: number;
   settings: Settings;
+  /** Mastered letters the child has already watched hatch in "My Nest" (screens/Nest.tsx) — anything mastered since hatches on the next visit. */
+  nestSeen?: string[];
 }
 
 /** The whole persisted app: every player's own data, keyed by a generated player id, plus which one is currently playing. */

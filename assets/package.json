@@ -5,7 +5,9 @@
   "description": "AI asset-generation pipeline for the ABC Letter Quest game (Buddy the fox + word illustrations).",
   "scripts": {
     "generate": "node generate.mjs",
-    "dry-run": "node generate.mjs --dry-run"
+    "dry-run": "node generate.mjs --dry-run",
+    "generate-audio": "node generate-audio.mjs",
+    "dry-run-audio": "node generate-audio.mjs --dry-run"
   },
   "dependencies": {
     "@google/genai": "^2.21.0"

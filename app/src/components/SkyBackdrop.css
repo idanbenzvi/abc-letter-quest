@@ -1,0 +1,99 @@
+/* ---- living sky ---- */
+
+.sky-stage {
+  background: linear-gradient(180deg, #8ec5ea 0%, #cfe7f5 62%, #fdf6ea 100%);
+}
+
+.sky-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.sky-sun {
+  position: absolute;
+  top: 6%;
+  right: 12%;
+  width: 22vmin;
+  height: 22vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6c4 0%, #ffe38a 38%, rgba(255, 227, 138, 0) 72%);
+  animation: sun-glow 6s ease-in-out infinite;
+}
+@keyframes sun-glow {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+.sky-cloud {
+  position: absolute;
+  width: 34vmin;
+  height: 12vmin;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  filter: blur(1px);
+  box-shadow:
+    -8vmin 4vmin 0 -2vmin rgba(255, 255, 255, 0.85),
+    9vmin 3vmin 0 -3vmin rgba(255, 255, 255, 0.85),
+    2vmin -5vmin 0 -1vmin rgba(255, 255, 255, 0.85);
+  animation: cloud-drift linear infinite;
+}
+.sky-cloud.c1 {
+  top: 14%;
+  left: -40vmin;
+  animation-duration: 58s;
+}
+.sky-cloud.c2 {
+  top: 60%;
+  left: -40vmin;
+  transform: scale(0.7);
+  opacity: 0.8;
+  animation-duration: 74s;
+  animation-delay: -30s;
+}
+.sky-cloud.c3 {
+  top: 6%;
+  left: -40vmin;
+  transform: scale(0.55);
+  opacity: 0.7;
+  animation-duration: 90s;
+  animation-delay: -60s;
+}
+.sky-cloud.c4 {
+  top: 72%;
+  left: -40vmin;
+  transform: scale(0.85);
+  opacity: 0.65;
+  animation-duration: 66s;
+  animation-delay: -12s;
+}
+@keyframes cloud-drift {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: calc(100vw + 80vmin) 0;
+  }
+}
+.sky-sea {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 18%;
+  background: linear-gradient(180deg, rgba(45, 127, 176, 0) 0%, rgba(45, 127, 176, 0.22) 35%, rgba(23, 83, 127, 0.35) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-cloud,
+  .sky-sun {
+    animation: none;
+  }
+}

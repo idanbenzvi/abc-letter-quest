@@ -3,6 +3,7 @@ import { useApp } from './state/AppContext';
 import { Onboarding } from './screens/Onboarding';
 import { PlayerSelect } from './screens/PlayerSelect';
 import { Dashboard } from './screens/Dashboard';
+import { NestScreen } from './screens/Nest';
 import { FlightGameScreen } from './three/FlightGameScreen';
 import { ScreenTransition } from './components/ScreenTransition';
 
@@ -16,7 +17,7 @@ const RigTool = lazy(() => import('./three/RigTool').then((m) => ({ default: m.R
 // direct user instruction — see docs/10-flight-game.md. The old screen
 // files are untouched (not deleted) since the trace mechanic's fate
 // inside the new game is still an open question at time of writing.
-type View = { type: 'play' } | { type: 'dashboard' } | { type: 'playerSelect' };
+type View = { type: 'play' } | { type: 'dashboard' } | { type: 'playerSelect' } | { type: 'nest' };
 
 export default function App() {
   const { players, activePlayerId } = useApp();
@@ -57,9 +58,12 @@ export default function App() {
   } else if (view.type === 'dashboard') {
     screenKey = 'dashboard';
     screen = <Dashboard onBack={() => setView({ type: 'play' })} onSwitchPlayer={() => setView({ type: 'playerSelect' })} />;
+  } else if (view.type === 'nest') {
+    screenKey = 'nest';
+    screen = <NestScreen onBack={() => setView({ type: 'play' })} />;
   } else {
     screenKey = 'play';
-    screen = <FlightGameScreen onOpenDashboard={() => setView({ type: 'dashboard' })} />;
+    screen = <FlightGameScreen onOpenDashboard={() => setView({ type: 'dashboard' })} onOpenNest={() => setView({ type: 'nest' })} />;
   }
 
   return <ScreenTransition transitionKey={screenKey}>{screen}</ScreenTransition>;

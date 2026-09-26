@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from 'react';
-import type { AppState, PlayerState, Profile, SessionSummary, WritingPracticeMode } from '../types';
+import type { AppState, PlayerState, Profile, SessionSummary, WritingPracticeMode, LetterVoice } from '../types';
 import { EMPTY_PLAYER_STATE, loadState, saveState } from '../engine/storage';
 import { addSelfWord, applyAnswer, createLetterProgress, decaySessionGaps } from '../engine/scheduler';
 import { CURRICULUM_ORDER } from '../data/curriculum';
@@ -18,6 +18,9 @@ type Action =
   | { type: 'SET_WRITING_PRACTICE'; mode: WritingPracticeMode }
   | { type: 'SET_LOOK_ALIKE_PRACTICE'; enabled: boolean }
   | { type: 'SET_HANDWRITING_CHECK'; enabled: boolean }
+  | { type: 'SET_LETTER_VOICE'; voice: LetterVoice }
+  | { type: 'SET_FOCUS_LETTERS'; letters: string[] }
+  | { type: 'MARK_NEST_SEEN'; letters: string[] }
   | { type: 'RESET_PROGRESS' };
 
 function newPlayerId(): string {
@@ -92,6 +95,15 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_HANDWRITING_CHECK': {
       return updateActivePlayer(state, (p) => ({ ...p, settings: { ...p.settings, handwritingCheck: action.enabled } }));
     }
+    case 'MARK_NEST_SEEN': {
+      return updateActivePlayer(state, (p) => ({ ...p, nestSeen: action.letters }));
+    }
+    case 'SET_FOCUS_LETTERS': {
+      return updateActivePlayer(state, (p) => ({ ...p, settings: { ...p.settings, focusLetters: action.letters } }));
+    }
+    case 'SET_LETTER_VOICE': {
+      return updateActivePlayer(state, (p) => ({ ...p, settings: { ...p.settings, letterVoice: action.voice } }));
+    }
     case 'RESET_PROGRESS': {
       // Wipes learning progress (letter mastery, stars, session history)
       // back to a fresh start, but keeps the child's profile and
@@ -146,6 +158,9 @@ interface AppContextValue {
   setSoundEnabled: (enabled: boolean) => void;
   setWritingPractice: (mode: WritingPracticeMode) => void;
   setLookAlikePractice: (enabled: boolean) => void;
+  setLetterVoice: (voice: LetterVoice) => void;
+  setFocusLetters: (letters: string[]) => void;
+  markNestSeen: (letters: string[]) => void;
   setHandwritingCheck: (enabled: boolean) => void;
   resetProgress: () => void;
 }
@@ -180,6 +195,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSoundEnabled: (enabled) => dispatch({ type: 'SET_SOUND_ENABLED', enabled }),
     setWritingPractice: (mode) => dispatch({ type: 'SET_WRITING_PRACTICE', mode }),
     setLookAlikePractice: (enabled) => dispatch({ type: 'SET_LOOK_ALIKE_PRACTICE', enabled }),
+    setLetterVoice: (voice) => dispatch({ type: 'SET_LETTER_VOICE', voice }),
+    setFocusLetters: (letters) => dispatch({ type: 'SET_FOCUS_LETTERS', letters }),
+    markNestSeen: (letters) => dispatch({ type: 'MARK_NEST_SEEN', letters }),
     setHandwritingCheck: (enabled) => dispatch({ type: 'SET_HANDWRITING_CHECK', enabled }),
     resetProgress: () => dispatch({ type: 'RESET_PROGRESS' }),
   };

@@ -64,6 +64,7 @@ export function HandwritingCheck({ letter, onMatch, onClose }: { letter: string;
         await videoRef.current.play();
       }
       if (mountedRef.current && requestId === requestIdRef.current) setStatus('live');
+      pollVideoDimensions(requestId);
     } catch (e) {
       if (!mountedRef.current || requestId !== requestIdRef.current) return;
       const name = e instanceof DOMException ? e.name : '';
@@ -83,9 +84,36 @@ export function HandwritingCheck({ letter, onMatch, onClose }: { letter: string;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function applyRealDimensions(v: HTMLVideoElement) {
+    if (v.videoWidth && v.videoHeight) setAspectRatio(v.videoWidth / v.videoHeight);
+  }
+
   function handleLoadedMetadata() {
+    if (videoRef.current) applyRealDimensions(videoRef.current);
+  }
+
+  // Belt-and-suspenders for `loadedmetadata`: at least one class of iOS
+  // Safari bug fires it for a camera MediaStream before videoWidth/
+  // videoHeight are actually populated, which would otherwise leave
+  // `aspectRatio` stuck at the 4:3 fallback for the whole session. That
+  // matters here specifically because the on-screen guide box's screen
+  // position is only trustworthy — i.e. actually lines up with the
+  // region handleCheck crops out of the real frame — once the preview's
+  // CSS aspect-ratio truly matches the camera's native one; until then,
+  // `object-fit: cover` silently crops the DISPLAYED feed differently
+  // than the raw frame gets cropped for scoring, so what the child
+  // writes in the visible box and what actually gets scored can be two
+  // different patches of the photo. Bounded so a stream that genuinely
+  // never reports dimensions doesn't poll forever.
+  function pollVideoDimensions(requestId: number, attempt = 0) {
+    if (!mountedRef.current || requestId !== requestIdRef.current) return;
     const v = videoRef.current;
-    if (v && v.videoWidth && v.videoHeight) setAspectRatio(v.videoWidth / v.videoHeight);
+    if (v && v.videoWidth && v.videoHeight) {
+      applyRealDimensions(v);
+      return;
+    }
+    if (attempt >= 40) return; // ~2s at 50ms — well past any real device's startup time
+    setTimeout(() => pollVideoDimensions(requestId, attempt + 1), 50);
   }
 
   async function handleCheck() {

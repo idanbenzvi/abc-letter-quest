@@ -120,14 +120,21 @@ const ICONS: Record<string, FC<IconProps>> = {
   fish: FishIcon,
 };
 
-/** Word ids with a real hand-built illustration — the only ones fair to
- * use in a "which picture starts with this letter" recognition task
- * (see engine/pictureChoice.ts). Generic-fallback words don't carry
- * enough visual identity for a child to name them. */
-export const ILLUSTRATED_WORD_IDS: ReadonlySet<string> = new Set(Object.keys(ICONS));
+import { FLASHCARD_MAP } from '../../data/flashcards';
+
+/** Word ids with an illustrated flash card — now covering all 26 letters! */
+export const ILLUSTRATED_WORD_IDS: ReadonlySet<string> = new Set([
+  ...Object.keys(ICONS),
+  ...Object.keys(FLASHCARD_MAP),
+]);
 
 export function WordIcon({ id, size = 76 }: { id: string; size?: number }) {
   const Icon = ICONS[id];
   if (Icon) return <Icon size={size} />;
+  const card = FLASHCARD_MAP[id];
+  if (card) {
+    return <img src={card.iconPath} alt={card.word} width={size} height={size} style={{ display: 'inline-block', verticalAlign: 'middle' }} />;
+  }
   return <GenericWordIcon seed={id} size={size} />;
 }
+

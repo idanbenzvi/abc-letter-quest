@@ -1,6 +1,7 @@
 {
   "name": "abc-letter-quest-assets",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "description": "AI asset-generation pipeline for the ABC Letter Quest game (Buddy the fox + word illustrations).",
   "scripts": {

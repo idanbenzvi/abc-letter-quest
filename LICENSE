@@ -1,0 +1,44 @@
+ABCtross (ABC Letter Quest)
+Copyright (c) 2026 Idan Ben-Zvi. All rights reserved.
+
+PROPRIETARY LICENSE: NO PERMISSION GRANTED
+
+This repository and everything in it, including but not limited to source
+code, game design, artwork, logos, the "ABCtross" name and branding, audio,
+text, and documentation (together, the "Work"), is the proprietary property
+of the copyright holder, Idan Ben-Zvi.
+
+No license or right is granted to you by this notice or by access to the
+Work. You may NOT, in whole or in part, and for any purpose (commercial or
+non-commercial):
+
+  - use, run, or deploy the Work;
+  - copy or reproduce the Work;
+  - modify, adapt, translate, or create derivative works based on the Work;
+  - publish, distribute, share, sublicense, sell, rent, or lend the Work;
+  - use the Work, or any part of it, to train or evaluate machine-learning
+    models;
+
+without the prior, express, written permission of the copyright holder.
+Permission, if given, applies only to the person and purpose it is given to,
+and may be withdrawn.
+
+The Work being publicly visible (for example, in a public GitHub repository)
+does not grant any rights to it. The only exception is the limited right
+GitHub's Terms of Service give other GitHub users to view and fork the
+repository within GitHub's own service, which permits nothing beyond that.
+
+To request permission, contact the copyright holder through their GitHub
+profile: https://github.com/idanbenzvi
+
+THIRD-PARTY MATERIAL
+Some parts of the Work are the property of others and are included under
+their own licenses, which continue to apply to those parts and are not
+changed by this notice. They are listed in the "Third-party notices" section
+of README.md.
+
+DISCLAIMER
+The Work is provided "as is", without warranty of any kind, express or
+implied. In no event shall the copyright holder be liable for any claim,
+damages, or other liability arising from, out of, or in connection with the
+Work or its use.

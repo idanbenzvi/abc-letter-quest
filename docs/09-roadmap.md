@@ -33,8 +33,10 @@ Real, working, end-to-end code — not mockups. Scope:
   "bland" with no character to journey with — the underlying letter
   curriculum/scheduler is unchanged, this is a narrative/UI layer on
   top of it.
-- Audio via browser `SpeechSynthesis` (explicitly a placeholder — see
-  [07-architecture.md](./07-architecture.md#audio-strategy)).
+- Audio: every letter name and word is real recorded speech generated
+  via Gemini TTS (`assets/generate-audio.mjs`); browser `SpeechSynthesis`
+  is now only the fallback for a clip that's missing — see
+  [07-architecture.md](./07-architecture.md#audio-strategy).
 - Visual style matches the design system's tokens (palette, type,
   iconography rules) but does **not** yet reproduce every mockup detail
   (sparkle-trail animations, confetti, the letter reveal's exact
@@ -143,7 +145,11 @@ see [10-flight-game.md](./10-flight-game.md#stroke-complete-tracing--the-lined-w
 
 - Run the AI asset pipeline for real: full 26-letter word set (2-4 word
   options per letter for scheduler variety), all Buddy poses.
-- Swap `SpeechSynthesis` for real recorded phoneme/word audio.
+- ~~Swap `SpeechSynthesis` for real recorded phoneme/word audio.~~ Done —
+  see [07-architecture.md](./07-architecture.md#audio-strategy). Actually
+  running `assets/generate-audio.mjs` against a real API key (it's
+  written and dry-run-verified, not yet executed for real) is still a
+  pending action, not a code task.
 - Animation pass: letter-reveal sparkle/dust effect, confetti on
   Celebration, tracing sparkle trail, transition motion between screens.
 - `vite-plugin-pwa` — installable, offline-first.

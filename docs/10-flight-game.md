@@ -1061,6 +1061,381 @@ fades once the letter is completely finished, when there's nothing
 left to demonstrate and the completion glow/burst takes over
 immediately anyway.
 
+
+## Rainbow streak reward (Sep 2026)
+
+Every 5th catch in a row has a 20% chance (`RAINBOW_STREAK` /
+`RAINBOW_CHANCE` in `FlightGameScreen.tsx`) of queuing a rainbow in
+front of the **next** letter. One of its six bands slowly "breathes" (a
+1.8s cosine swell plus a tinted halo), and the child picks the matching
+colour from three labelled swatches at the bottom of the screen.
+
+- **Tied back to letters.** Every colour word starts with a curriculum
+  letter (**R**ed, **O**range, **Y**ellow, **G**reen, **B**lue,
+  **P**urple). When the held letter is one of those, that colour is the
+  one that glows, and a correct pick speaks "Red… R" before the R cloud
+  appears. Otherwise any colour glows. See `engine/rainbowChoice.ts`.
+- **Six bands, not seven.** Most 4–6 year olds can't reliably tell
+  indigo from violet. Red and green are never offered together
+  (colour-blind safety, same rule as `PlaneChoice`'s palette), and every
+  swatch carries its word, so the answer never relies on colour vision
+  alone. The rainbow's six bands are exactly the six answer colours.
+- **A reward, not a test.** A wrong pick only shakes the swatch: no
+  `breakStreak`, no `recordLetterMiss`, and letter mastery is untouched.
+  A right pick gives +2 stars and doesn't feed the streak, so a rainbow
+  can't summon the next one.
+- **Rendered in the ocean shader, not as a mesh.** The same reason the
+  original Oceanara beach ball lived in its shader: reflections are
+  computed there, so nothing outside it can appear in the water.
+  `rainbowSample()` in `oceanSky.ts` does one ray-plane intersection for
+  the view ray and one for the wave-reflected ray. The reflection
+  therefore breaks up with the swell instead of being a flat mirrored
+  copy. The arc's feet sit just below the waterline and are occluded by
+  the sea in front of them (`tRainbow < tSea`).
+- **The flight keeps going, 15% slower.** It's the one bonus round that
+  doesn't pause. The rainbow is a fixed place in the world 100 units
+  ahead, sized so it first looks as it would far out on the horizon,
+  then grows on approach. The bird flies under the arch about 30s later.
+  With true-to-life perspective (see "Horizon pitch" below), any arch
+  grows out of the top of the frame once it's within about a third of
+  its starting distance, whatever its scale. So the radius is kept to
+  0.24× the distance, and the arch stays in view for about the first
+  20s, the window a child has to answer.
+  Flying under the arch is the only way the round ends
+  (`onRainbowPassed`). Unanswered, it ends quietly.
+- **The dash.** After the right answer, the bird dashes through the arch
+  wherever it is:
+  - speed eases to 6× (`RAINBOW_DASH_FACTOR`), at most about 5s from the
+    farthest point;
+  - the FOV kicks from 60° to 76°;
+  - the rooster tail lengthens;
+  - a whoosh plays on the dash and again at the arch;
+  - the answer row celebrates for 1.5s, then fades out of the way.
+- **Motion blur** (`MotionBlur.tsx`) is a zoom blur, 16 taps, sharp in
+  the middle and streaking toward the edges. It takes over R3F's render
+  loop (useFrame priority 1) but pays for the extra pass only while
+  dashing; otherwise it's a plain `gl.render`. It deliberately doesn't
+  use three's `EffectComposer`: its `OutputPass` would sRGB-encode the
+  ocean shader's raw output a second time and wash out the sea.
+  Rendering into a target tagged sRGB makes every material encode
+  exactly as it does on screen. Because the bird kept moving, `endRainbowRound`
+  re-anchors the held letter's cloud to the bird's live distance
+  (`birdDistanceRef`) rather than the stale stashed one. The other
+  rounds can reuse their stashed distance only because they freeze the
+  flight.
+- **Portrait phones** shrink the arc to fit the aspect ratio (bands
+  shrink more gently), so both feet and their reflections stay on
+  screen.
+- **Drone camera.** While the rainbow is up, the chase cam blends
+  (1.6s, smootherstep) to a shot above, behind and to the side of the
+  bird, aimed 14 units ahead, and fades out the chase-cam roll so the
+  drone holds level. The bird sits in open sky at lower-left with the
+  rainbow ahead of it. The side offset shrinks on portrait screens so
+  the bird stays in frame. The first framing tried (higher and wider)
+  put the bird behind the answer swatches, caught by screenshot. Tuning
+  constants are `DRONE_*` in `FlightScene.tsx`.
+- **A child's rainbow, on purpose.** Six solid, crisp bands, red
+  outside to purple inside, nearly opaque, with seams anti-aliased to
+  about a pixel (`fwidth`) so they stay sharp up close and never shimmer
+  far off. A physically based version was built and tried (Airy theory
+  per wavelength, after J.A. Adam, *Physics Reports* 356, 2002). It
+  showed secondary bow, supernumerary fringes, Alexander's dark band and
+  CIE colour, and a "naive" paint blend was layered on top. In play it
+  read as strange and washed out, so it was removed in favour of the
+  drawing a child would make. Two useful findings if it's ever revisited:
+  - big-drop showers (≈0.7 mm) give vivid colour where drizzle gives
+    pastel;
+  - light added onto a bright sky clips to white unless the sky behind
+    the bow is dimmed (the rain curtain).
+- **Albatross skim** (`SkimSplash.tsx`, `FlightScene`'s `SKIM_*`,
+  `AlbatrossModel`'s `glideRef`):
+  - **Flight:** while the rainbow is up, the bird swoops down (nose
+    pitched into the dive) and locks its wings into a glide with only a
+    slow flex. It banks ±18° in slow S-curves, so a wingtip clips the
+    crests and throws spray.
+  - **Belly-dips:** every 2–3.6s it does a comic belly-dip: a squash on
+    impact, a crown of about 180 droplets plus a central plume, a foam
+    ring, a synthesized `splash` sfx, and a hop back up past the skim
+    line.
+  - **Wake:** a continuous keel spray and a V of foam trail behind it.
+  - **Heights:** the sea only exists in the shader, so heights come from
+    sampling its wave function offline (mean ≈ 0.7, 90th-percentile
+    crest ≈ 1.1, max ≈ 1.5). Per-wave tracking isn't possible anyway,
+    because GPU float32 `sin()` differs from JS.
+  - **Exit:** when the round ends, the bird climbs back and resumes
+    flapping. The companion flock keeps some height rather than
+    following it into the sea.
+- **Horizon pitch (a long-standing shader quirk found here).** The
+  ocean shader's `fromEuler()` applies pitch with the opposite sign to
+  three.js; for the forward ray it yields `y = -sin(pitch)`. So the
+  painted horizon has always been mirrored: the chase cam looks about
+  10° down, and the horizon is drawn about 10° below centre instead of
+  above. The whole game's framing was tuned on that look, so it's left
+  alone by default. The drone shot blends `OceanSky`'s `truePitchRef`
+  to 1, which is what makes the skimming bird visibly sit on the
+  painted sea rather than floating above the horizon. Correcting it
+  game-wide is an open question for the owner.
+- **Demo shortcut.** Open the game with `?dev=true`, and **Alt+R**
+  (Option+R on a Mac) queues a rainbow in front of the next letter.
+  Plain R isn't used because typing R answers an R cloud. Without the
+  parameter the shortcut does nothing.
+
+Verified headlessly with the trigger temporarily forced: a wrong pick
+shakes and doesn't break the streak; a right pick gives +2 stars and is
+followed by the held letter's cloud; flying through unanswered ends the
+round after ~21s and the held letter appears. Across 20,800 generated
+rounds: 0 red+green pairs, 0 missing targets, and 0 R/O/Y/G/B/P letters
+given the wrong colour.
+
+## Live frame-rate calibration (Sep 2026)
+
+This replaces the old fixed "touch device → low ocean tier + dpr 1"
+decision. `AdaptiveQuality.tsx` measures fps in half-second windows and
+nudges one 0–1 `quality` value, which drives two levers in order
+(`adaptiveQuality.ts`):
+
+1. **Ocean detail** (quality 1 → 0.25): march steps 32→10, geometry
+   octaves 3→2, fragment octaves 5→2.5. These are now **uniforms**
+   (`uMarchSteps`/`uIterGeometry`/`uIterFragment`) that the loops break
+   on, under the compiled ceilings. Octave counts are fractional, and the
+   last octave's weight fades, so detail glides with no recompile hitch.
+   `OceanSky` also eases toward the target.
+2. **Resolution** (below 0.25), in discrete steps because every change
+   reallocates the canvas: native (≤2) → 1.5 → 1 → 0.75.
+
+Rules: under **40 fps** quality steps down fast (−0.08 per window, −0.15
+under 30). At ≥55 fps sustained for 2s it creeps back up (+0.03 per
+window, about 15s from floor to full). A level that caused a drop
+becomes a ceiling for 20s, so it doesn't see-saw. Frames over 1s (tab
+switch) are ignored. An earlier 0.25s cutoff froze calibration on a
+device truly running at 3–4 fps, caught in a SwiftShader run. Touch
+devices start at 0.45 (≈ the old low tier) and desktops at 1. In dev,
+`window.__flightQuality` shows `{ fps, quality, dpr }`.
+
+Verified in headless SwiftShader: a large window dropped to the floor
+(quality 0, dpr 0.75). With the thresholds temporarily shifted to
+exercise the climb, quality recovered, held at the ceiling for 20s,
+then returned to full.
+
+## Letter sounds, not just names (Sep 2026)
+
+The flight game used to speak only letter NAMES ("bee"), although
+`docs/02-pedagogy.md` puts letter SOUNDS first: sound-letter
+correspondence is what predicts reading. That also made the CVC round
+blend names ("see… ay… tee… cat"), which can't produce the word.
+
+- **Letter voice setting** (grown-ups panel, `settings.letterVoice`):
+  *Names*, *Sounds* or *Both*. *Both* (name, then sound) is the
+  default, and tapping an option previews it on "B". Every letter the
+  flight speaks goes through `sayLetter()` in `engine/audio.ts`: tapped
+  clouds, replays, solves, the plane and look-alike prompts, and the
+  rainbow's letter. So in *Sounds* mode the plane round becomes "hear
+  /m/, find the letter".
+- **The CVC round blends with sounds** ("kuh… ah… tuh… cat") unless the
+  setting is *Names*. The whole word now follows the last letter's
+  sound when it finishes, rather than on a fixed 350ms timer that cut
+  off stretched sounds like "ssss".
+- **Audio.** `speakLetterSound()` plays `/audio/sounds/<L>.wav` when
+  present. Otherwise it speaks the spelled approximation from
+  `data/letterSounds.ts` ("buh", "mmmm", short vowels "ah/eh/ih/aw/uh")
+  through speech synthesis. `assets/generate-audio.mjs --only=sounds`
+  generates the 26 clips from that same file, but they need a listen:
+  verbatim TTS can only approximate an isolated sound. See
+  `public/audio/sounds/README.md`.
+- **Two audio fixes found while testing:**
+  - A missing clip didn't 404. Vite's dev server, and most static hosts
+    with a single-page-app fallback, return `index.html` (200,
+    text/html), which the `<audio>` element sat on for the full 1.2s
+    timeout. So every letter without a recording paused before being
+    spoken. `playRecordedClip` now does one HEAD check per clip,
+    checking the content type is `audio/*`, and falls back immediately:
+    measured 36ms, was ~1.2s.
+  - A speech call interrupted while it was still looking for its
+    recorded clip used to fall through to synthesis anyway and talk
+    over the newer call. A sequence counter (`speechSeq`) now cancels
+    it, and cancels the second half of an interrupted name-then-sound.
+- Verified in a headless browser against the real modules, with speech
+  synthesis stubbed to record what's spoken: each mode says the right
+  thing, recorded clips win over synthesis, the panel switches and
+  persists the setting (older saved players default to *Both*), and a
+  letter solved in flight in *Sounds* mode speaks its sound.
+- Not changed: "Say it" speech recognition still listens for letter
+  names, so a child answering with the sound won't match.
+
+## Storm round: "which one starts with a different sound?" (Sep 2026)
+
+Three picture cards hang in a sudden rain storm. Two start with the same
+sound, and the child picks the odd one out. This is the classic
+odd-one-out sound-categorization task (Bradley & Bryant 1983). It's
+pure listening, with no reading needed.
+
+- **Fair by construction** (`engine/oddSound.ts`, `data/initialSounds.ts`):
+  - **Pairs are compared by first *sound*, not letter.** Every card was
+    audited by hand. Cat/Cake/Car and Kite/Key/Kangaroo are all /k/;
+    Queen/Quilt are /kw/; Unicorn is /y/; Xylophone is /z/; X-ray is
+    /e/. A letter-based round could have asked "Cat, Car, Kite",
+    which has no right answer.
+  - **The pair previews the next letter:** it's two cards of the letter
+    about to appear as a cloud.
+  - **U and X never get a storm.** They can't make a fair pair, so the
+    builder returns null and no storm comes that turn.
+  - **The odd card never comes from a too-close sound**
+    (`CONFUSABLE_SOUNDS`: b/p, d/t, m/n, e/i…).
+  - Checked over 2,400 generated rounds: 0 unfair, 0 confusable odd
+    cards, and every pair came from the target letter.
+- **Flow:**
+  - **Opening:** about a 20% chance per letter turn (`STORM_CHANCE`), as
+    an interlude before that letter's cloud, like the other bonus rounds.
+    The flight slows to 85% rather than pausing.
+  - **Read-aloud:** the three cards are read aloud, then the question is
+    asked. The banner's speaker replays it.
+  - **Wrong pick:** the card shakes, the game explains ("Ball and Bear
+    both start with… buh"), and there's no streak penalty. After 2
+    misses the odd card glows as a hint.
+  - **Right pick:** "Mouse… mmmm", +3 stars. The rain stops, the sky
+    overshoots into a warm sunburst, and after 3.2s the held letter's
+    cloud comes (re-anchored to the bird's live distance, as with the
+    rainbow).
+- **Weather** (`StormWeather.tsx`):
+  - **Rain:** 900 streaks in a box that follows the camera.
+  - **Sky and lights:** the ocean shader goes grey and dark (`uStorm`)
+    and the scene lights dim too.
+  - **Lightning:** every 3.5–7s. A jagged bolt far over the sea, a
+    flickering full-frame flash (`uFlash`, which also lights the bird
+    and cards), and soft synthesized thunder a beat later.
+  - **Rain sound:** a synthesized loop (`sfx.startRain/stopRain`).
+- **Cards** (`StormCards.tsx`) are held in view in front of the camera
+  while the flight continues, scaled to fit a portrait phone, and placed
+  in the top half, clear of the bird. They're positioned along the
+  camera's axes rather than rotating a parent group, because
+  `FlashCardSky` billboards itself and would be rotated twice.
+- **Dev:** with `?dev=true`, **Alt+S** toggles a storm at will. It
+  opens one immediately on the cloud in the sky (borrowing a B round
+  for U/X) or clears the current one; with no cloud up, it queues one.
+- **Two flash-card bugs found and fixed.** Both also affected the
+  existing picture-choice round:
+  - **Cards rendered invisible, or as a blank white panel.** The card
+    SVGs have only a `viewBox`, and uploading them straight to WebGL
+    came out blank. They also decoded at a blurry 125×150.
+    `flashCardTexture.ts` now rasterises each SVG into a 512px canvas
+    first.
+  - **13 of the 72 cards embed their art as an external `.jpg`,** which
+    browsers refuse to load inside an SVG-as-image, so those cards were
+    blank. The references are now inlined as data URLs before
+    rasterising.
+  - The revealed card's aura, a flat coloured rectangle once the cards
+    actually showed, is now a soft round glow.
+- Verified headlessly with speech synthesis stubbed to record what's
+  spoken. Tested: the read-aloud, wrong-pick feedback, right pick (+3
+  stars), the storm ending and the held letter returning, and the dev
+  toggle (open, clear, cloud back), on desktop and phone viewports.
+
+## Storm Vowels, focus letters, and the "My Name" flight (Sep 2026)
+
+**Storm Vowels** (`engine/vowelRound.ts`, `data/vowelWords.ts`,
+`components/VowelStorm.tsx`) asks "C _ T: which sound is missing?". The
+middle short vowel is the hardest part of a CVC word for beginners,
+especially English learners.
+- **Scheduling:** it takes half of the CVC cadence's turns
+  (`VOWEL_STORM_SHARE`); the other half stay the catch-in-order word
+  round.
+- **Words:** 17 CVC words covering all five short vowels. Nine have
+  flash-card pictures, and none exist for short e, so the round says the
+  word first ("van… Which sound is missing?") and works as a listening
+  task either way.
+- **UI:** the word board and three falling vowel raindrops are DOM, not
+  3D, so the letters stay crisp and the drops are big tap targets. The
+  drops fall below the board so one never covers the gap. The storm
+  weather around them is the same 3D storm, now driven by a shared
+  `weather` prop.
+- **Wrong drop:** plays its sound, then "Listen: van", with no streak
+  penalty. After 2 misses the right drop glows.
+- **Right drop:** a lightning bolt strikes dead ahead (`strikeKey`) with
+  near-instant thunder, and the word flashes gold. It's blended sound by
+  sound (per the Letter Voice setting), then said whole, for +4 stars.
+- Dev: **Alt+V** toggles one with `?dev=true`.
+
+**Focus letters** (grown-ups panel, `settings.focusLetters`): an A–Z
+chip grid.
+- **Classic:** focus letters fill half of each flight (`FOCUS_SHARE`),
+  including letters beyond the child's current curriculum pool, since a
+  grown-up picked them on purpose. They repeat when there are fewer
+  focus letters than slots, and are spread so the same letter never
+  appears twice in a row.
+- **Endless/Sprint:** each letter has a 50% chance of coming from the
+  focus letters.
+- The intro shows "· focus B D" as a reminder.
+
+**"My Name" flight**, a fourth mode:
+- **Flight:** the letters of the child's first name, in order, in the
+  case they're written (Mia → M, i, a). There are no bonus interruptions,
+  since it's a spelling.
+- **Top bar:** shows the whole name from take-off, faint until each
+  letter is caught.
+- **Landing:** "You flew your name!". The name pops in letter by letter
+  while the game spells it aloud with letter NAMES, the way names are
+  spelled, then says the name.
+- **Non-English names:** non-English letters are skipped, and a name
+  with none (e.g. written in Hebrew) disables the mode with an
+  explanation. It uses Classic's day arc.
+
+Verified in a headless browser:
+- 2,000 generated vowel rounds, all valid, with no back-to-back repeats.
+- Focus letters are exactly 50% of Classic flights, with 0 same-letter
+  neighbours.
+- Name parsing ("Noa נועה" → Noa; Hebrew-only → disabled).
+- A Storm Vowels round end to end: board, wrong and right drops, the
+  blend, +4 stars and the held letter returning, on desktop and phone.
+- A full "Mia" flight to the end screen.
+- The focus card saves and shows in the intro.
+
+## "My Nest": the kids' own progress screen (Sep 2026)
+
+Everything the grown-ups' dashboard says in numbers, told as a picture a
+5-year-old can read (`screens/Nest.tsx`). It opens with one tap (no
+hold): "My nest" under Take Off!, and "See my nest" on the landing
+screen, which reads "See my new chicks!" when letters were mastered that
+flight.
+
+- **The egg nest (hero).** All 26 letters are eggs in a woven bowl with
+  twigs along its rim:
+  - **resting:** faint, not met yet;
+  - **warming:** being practised; speckled, cracked, rocking now and
+    then;
+  - **hatched:** mastered; a chick sitting in the bottom half of its
+    shell, holding its letter.
+- **Hatching on arrival.** Letters mastered since the last visit
+  (`PlayerState.nestSeen`) hatch in turn: a hard shake, the shell top
+  flies off, the chick pops out with a sparkle burst and a pop. It's
+  capped at 6 per visit (a first visit could owe 20); the rest are
+  already chicks.
+- **The screen talks.** After the hatching it speaks a summary built
+  from the real state, e.g. "You've hatched 9 letters! New chicks: M, S
+  and T! 1 more and a butterfly joins your flock!". The speaker button
+  replays it.
+- **Tap an egg or chick:** an egg-shaped card with the letter in both
+  cases, a picture word, and a gentle status line. It says the letter
+  (per the Letter Voice setting), then the word.
+- **Keepsakes:**
+  - **Star jar:** fills 100 stars to a jar, and full jars go on a little
+    shelf. The count animates up.
+  - **Flock:** the companions who've joined, plus the next one as a grey
+    silhouette with dots to go. The companion specs moved to
+    `data/companions.ts`, shared with the 3D flock.
+  - **The last 7 days as suns:** bright and smiling for a day flown,
+    pale and sleepy for a day off.
+- **Deliberately absent:** accuracy, "needs practice" and red. A child's
+  report only ever shows growth, and letters in progress are eggs
+  getting ready to hatch, never failures.
+- **Look:** golden hour over the nest (sky blue to warm peach, twig
+  browns, shell cream, chick yellow) in Baloo 2. The hatching is the one
+  bold motion; `prefers-reduced-motion` shows everything already
+  hatched, with no wobble.
+- Verified headlessly with a seeded player (9 mastered, 3 of them new, 6
+  in progress, 137 stars, 4 days flown): the sequential hatch, the
+  spoken summary, `nestSeen` saved (so they don't re-hatch), the tap-M
+  card ("Em… mmmm… Moon"), on desktop and phone.
+
 ## Not yet built
 
 - The STL has no color/material data — the flap animation is real

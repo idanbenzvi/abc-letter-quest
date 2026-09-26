@@ -1,0 +1,170 @@
+/* Storm Vowels: word board + falling vowel raindrops, over the 3D storm. */
+.vowel-storm {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.vowel-board {
+  position: absolute;
+  top: calc(max(14px, env(safe-area-inset-top)) + 120px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  background: rgba(255, 253, 248, 0.94);
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  box-shadow: 0 10px 28px rgba(20, 30, 45, 0.35);
+  animation: vowel-board-in 0.5s var(--ease-out, ease) both;
+}
+@keyframes vowel-board-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-14px) scale(0.92); }
+}
+.vowel-picture {
+  width: 64px;
+  height: 77px;
+  object-fit: contain;
+}
+.vowel-tiles {
+  display: flex;
+  gap: 8px;
+}
+.vowel-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 68px;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 44px;
+  line-height: 1;
+  color: var(--ink, #3b2b20);
+  background: var(--surface-2, #f3ead9);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+.vowel-tile.gap {
+  background: transparent;
+  outline: 3px dashed var(--sky-dark, #2e7fa8);
+  outline-offset: -6px;
+  clip-path: none;
+  animation: vowel-gap-pulse 1.3s ease-in-out infinite;
+}
+@keyframes vowel-gap-pulse {
+  50% { outline-color: rgba(46, 127, 168, 0.35); }
+}
+.vowel-tile.gap.filled {
+  outline: none;
+  background: var(--sun, #f7c948);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  animation: vowel-filled 0.6s var(--ease-out, ease) both;
+}
+@keyframes vowel-filled {
+  0% { transform: scale(0.3) translateY(-60px); }
+  70% { transform: scale(1.18); }
+}
+/* The lightning hit: the whole word flashes gold. */
+.vowel-storm.solved .vowel-tile {
+  animation: vowel-struck 1.2s ease-out 0.15s both;
+}
+@keyframes vowel-struck {
+  0% { box-shadow: 0 0 0 rgba(255, 230, 120, 0); }
+  15% { background: #fff6c8; box-shadow: 0 0 28px rgba(255, 220, 90, 0.9); }
+  100% { background: var(--sun, #f7c948); }
+}
+
+/* Raindrops: three lanes, falling and looping (staggered by
+   animation-delay), big enough to tap on a phone. */
+.vowel-drops {
+  position: absolute;
+  inset: 0;
+}
+.vowel-drop {
+  position: absolute;
+  top: 0;
+  width: 74px;
+  height: 92px;
+  margin-left: -37px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  background: radial-gradient(circle at 35% 55%, rgba(255, 255, 255, 0.95), rgba(196, 226, 246, 0.92) 55%, rgba(120, 176, 214, 0.95));
+  border-radius: 50% 50% 50% 50% / 62% 62% 40% 40%;
+  box-shadow: inset -6px -8px 14px rgba(40, 90, 130, 0.25), 0 8px 18px rgba(10, 30, 50, 0.3);
+  animation: vowel-fall 5.1s linear infinite;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 14px;
+}
+.vowel-drop::before {
+  /* the teardrop's pointed top */
+  content: '';
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  width: 34px;
+  height: 34px;
+  margin-left: -17px;
+  background: rgba(214, 236, 250, 0.95);
+  transform: rotate(45deg);
+  border-radius: 4px 0 0 0;
+  z-index: -1;
+}
+.vowel-drop span {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--sky-dark, #1f5f82);
+}
+.vowel-drop.lane-0 { left: 26%; }
+.vowel-drop.lane-1 { left: 50%; }
+.vowel-drop.lane-2 { left: 74%; }
+/* Falls through the band BELOW the word board (which ends ~35% down),
+   so a drop never covers the gap it's meant to fill. */
+@keyframes vowel-fall {
+  0% { transform: translateY(36vh); opacity: 0; }
+  8% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { transform: translateY(86vh); opacity: 0; }
+}
+.vowel-drop:active {
+  filter: brightness(1.1);
+}
+/* Wrong drop: only its letter shakes — re-setting the drop's own
+   animation list would restart its fall from the top. */
+.vowel-drop.splash {
+  filter: saturate(0.6) brightness(1.15);
+}
+.vowel-drop.splash span {
+  animation: vowel-shake 0.4s ease;
+}
+@keyframes vowel-shake {
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.vowel-drop.hint {
+  box-shadow: 0 0 0 4px rgba(247, 201, 72, 0.9), 0 0 26px rgba(247, 201, 72, 0.8), inset -6px -8px 14px rgba(40, 90, 130, 0.25);
+}
+
+@media (max-width: 480px) {
+  .vowel-board { top: calc(max(14px, env(safe-area-inset-top)) + 128px); gap: 10px; padding: 10px 12px; }
+  .vowel-picture { width: 48px; height: 58px; }
+  .vowel-tile { width: 46px; height: 56px; font-size: 36px; }
+  .vowel-drop { width: 64px; height: 80px; margin-left: -32px; }
+  .vowel-drop span { font-size: 34px; }
+  .vowel-drop.lane-0 { left: 20%; }
+  .vowel-drop.lane-2 { left: 80%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Drops hold still in their lanes instead of falling. */
+  .vowel-drop { animation: none; transform: translateY(58vh); }
+}

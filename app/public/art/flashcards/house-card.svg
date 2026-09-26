@@ -1,0 +1,68 @@
+<svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="125%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#36291e" flood-opacity="0.16"/>
+    </filter>
+    <linearGradient id="cardBg_house_norm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fffefc"/>
+      <stop offset="100%" stop-color="#f7f0e4"/>
+    </linearGradient>
+    <linearGradient id="viewportBg_house_norm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#eff5f6"/>
+      <stop offset="100%" stop-color="#faf8f2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Card Surface (Handmade Coastal Linen Stock) -->
+  <rect x="8" y="6" width="184" height="228" rx="22" fill="url(#cardBg_house_norm)" stroke="#c7b29a" stroke-width="3" filter="url(#cardShadow)"/>
+  
+  <!-- Nautical Rope / Twine Trim -->
+  <rect x="15" y="13" width="170" height="214" rx="16" fill="none" stroke="#ba9e82" stroke-width="1.6" stroke-dasharray="5, 3" opacity="0.6"/>
+
+  <!-- Inner Double Border -->
+  <rect x="19" y="17" width="162" height="206" rx="13" fill="none" stroke="#ded2c0" stroke-width="1"/>
+
+  <!-- Boho Corner Flourishes -->
+  <circle cx="24" cy="22" r="1.5" fill="#ba9e82" opacity="0.5"/>
+  <circle cx="176" cy="22" r="1.5" fill="#ba9e82" opacity="0.5"/>
+  <circle cx="24" cy="218" r="1.5" fill="#ba9e82" opacity="0.5"/>
+  <circle cx="176" cy="218" r="1.5" fill="#ba9e82" opacity="0.5"/>
+
+  <!-- Illustration Viewport (Recessed aperture with sea-glass wash) -->
+  <rect x="23" y="24" width="154" height="148" rx="14" fill="url(#viewportBg_house_norm)" stroke="#ded0be" stroke-width="1.5"/>
+
+  <!-- Artwork Content -->
+  
+    <g transform="translate(38, 36) scale(1.24)">
+      
+      <polygon points="50,18 18,44 82,44" fill="#ff6f59"/>
+      <rect x="26" y="44" width="48" height="40" fill="#f4ede2" stroke="#d49b20" stroke-width="2"/>
+      <rect x="42" y="58" width="16" height="26" fill="#d49b20"/>
+      <rect x="32" y="50" width="10" height="10" fill="#68b5e8"/>
+      <rect x="58" y="50" width="10" height="10" fill="#68b5e8"/>
+      <rect x="66" y="24" width="6" height="14" fill="#d94d38"/>
+    
+    </g>
+    
+
+  <!-- Top Corner Seal (Hidden or Revealed) -->
+  
+    <!-- Nautical Compass / Boho Sun Seal (Hides Letter) -->
+    <g>
+      <circle cx="37" cy="38" r="12" fill="#f4ece1" stroke="#c8b49e" stroke-width="1.5"/>
+      <path d="M37,29 L38.6,35.4 L45,37 L38.6,38.6 L37,45 L35.4,38.6 L29,37 L35.4,35.4 Z" fill="#d49b20" opacity="0.85"/>
+      <circle cx="37" cy="37" r="1.8" fill="#fffdfa"/>
+    </g>
+    
+
+  <!-- Bottom Banner (Mystery Wave or Revealed Word) -->
+  
+    <!-- Nautical Boho Sea-Wave Mystery Banner (Hides Word) -->
+    <g>
+      <rect x="26" y="178" width="148" height="34" rx="10" fill="#f3ece1" stroke="#d8c5b0" stroke-width="1.5"/>
+      <path d="M68,195 Q74,189 80,195 Q86,201 92,195 M96,195 Q102,189 108,195 Q114,201 120,195 M124,195 Q130,189 136,195" stroke="#ba9e82" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="195" r="2.5" fill="#e26a57" opacity="0.75"/>
+      <circle cx="144" cy="195" r="2.5" fill="#e26a57" opacity="0.75"/>
+    </g>
+    
+</svg>

@@ -464,6 +464,80 @@
   transform: scale(0.95);
 }
 
+
+/* Streak-reward rainbow round: big labelled swatches, centred — the
+   colour word sits under every swatch so the answer never relies on
+   colour vision alone. */
+.rainbow-options {
+  align-self: center;
+  display: flex;
+  gap: 12px;
+  animation: fade-up-in 0.4s var(--ease-out, ease) both;
+}
+.rainbow-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 84px;
+  padding: 10px 12px 8px;
+  border: 3px solid transparent;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink, #4a382d);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(40, 60, 80, 0.16);
+  transition: transform 0.15s, opacity 0.3s, border-color 0.2s;
+}
+.rainbow-option:active {
+  transform: scale(0.95);
+}
+/* After the right pick: a beat to celebrate, then the row gets out of
+   the way of the dash through the arch. */
+.rainbow-options.done {
+  pointer-events: none;
+  animation: rainbow-options-out 0.45s ease 1.5s forwards;
+}
+@keyframes rainbow-options-out {
+  to { opacity: 0; transform: translateY(16px); }
+}
+.rainbow-option:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.rainbow-option.wrong {
+  animation: rainbow-shake 0.4s ease;
+}
+.rainbow-option.solved {
+  border-color: var(--sun-dark, #d9a21b);
+  transform: scale(1.08);
+}
+.rainbow-swatch {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.12);
+}
+.rainbow-word strong {
+  color: var(--sky-dark, #2e7fa8);
+  font-weight: 900;
+}
+@keyframes rainbow-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+@media (max-width: 380px) {
+  .rainbow-options { gap: 8px; }
+  .rainbow-option { min-width: 72px; padding: 8px 8px 6px; font-size: 14px; }
+  .rainbow-swatch { width: 44px; height: 44px; }
+}
+
 .flight-hint {
   display: inline-flex;
   align-items: center;
@@ -735,6 +809,34 @@
 .flight-about-card > .btn {
   width: 100%;
 }
+.flight-about-photo {
+  margin: 0;
+  width: 100%;
+}
+.flight-about-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 20px;
+}
+.flight-about-photo figcaption {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft, #7a6b5a);
+  text-align: center;
+}
+.flight-about-photo figcaption a {
+  color: inherit;
+}
+.flight-about-video {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sky-dark, #2e7fa8);
+  text-align: center;
+}
 
 @media (max-width: 560px) {
   .flight-about-body {
@@ -753,7 +855,7 @@
   background: var(--surface-2, #f0e9db);
   color: var(--ink, #4a382d);
   border: none;
-  border-radius: 999px;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
   padding: 9px 14px;
   font-weight: 800;
   font-size: 13px;
@@ -763,23 +865,26 @@
   color: var(--ink-soft, #7a6b5a);
 }
 
+/* Small chamfered tags — same cut-corner family as .btn/.card, scaled
+   down, no depth-shadow layer since these are inert labels/toggles
+   rather than pressable primary actions. */
 .flight-grownups-btn {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--surface, #fffaf1);
   color: var(--ink-soft, #7a6b5a);
-  border: 2px solid rgba(46, 127, 168, 0.18);
-  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px var(--sky-wash, #e8f3f8);
+  border: none;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
   padding: 8px 14px;
   font-weight: 800;
   font-size: 13px;
   min-height: 42px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 .flight-grownups-btn.holding {
   color: var(--sky-dark, #2e7fa8);
+  box-shadow: inset 0 0 0 2px var(--sky, #bfe0f2);
 }
 
 /* ============================================================
@@ -843,7 +948,9 @@
   background: var(--surface, #fffaf1);
   border-radius: 50%;
   padding: 4px;
-  box-shadow: var(--shadow-soft);
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 0 0 2.5px var(--sky-dark, #2e7fa8);
   animation: pop-in 0.5s var(--ease-pop) 0.5s both;
 }
 
@@ -883,14 +990,12 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--surface, #fffaf1);
   color: var(--sky-dark, #2e7fa8);
-  border-radius: 999px;
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
   padding: 6px 14px 6px 8px;
   font-weight: 800;
   font-size: 13px;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
 }
 .flight-way-icon {
   width: 30px;
@@ -904,8 +1009,9 @@
 
 .flight-intro-card,
 .flight-end-card {
+  --chamfer: 22px;
   background: var(--surface, #fffaf1);
-  border-radius: 30px;
+  clip-path: polygon(var(--chamfer) 0, 100% 0, 100% calc(100% - var(--chamfer)), calc(100% - var(--chamfer)) 100%, 0 100%, 0 var(--chamfer));
   padding: 24px 30px 28px;
   box-shadow: var(--shadow-lift);
   display: flex;
@@ -919,14 +1025,14 @@
   display: flex;
   gap: 4px;
   background: var(--surface-2, #f0e9db);
-  border-radius: 999px;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
   padding: 4px;
 }
 
 .flight-mode-btn {
   border: none;
   background: transparent;
-  border-radius: 999px;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
   padding: 9px 20px;
   min-height: 42px;
   font-weight: 800;
@@ -961,7 +1067,7 @@
   gap: 6px;
   background: var(--sky-wash, #e8f3f8);
   color: var(--sky-dark, #2e7fa8);
-  border-radius: 999px;
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
   padding: 7px 14px;
   font-weight: 800;
   font-size: 13px;
@@ -970,110 +1076,25 @@
 .flight-takeoff-btn {
   margin-top: 4px;
   min-width: 200px;
+}
+/* The "breathe" invitation now lives in the depth layer itself — it
+   lifts further off the plaque and settles back, instead of pulsing a
+   blur that the clip-path shape doesn't have room for. */
+.flight-takeoff-btn::before {
   animation: takeoff-breathe 2.4s ease-in-out infinite;
 }
 @keyframes takeoff-breathe {
   0%,
   100% {
-    box-shadow: 0 10px 22px rgba(210, 90, 40, 0.32);
+    transform: translate(3px, 4px);
   }
   50% {
-    box-shadow: 0 14px 30px rgba(210, 90, 40, 0.48);
+    transform: translate(5px, 7px);
   }
 }
 
-/* ---- living sky (intro) ---- */
-
-.sky-stage {
-  background: linear-gradient(180deg, #8ec5ea 0%, #cfe7f5 62%, #fdf6ea 100%);
-}
-
-.sky-backdrop {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-}
-.sky-sun {
-  position: absolute;
-  top: 6%;
-  right: 12%;
-  width: 22vmin;
-  height: 22vmin;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff6c4 0%, #ffe38a 38%, rgba(255, 227, 138, 0) 72%);
-  animation: sun-glow 6s ease-in-out infinite;
-}
-@keyframes sun-glow {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.9;
-  }
-  50% {
-    transform: scale(1.08);
-    opacity: 1;
-  }
-}
-.sky-cloud {
-  position: absolute;
-  width: 34vmin;
-  height: 12vmin;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
-  filter: blur(1px);
-  box-shadow:
-    -8vmin 4vmin 0 -2vmin rgba(255, 255, 255, 0.85),
-    9vmin 3vmin 0 -3vmin rgba(255, 255, 255, 0.85),
-    2vmin -5vmin 0 -1vmin rgba(255, 255, 255, 0.85);
-  animation: cloud-drift linear infinite;
-}
-.sky-cloud.c1 {
-  top: 14%;
-  left: -40vmin;
-  animation-duration: 58s;
-}
-.sky-cloud.c2 {
-  top: 60%;
-  left: -40vmin;
-  transform: scale(0.7);
-  opacity: 0.8;
-  animation-duration: 74s;
-  animation-delay: -30s;
-}
-.sky-cloud.c3 {
-  top: 6%;
-  left: -40vmin;
-  transform: scale(0.55);
-  opacity: 0.7;
-  animation-duration: 90s;
-  animation-delay: -60s;
-}
-.sky-cloud.c4 {
-  top: 72%;
-  left: -40vmin;
-  transform: scale(0.85);
-  opacity: 0.65;
-  animation-duration: 66s;
-  animation-delay: -12s;
-}
-@keyframes cloud-drift {
-  from {
-    translate: 0 0;
-  }
-  to {
-    translate: calc(100vw + 80vmin) 0;
-  }
-}
-.sky-sea {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 18%;
-  background: linear-gradient(180deg, rgba(45, 127, 176, 0) 0%, rgba(45, 127, 176, 0.22) 35%, rgba(23, 83, 127, 0.35) 100%);
-}
+/* .sky-stage / .sky-backdrop / .sky-sun / .sky-cloud* / .sky-sea now live in
+   components/SkyBackdrop.css — shared with PlayerSelect and Onboarding. */
 
 /* ---- evening sky (end) ---- */
 
@@ -1357,11 +1378,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sky-cloud,
-  .sky-sun,
   .night-star,
   .flight-end-nest,
-  .flight-takeoff-btn,
+  .flight-takeoff-btn::before,
   .flight-loading-wings,
   .flight-slot.current {
     animation: none;
@@ -1369,4 +1388,63 @@
   .confetti {
     display: none;
   }
+}
+
+/* ---- "My Name" flight ---- */
+/* The HUD shows the whole name from take-off, faint until each letter is caught. */
+.flight-slots.name-slots .flight-slot:not(.knew):not(.bonus) {
+  color: rgba(46, 70, 90, 0.38);
+}
+.flight-end-name {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 4px 0 14px;
+}
+.flight-end-name span {
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 56px;
+  line-height: 1;
+  color: var(--sun-dark, #d9a21b);
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+  animation: name-letter-in 0.55s var(--ease-out, ease) both;
+}
+.flight-end-name span.missed {
+  color: rgba(120, 110, 100, 0.45);
+}
+@keyframes name-letter-in {
+  0% { opacity: 0; transform: translateY(-26px) scale(0.4) rotate(-12deg); }
+  70% { opacity: 1; transform: translateY(4px) scale(1.15) rotate(3deg); }
+  100% { transform: none; }
+}
+@media (max-width: 420px) {
+  .flight-end-name span { font-size: 42px; }
+}
+
+/* ---- "My nest" (kids' progress) buttons — see screens/Nest.tsx ---- */
+.flight-nest-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px auto 0;
+  min-height: 44px;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 999px;
+  background: #fff6e2;
+  color: #7a4a22;
+  font-weight: 800;
+  font-size: 17px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(122, 74, 34, 0.3);
+}
+.flight-nest-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(122, 74, 34, 0.3);
+}
+.flight-nest-btn:focus-visible {
+  outline: 3px solid #7a4a22;
+  outline-offset: 3px;
 }

@@ -95,22 +95,18 @@ scheduler at all (see
 
 ## Audio strategy
 
-Phase 1 MVP uses the browser's built-in `SpeechSynthesis` API
-(`window.speechSynthesis`) for both whole-word and isolated-phoneme
-playback — zero asset cost, works offline (the synthesis itself; see
-below for the one exception), no dependency on the AI art pipeline
-being run. This is an explicit, known-limited placeholder: a synthesized
-voice's isolated-phoneme pronunciation is noticeably less accurate/
-natural than a real recorded children's voice, which matters for a
-phonics app where correct sound modeling is the whole point. **Before
-this ships to an actual child for real practice, phoneme audio in
-particular should be replaced with real recordings** (a native speaker
-recording each of the ~26 initial phonemes cleanly is a small, finite
-task, unlike the illustration asset problem which benefits from
-generation at scale). Track this as a Phase 3 item, not a Phase 1 one —
-see roadmap.
+Every letter name and every word the game speaks (flashcards,
+`LetterLearning`'s word, the picture-spot challenge, the CVC blending
+round's letters and its blended whole word) is real recorded speech —
+see "Recorded letter & word audio" below. The browser's built-in
+`SpeechSynthesis` API (`window.speechSynthesis`) is the fallback for
+whichever clips aren't available (network hiccup, a word added to
+`words.ts` since the last generation run, etc.), not the primary voice.
+That fallback path is described first below since it's still live code
+and still matters for reliability; the recorded audio that now
+overrides it in the common case is described after.
 
-**Voice selection.** The browser's *default* voice is often the worst
+**Voice selection (fallback path).** The browser's *default* voice is often the worst
 available option — on Linux especially, the default is frequently a
 local espeak-style voice even when a much more natural one is
 installed or reachable. `engine/audio.ts` actively picks the best
@@ -146,22 +142,32 @@ beyond the one already accepted for
 [speech-to-text](#speech-to-text-bonus-word-challenge)), which hasn't
 been added here.
 
-**Recorded letter audio (built).** Rather than a live third-party TTS
-API — which would mean either shipping an API key in a client-only app
-(a real security/cost problem: anyone can extract a key from the
-bundle and burn through the account's quota) or standing up a backend
-just to hide it — `engine/audio.ts` now checks for a **pre-generated**
-audio file first, per letter, before falling back to the synthesis
-path above. `speak(letter)` tries `public/audio/letters/<LETTER>.mp3`;
-if it 404s (`<audio>`'s `error` event), it silently falls back to
-`SpeechSynthesis`, and remembers the 404 so it doesn't retry that
-letter every tap. This means: no API key ships in the app, no network
-call during play, no ongoing cost, and the letter set can be filled in
-incrementally — a half-recorded alphabet works fine, each letter
-independently uses whichever source is actually available for it. See
-`public/audio/letters/README.md` for the exact file-naming convention
-and how to generate clips (ElevenLabs' free tier or any other TTS/
-recording source — the app doesn't care how the MP3s were made).
+**Recorded letter & word audio (built).** Rather than a live third-party
+TTS API called at play time — which would mean either shipping an API
+key in a client-only app (a real security/cost problem: anyone can
+extract a key from the bundle and burn through the account's quota) or
+standing up a backend just to hide it — audio is generated **once,
+offline**, by `assets/generate-audio.mjs` (Gemini API, model
+`gemini-3.8-flash-tts`, voice `Sulafat` — Google's own description for
+it is "Warm" — with a system instruction asking for a warm, kind,
+gently-enthusiastic delivery), and the resulting WAV files are checked
+into `public/audio/`. `engine/audio.ts` checks for a pre-generated file
+first — `public/audio/letters/<LETTER>.wav` for a letter,
+`public/audio/words/<id>.wav` for a word (looked up by normalizing
+whatever text `speak()` was given against every word's `id` in
+`data/words.ts`/`data/flashcards.ts`/`data/cvcWords.ts`) — before
+falling back to the synthesis path above. If a file 404s (`<audio>`'s
+`error` event), it silently falls back to `SpeechSynthesis`, and
+remembers the 404 so it doesn't retry that clip every tap. This means:
+no API key ships in the app, no network call during play, no ongoing
+cost, and the set can be filled in incrementally — a half-generated set
+works fine, each letter/word independently uses whichever source is
+actually available for it. The generation script reads the word/letter
+lists straight out of the app's own source files (regex-extracted, not
+hand-duplicated), so it can't drift out of sync with what the app
+actually shows and speaks. See `public/audio/letters/README.md` and
+`public/audio/words/README.md` for the file-naming convention and how
+to regenerate.
 
 ## Letter writing animation
 

@@ -1,12 +1,20 @@
 import { useState, useRef, useEffect, useMemo, Suspense, lazy } from 'react';
 import { useApp } from '../state/AppContext';
-import { speak } from '../engine/audio';
+import { speak, sayLetter, speakLetterSound } from '../engine/audio';
 import * as sfx from '../engine/sfx';
+import * as music from '../engine/music';
+import * as flightMusic from '../engine/flightMusic';
 import { preloadFonts, isTouchOnlyDevice } from '../engine/preload';
 import { requestTiltPermission, recenterTilt, isTiltCapable } from '../engine/tilt';
-import { buildMissionQueue, pickEndlessItem, MISSION_LENGTH } from '../engine/flightMission';
+import { buildMissionQueue, pickEndlessItem, buildNameQueue, MISSION_LENGTH } from '../engine/flightMission';
+import { buildVowelRound, type VowelRound } from '../engine/vowelRound';
+import { VowelStorm, type VowelStormState } from '../components/VowelStorm';
 import { buildPictureChoices, type PictureChoiceEntry } from '../engine/pictureChoice';
 import { buildPlaneChoiceRound, type PlaneChoiceRound } from '../engine/planeChoice';
+import { buildRainbowRound, RAINBOW_COLORS, type RainbowColor, type RainbowRound } from '../engine/rainbowChoice';
+import { buildOddSoundRound, type OddSoundRound } from '../engine/oddSound';
+import { FLASHCARD_MAP } from '../data/flashcards';
+import { letterForSound } from '../data/initialSounds';
 import { confusablePartnersFor } from '../data/confusablePairs';
 import { randomCvcWord } from '../data/cvcWords';
 import {
@@ -33,6 +41,7 @@ import {
   CameraIcon,
 } from '../components/icons/Misc';
 import { NestIllustration } from '../components/icons/NestIllustration';
+import { SkyBackdrop } from '../components/SkyBackdrop';
 import { AvatarIcon } from '../components/icons/AvatarIcon';
 import { ScreenTransition } from '../components/ScreenTransition';
 import { HoldButton } from '../components/HoldButton';
@@ -46,6 +55,7 @@ import { OCEAN_SKY_DEFAULTS, type OceanDevParams } from './oceanSky';
 import { FlightLoadingVeil } from './FlightLoadingVeil';
 import { isTraceInProgress } from '../engine/traceActivity';
 import type { Encounter, QueueItem } from './flightTypes';
+import { preloadFlashCardTextures } from './flashCardTexture';
 import './FlightGameScreen.css';
 
 // How far ahead of the bird's own current position every new letter
@@ -93,6 +103,48 @@ const WRITING_STARS = 2;
 // 6-year-old can't track.
 const STREAK_MILESTONE = 3;
 const STREAK_BONUS_STARS = 1;
+
+// Streak reward: every RAINBOW_STREAK-th catch in a row has a
+// RAINBOW_CHANCE shot at a rainbow round ("which colour is glowing?" —
+// see engine/rainbowChoice.ts) in front of the NEXT letter. Rolled at
+// the milestone, shown on the next presentItem, so it never cuts into
+// the cloud the child just solved. A surprise, not a schedule — rare
+// enough that it still feels like one.
+const RAINBOW_STREAK = 5;
+const RAINBOW_CHANCE = 0.2;
+const RAINBOW_BONUS_STARS = 2;
+// How long the win toast stays up — long enough to hear the colour word (and its letter, when it matches).
+const RAINBOW_WIN_PAUSE_MS = 1800;
+const RAINBOW_PROMPT = 'Which colour is glowing?';
+
+// The storm round: "which one starts with a different sound?" (see
+// engine/oddSound.ts). A chance per letter turn, and only for a letter
+// whose cards can make a fair pair — engine/oddSound.ts returns null for
+// U and X, and the storm just doesn't come that turn.
+const STORM_CHANCE = 0.2;
+const STORM_BONUS_STARS = 3;
+// How long the clearing (rain stopping, the sunburst, the odd card's
+// name) plays before the storm round ends and the held letter's cloud comes.
+const STORM_CLEAR_MS = 3200;
+// After this many wrong picks the odd card starts to glow — a nudge, so
+// a child who's stuck always gets there (errorless-leaning feedback).
+const STORM_HINT_AFTER = 2;
+const STORM_PROMPT = 'Which one starts with a different sound?';
+
+interface StormRoundState extends OddSoundRound {
+  wrongId: string | null;
+  solved: boolean;
+  misses: number;
+  hint: boolean;
+}
+
+const cardWord = (id: string) => FLASHCARD_MAP[id]?.word ?? id;
+
+// Demo-only shortcuts, enabled by opening the game with ?dev=true.
+// Alt+R queues a rainbow in front of the next letter; Alt+S toggles a
+// storm right now (see devToggleStorm), Alt+V a Storm Vowels round. Plain R/S would collide with
+// typing that letter as an answer. Read once at load.
+const DEV_SHORTCUTS = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dev') === 'true';
 
 // Every PLANE_ROUND_EVERY-th queue item is presented as a plane-choice
 // round (see engine/planeChoice.ts) instead of a normal letter cloud —
@@ -164,7 +216,7 @@ function randomLane(): number {
 
 type Phase = 'intro' | 'flying' | 'end';
 type EndReason = 'collected' | 'time' | 'endless' | 'sprint' | 'landed';
-type Mode = 'classic' | 'endless' | 'sprint';
+type Mode = 'classic' | 'endless' | 'sprint' | 'name';
 /** Per-letter outcome recorded for the HUD slots + end screen. Last outcome wins for a letter that repeats (endless mode). */
 type Outcome = 'knew' | 'bonus' | 'missed';
 // Sprint mode's time penalty/reward — see FlightScene's sprintTimeAdjust doc comment.
@@ -175,7 +227,22 @@ const MODE_COPY: Record<Mode, { label: string; blurb: string }> = {
   classic: { label: 'Classic', blurb: `Find ${MISSION_LENGTH} letters before the stars come out.` },
   endless: { label: 'Endless', blurb: 'Keep flying as long as you can — every letter you know pushes night back a little.' },
   sprint: { label: 'Sprint', blurb: 'A race against the sun: a bonus buys extra daylight, a miss makes it set faster.' },
+  // The blurb is personalised at render time (see modeBlurb) — it needs the child's name.
+  name: { label: 'My Name', blurb: 'Fly the letters of your own name!' },
 };
+
+/** Modes with a fixed letter plan and HUD slots (vs endless/sprint's open-ended stream). */
+const isPlannedMode = (m: Mode) => m === 'classic' || m === 'name';
+
+// Storm Vowels: "C _ T — which sound is missing?" (engine/vowelRound.ts).
+// Takes over half of the CVC-word cadence's turns (the other half stay
+// the catch-in-order word round) — they practise the same kind of word.
+const VOWEL_STORM_SHARE = 0.5;
+const VOWEL_BONUS_STARS = 4;
+const VOWEL_HINT_AFTER = 2;
+// The lightning strike, the gold word, and the blend "kuh… ah… tuh… cat" play out before the letter's cloud returns.
+const VOWEL_CLEAR_MS = 4200;
+const VOWEL_PROMPT = 'Which sound is missing?';
 
 function spawnEncounter(item: QueueItem, distance: number): Encounter {
   return { ...item, distance, laneX: randomLane(), status: 'pending' };
@@ -187,7 +254,17 @@ function spawnEncounter(item: QueueItem, distance: number): Encounter {
  * and the per-frame mission clock. See docs/10-flight-game.md for the
  * full design.
  */
-export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => void }) {
+/** A little egg for the "My nest" buttons. */
+function NestEggIcon() {
+  return (
+    <svg viewBox="0 0 24 28" width="18" height="21" aria-hidden="true">
+      <path d="M12 1.5C18 1.5 22.5 11 22.5 17.5S18 26.5 12 26.5 1.5 24 1.5 17.5 6 1.5 12 1.5Z" fill="#fff6e2" stroke="#b07a3e" strokeWidth="2" />
+      <path d="M13.5 4 12 8 14.5 10 12.5 13.5" fill="none" stroke="#7a4a22" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function FlightGameScreen({ onOpenDashboard, onOpenNest }: { onOpenDashboard: () => void; onOpenNest: () => void }) {
   const { state, answer, logSession, awardStars, setSoundEnabled } = useApp();
   // CompanionFlock's unlock threshold — see FlightScene.tsx/CompanionFlock.tsx.
   const masteredLetterCount = useMemo(() => Object.values(state.letters).filter((l) => l.box >= 4).length, [state.letters]);
@@ -209,8 +286,15 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
   const [wrongMatchupOption, setWrongMatchupOption] = useState<string | null>(null);
   const [cvcRound, setCvcRound] = useState<CvcRoundState | null>(null);
   const [wrongCvcIndex, setWrongCvcIndex] = useState<number | null>(null);
+  const [rainbowRound, setRainbowRound] = useState<RainbowRound | null>(null);
+  const [wrongRainbowOption, setWrongRainbowOption] = useState<RainbowColor['id'] | null>(null);
+  const [stormRound, setStormRound] = useState<StormRoundState | null>(null);
+  const [vowelRound, setVowelRound] = useState<VowelStormState | null>(null);
+  // Bumped to call down a lightning strike on Storm Vowels' finished word (FlightScene → StormWeather).
+  const [strikeKey, setStrikeKey] = useState(0);
   const [pictureChoices, setPictureChoices] = useState<PictureChoiceEntry[] | null>(null);
   const [wrongPickId, setWrongPickId] = useState<string | null>(null);
+  const [solvedPickId, setSolvedPickId] = useState<string | null>(null);
   const [slotOutcomes, setSlotOutcomes] = useState<Record<number, Outcome>>({});
   const [pauseOpen, setPauseOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -226,10 +310,22 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
   const traceGlowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [devPanelOpen, setDevPanelOpen] = useState(false);
   const [devOceanParams, setDevOceanParams] = useState<OceanDevParams>(() => ({ ...OCEAN_SKY_DEFAULTS }));
+  const [musicMuted, setMusicMuted] = useState(music.isMuted());
 
   const nextSpawnDistanceRef = useRef(SPAWN_DISTANCE_AHEAD);
   const roundsUntilPlaneRef = useRef(PLANE_ROUND_EVERY);
   const roundsUntilCvcRef = useRef(CVC_ROUND_EVERY);
+  // Set by registerStreak when a RAINBOW_STREAK milestone wins its roll; consumed by the next presentItem.
+  const rainbowDueRef = useRef(false);
+  // Dev shortcut only (Alt+S): force a storm on the next letter that can make one.
+  const stormDueRef = useRef(false);
+  // Bumped to cancel an in-progress read-aloud of the storm's cards (a tap, or a replay).
+  const stormSpeechRef = useRef(0);
+  const vowelSpeechRef = useRef(0);
+  // The bird's live travelled distance, written by FlightScene every frame.
+  // The rainbow is the one round the flight keeps moving through, so when
+  // it ends the stashed spawn distance is stale — see endRainbowRound.
+  const birdDistanceRef = useRef(0);
   // The queue item a CVC interlude deferred — presentItem re-invokes
   // itself with this once the word's caught, so that item still gets
   // its own normal/plane/matchup roll rather than being skipped outright.
@@ -251,6 +347,18 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
   const speechButtonRef = useRef<SpeechLetterButtonHandle>(null);
   const touchOnly = useMemo(() => isTouchOnlyDevice(), []);
   const profile = state.profile;
+  const focusLetters = state.settings.focusLetters;
+  // The "My Name" flight's letters — empty when the name has no English
+  // letters to fly (e.g. written in Hebrew), which disables that mode.
+  const nameQueue = useMemo(() => buildNameQueue(profile?.name ?? ''), [profile?.name]);
+  // Every letter the flight speaks goes through the grown-ups' "Letter
+  // voice" setting — name, sound, or both (see engine/audio.ts's sayLetter).
+  const letterVoice = state.settings.letterVoice;
+  const sayLetterAloud = (letter: string) => sayLetter(letter, letterVoice);
+  // The word round blends with SOUNDS — "kuh… ah… tuh… cat" — because
+  // blending letter NAMES ("see… ay… tee") doesn't produce the word.
+  // Only a grown-up who explicitly chose names-only gets names here.
+  const blendLetter = (letter: string) => (letterVoice === 'names' ? speak(letter) : speakLetterSound(letter));
 
   // Warm everything the flight needs while the child is still reading
   // the intro: the 2.5MB bird mesh and the fonts the letter clouds are
@@ -262,12 +370,35 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
 
   useEffect(() => {
     sfx.setMuted(!state.settings.soundEnabled);
+    flightMusic.setMuted(!state.settings.soundEnabled);
   }, [state.settings.soundEnabled]);
+
+  // The starting-menu theme (also heard on PlayerSelect) continues into
+  // the "Ready to fly?" intro — most sessions land here directly, since
+  // a returning player skips PlayerSelect entirely. Fades out the moment
+  // takeoff moves the phase past 'intro' (including "Fly Again", which
+  // never re-enters 'intro' at all, so it never restarts there).
+  useEffect(() => {
+    if (phase !== 'intro') return;
+    music.play();
+    return () => music.fadeOutAndStop();
+  }, [phase]);
+
+  // The dedicated flight track (engine/flightMusic.ts) — silent until a
+  // real file is dropped in (see public/audio/README.md) — plays only
+  // while actually flying, at its own 50% volume, picking up right
+  // where the menu theme above just faded out.
+  useEffect(() => {
+    if (phase !== 'flying') return;
+    flightMusic.play();
+    return () => flightMusic.fadeOutAndStop();
+  }, [phase]);
 
   // Leaving the screen (dashboard, player switch) mid-ambient: fade out.
   useEffect(
     () => () => {
       sfx.stopAmbient();
+      sfx.stopRain();
       if (traceHoldTimer.current) clearTimeout(traceHoldTimer.current);
       if (traceGlowTimer.current) clearTimeout(traceGlowTimer.current);
       if (creditTimerRef.current) clearTimeout(creditTimerRef.current);
@@ -318,6 +449,28 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, [phase]);
 
+  // The name flight's payoff: on landing, spell the name out loud — with
+  // letter NAMES, the way a name is spelled ("M… I… A…"), then the name
+  // itself — while the end screen pops each letter in (see flight-end-name).
+  useEffect(() => {
+    if (phase !== 'end' || mode !== 'name' || endReason !== 'collected' || !profile) return;
+    let cancelled = false;
+    void (async () => {
+      await new Promise((r) => setTimeout(r, 900));
+      for (const q of nameQueue) {
+        if (cancelled) return;
+        await speak(q.canonicalLetter);
+        await new Promise((r) => setTimeout(r, 220));
+      }
+      if (!cancelled) await speak(profile.name);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Once per landing — phase flips to 'end' exactly once per flight.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
   // Duck the wind/sea bed while a letter is being spoken over it.
   useEffect(() => {
     sfx.setAmbientLevel(activeLetter || pauseOpen ? 0.3 : 1);
@@ -331,7 +484,7 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
 
   function recordOutcome(letter: string, outcome: Outcome) {
     outcomesRef.current.set(letter, outcome);
-    if (mode === 'classic') setSlotOutcomes((prev) => ({ ...prev, [planIndex]: outcome }));
+    if (isPlannedMode(mode)) setSlotOutcomes((prev) => ({ ...prev, [planIndex]: outcome }));
   }
 
   /** Every genuine miss (self-reported "didn't know", or flew past never even tapped) bumps this letter's in-flight miss streak. */
@@ -365,6 +518,7 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
       sfx.haptic([10, 30, 10, 30, 18]);
       showToast(`${next} in a row! +${STREAK_BONUS_STARS} bonus star`, 'bonus', 1600);
     }
+    if (next % RAINBOW_STREAK === 0 && Math.random() < RAINBOW_CHANCE) rainbowDueRef.current = true;
   }
 
   /** Call after any miss (self-reported, a wrong picture pick, or a letter flown past unanswered) — quietly resets, no extra toast/sound of its own so a miss never stacks two "you got it wrong" beats. */
@@ -404,9 +558,33 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
    * on it exactly as before; a mini-game just sometimes runs first.
    */
   function presentItem(item: QueueItem, distance: number) {
+    // The name flight is a spelling: nothing interrupts it — each letter
+    // of the name straight after the last, as its own cloud.
+    if (mode === 'name') {
+      presentClassicCloud(item, distance);
+      return;
+    }
+    // The streak reward jumps the queue — it was earned, so it shouldn't
+    // wait behind a CVC/matchup/plane roll. It still takes this letter's
+    // one bonus slot, so the usual "at most one interlude, then the
+    // cloud" rule holds.
+    if (rainbowDueRef.current) {
+      rainbowDueRef.current = false;
+      pendingPresentRef.current = { item, distance };
+      setEncounter(null);
+      setWrongRainbowOption(null);
+      setRainbowRound(buildRainbowRound(item.canonicalLetter));
+      // Spoken as well as shown in the banner — a pre-reader can't read it.
+      void speak(RAINBOW_PROMPT);
+      return;
+    }
     roundsUntilCvcRef.current -= 1;
     if (roundsUntilCvcRef.current <= 0) {
       roundsUntilCvcRef.current = CVC_ROUND_EVERY;
+      if (Math.random() < VOWEL_STORM_SHARE) {
+        openVowelStorm(buildVowelRound(), item, distance);
+        return;
+      }
       pendingPresentRef.current = { item, distance };
       setEncounter(null);
       setWrongCvcIndex(null);
@@ -424,6 +602,14 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
         setEncounter(null);
         setWrongMatchupOption(null);
         setLetterMatchup({ target: item.canonicalLetter, options });
+        return;
+      }
+    }
+    if (stormDueRef.current || Math.random() < STORM_CHANCE) {
+      const round = buildOddSoundRound(item.canonicalLetter);
+      if (round) {
+        stormDueRef.current = false;
+        openStorm(round, item, distance);
         return;
       }
     }
@@ -468,6 +654,13 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
     setWrongMatchupOption(null);
     setCvcRound(null);
     setWrongCvcIndex(null);
+    setRainbowRound(null);
+    setWrongRainbowOption(null);
+    rainbowDueRef.current = false;
+    setStormRound(null);
+    stormDueRef.current = false;
+    setVowelRound(null);
+    sfx.stopRain();
     pendingPresentRef.current = null;
     roundsUntilPlaneRef.current = PLANE_ROUND_EVERY;
     roundsUntilCvcRef.current = CVC_ROUND_EVERY;
@@ -481,9 +674,9 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
     if (mode === 'endless' || mode === 'sprint') {
       setMissionPlan([]);
       setPlanIndex(0);
-      presentItem(pickEndlessItem(state.letters, profile?.readingLevel), SPAWN_DISTANCE_AHEAD);
+      presentItem(pickEndlessItem(state.letters, profile?.readingLevel, focusLetters), SPAWN_DISTANCE_AHEAD);
     } else {
-      const plan = buildMissionQueue(state.letters, MISSION_LENGTH, profile?.readingLevel);
+      const plan = mode === 'name' ? nameQueue : buildMissionQueue(state.letters, MISSION_LENGTH, profile?.readingLevel, focusLetters);
       setMissionPlan(plan);
       setPlanIndex(0);
       if (plan.length > 0) presentItem(plan[0], SPAWN_DISTANCE_AHEAD);
@@ -494,6 +687,7 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
   }
 
   function finishMission(reason: EndReason) {
+    sfx.stopRain();
     if (sessionStartedAtRef.current) {
       logSession({
         date: new Date().toISOString().slice(0, 10),
@@ -520,12 +714,12 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
     sfx.play('tap');
     setActiveLetter(canonicalLetter);
     setEncounter((prev) => (prev && prev.canonicalLetter === canonicalLetter ? { ...prev, status: 'active' } : prev));
-    speak(canonicalLetter);
+    sayLetterAloud(canonicalLetter);
   }
 
   function handleReplay() {
     sfx.play('tap');
-    if (activeLetter) speak(activeLetter);
+    if (activeLetter) sayLetterAloud(activeLetter);
   }
 
   function handleAnswer(knewIt: boolean) {
@@ -566,7 +760,12 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
   // encounter is still pending/active/resolving.
   const encounterLetter = encounter?.canonicalLetter ?? null;
   useEffect(() => {
-    setPictureChoices(encounterLetter ? buildPictureChoices(encounterLetter) : null);
+    const choices = encounterLetter ? buildPictureChoices(encounterLetter) : null;
+    setPictureChoices(choices);
+    setSolvedPickId(null);
+    if (choices) {
+      preloadFlashCardTextures(choices.map((c) => c.word.id));
+    }
   }, [encounterLetter]);
 
   /**
@@ -589,7 +788,7 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
     if (mode === 'sprint') setSprintTimeAdjust((n) => n + SPRINT_BONUS_SECONDS);
     sfx.play('bonus');
     sfx.haptic([10, 40, 18]);
-    speak(letter);
+    sayLetterAloud(letter);
     setActiveLetter(null);
 
     const pop = () => {
@@ -674,6 +873,7 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
 
   function handlePicturePick(choice: PictureChoiceEntry) {
     if (!encounter || encounter.status !== 'pending') return;
+    if (solvedPickId) return;
     if (!choice.isTarget) {
       sfx.play('miss');
       setWrongPickId(choice.word.id);
@@ -681,7 +881,17 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
       breakStreak();
       return;
     }
-    awardBonusSolve(encounter.canonicalLetter, `${choice.word.word} starts with ${encounter.canonicalLetter}! +${1 + TYPE_BONUS_STARS} stars`);
+    setSolvedPickId(choice.word.id);
+    speak(choice.word.word);
+    const REVEAL_MS = 1400;
+    awardBonusSolve(
+      encounter.canonicalLetter,
+      `${choice.word.word}! Starts with ${encounter.canonicalLetter} +${1 + TYPE_BONUS_STARS} stars`,
+      { glowMs: REVEAL_MS }
+    );
+    setTimeout(() => {
+      setSolvedPickId(null);
+    }, REVEAL_MS + 200);
   }
 
   // Speaks the round's target letter once when it starts — this IS the
@@ -691,8 +901,9 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
   // fresh reference each time a new round starts and null in between, so
   // this fires exactly once per round and never on an unrelated re-render.
   useEffect(() => {
-    if (planeChallenge) speak(planeChallenge.letter);
-  }, [planeChallenge]);
+    // letterVoice can't change mid-round (it's set from the dashboard, which ends the flight), so this still fires once per round.
+    if (planeChallenge) void sayLetter(planeChallenge.letter, letterVoice);
+  }, [planeChallenge, letterVoice]);
 
   function handlePlanePick(option: string) {
     if (!planeChallenge) return;
@@ -720,8 +931,8 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
   // Same reasoning as the planeChallenge effect above — the spoken
   // letter name IS the prompt for a matchup round too.
   useEffect(() => {
-    if (letterMatchup) speak(letterMatchup.target);
-  }, [letterMatchup]);
+    if (letterMatchup) void sayLetter(letterMatchup.target, letterVoice);
+  }, [letterMatchup, letterVoice]);
 
   function handleMatchupPick(option: string) {
     if (!letterMatchup) return;
@@ -757,7 +968,7 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
       return;
     }
     sfx.play('pop');
-    speak(cvcRound.letters[index]);
+    const letterSaid = blendLetter(cvcRound.letters[index]);
     practicedRef.current.add(cvcRound.letters[index]);
     const nextIndex = index + 1;
     // Advance state immediately, before even checking completion — this
@@ -777,14 +988,270 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
       sfx.play('bonus');
       sfx.haptic([10, 40, 18]);
       showToast(`You spelled ${word}! +${CVC_BONUS_STARS} stars`, 'bonus', CVC_WORD_PAUSE_MS - 100);
-      // A beat after the last letter's own sound (just spoken above),
-      // then the whole blended word — hearing both is the actual point.
-      setTimeout(() => speak(word), 350);
+      // A beat after the last letter's own sound finishes (chained, not
+      // a fixed timer — a stretched "ssss" runs longer than a "tuh"), then
+      // the whole blended word. Hearing both is the actual point.
+      void letterSaid.then(() => new Promise((r) => setTimeout(r, 200))).then(() => speak(word));
       setTimeout(() => {
         setCvcRound(null);
         resumeAfterSpecialRound();
       }, CVC_WORD_PAUSE_MS);
     }
+  }
+
+  /**
+   * A reward round, not a test of a letter: a wrong pick just shakes the
+   * swatch (no breakStreak, no recordLetterMiss — colours aren't what
+   * this child is being assessed on), and a right one awards stars
+   * without touching letter mastery or the streak (which would let a
+   * rainbow feed the very streak that summons the next one).
+   */
+  function handleRainbowPick(id: RainbowColor['id']) {
+    if (!rainbowRound || rainbowRound.solved) return;
+    const target = RAINBOW_COLORS[rainbowRound.glowIndex];
+    if (id !== target.id) {
+      sfx.play('miss');
+      setWrongRainbowOption(id);
+      setTimeout(() => setWrongRainbowOption(null), 400);
+      return;
+    }
+    setRainbowRound((prev) => (prev ? { ...prev, solved: true } : prev));
+    awardStars(RAINBOW_BONUS_STARS);
+    sfx.play('bonus');
+    sfx.haptic([10, 40, 18]);
+    const letter = target.word[0];
+    const matchesNext = pendingPresentRef.current?.item.canonicalLetter === letter;
+    showToast(
+      matchesNext ? `${target.word}! ${letter} is for ${target.word} +${RAINBOW_BONUS_STARS} stars` : `${target.word}! +${RAINBOW_BONUS_STARS} stars`,
+      'bonus',
+      RAINBOW_WIN_PAUSE_MS - 100,
+    );
+    void speak(target.word).then(() => {
+      // Only when it's the letter about to appear as a cloud — then the
+      // colour doubles as a preview of it.
+      if (matchesNext) void sayLetterAloud(letter);
+    });
+    // No timer ending the round: `solved` sends the bird dashing through
+    // the arch (FlightScene's RAINBOW_DASH_FACTOR), and flying under it
+    // is what ends the round — see handleRainbowPassed.
+    setTimeout(() => sfx.play('whoosh'), 450);
+  }
+
+  /**
+   * The rainbow doesn't freeze the flight (it slows it, then dashes — see
+   * FlightScene's RAINBOW_SPEED_FACTOR / RAINBOW_DASH_FACTOR), so the
+   * distance stashed in pendingPresentRef when it opened is now behind
+   * the bird: re-anchor the held letter's cloud to where the bird
+   * actually is before resuming. Safe to call twice — the second call
+   * finds nothing pending.
+   */
+  function endRainbowRound() {
+    const pending = pendingPresentRef.current;
+    setRainbowRound(null);
+    if (!pending) return;
+    pendingPresentRef.current = { ...pending, distance: birdDistanceRef.current + SPAWN_DISTANCE_AHEAD };
+    resumeAfterSpecialRound();
+  }
+
+  /**
+   * Flew under the arch — the one way a rainbow round ends. After a
+   * right answer that's the payoff of the dash; unanswered, it just
+   * quietly ends (no reward, no penalty — it was a bonus).
+   */
+  function handleRainbowPassed() {
+    if (!rainbowRound) return;
+    if (rainbowRound.solved) sfx.play('whoosh');
+    endRainbowRound();
+  }
+
+  function openStorm(round: OddSoundRound, item: QueueItem, distance: number) {
+    pendingPresentRef.current = { item, distance };
+    setEncounter(null);
+    setActiveLetter(null);
+    setStormRound({ ...round, wrongId: null, solved: false, misses: 0, hint: false });
+    sfx.startRain();
+    void announceStorm(round);
+  }
+
+  /**
+   * Dev-mode Alt+S (?dev=true): toggles a storm at will. During a storm,
+   * clears it. Otherwise opens one right now on the cloud currently in
+   * the sky (which then comes back after it, as with any bonus round);
+   * for a letter that can't make a fair pair (U, X) it borrows a round
+   * from one that can. With no cloud up (another bonus round running) it
+   * queues one for the next letter instead.
+   */
+  function devToggleStorm() {
+    if (stormRound) {
+      if (stormRound.solved) return;
+      stormSpeechRef.current++;
+      sfx.stopRain();
+      showToast('Storm cleared', 'gentle', 1100);
+      endStormRound();
+      return;
+    }
+    const enc = encounterRef.current;
+    if (enc && (enc.status === 'pending' || enc.status === 'active')) {
+      const round = buildOddSoundRound(enc.canonicalLetter) ?? buildOddSoundRound('B');
+      if (round) {
+        openStorm(round, { canonicalLetter: enc.canonicalLetter, displayChar: enc.displayChar }, enc.distance);
+        return;
+      }
+    }
+    stormDueRef.current = true;
+    showToast('Storm coming up next', 'gentle', 1300);
+  }
+  const devToggleStormRef = useRef(devToggleStorm);
+  devToggleStormRef.current = devToggleStorm;
+
+  function openVowelStorm(round: VowelRound, item: QueueItem, distance: number) {
+    pendingPresentRef.current = { item, distance };
+    setEncounter(null);
+    setActiveLetter(null);
+    setVowelRound({ ...round, solved: false, wrong: null, hint: false });
+    vowelMissesRef.current = 0;
+    sfx.startRain();
+    void announceVowel(round);
+  }
+  const vowelMissesRef = useRef(0);
+
+  /** Says the whole word, then asks — the child hears "cat" and finds the sound that's missing from C _ T. */
+  async function announceVowel(round: VowelRound) {
+    const mine = ++vowelSpeechRef.current;
+    await speak(round.id);
+    if (vowelSpeechRef.current !== mine) return;
+    await new Promise((r) => setTimeout(r, 300));
+    if (vowelSpeechRef.current !== mine) return;
+    await speak(VOWEL_PROMPT);
+  }
+
+  /**
+   * A wrong drop: its sound, then "listen: cat" again — no streak
+   * penalty; after VOWEL_HINT_AFTER misses the right drop glows. The
+   * right drop: it drops into the gap, lightning strikes the word, and
+   * the word is blended sound by sound, then said whole.
+   */
+  async function handleVowelPick(v: string) {
+    const round = vowelRound;
+    if (!round || round.solved) return;
+    const mine = ++vowelSpeechRef.current;
+    if (v !== round.vowel) {
+      sfx.play('miss');
+      vowelMissesRef.current += 1;
+      const hint = vowelMissesRef.current >= VOWEL_HINT_AFTER;
+      setVowelRound((prev) => (prev ? { ...prev, wrong: v, hint } : prev));
+      setTimeout(() => setVowelRound((prev) => (prev && prev.wrong === v ? { ...prev, wrong: null } : prev)), 450);
+      await speakLetterSound(v);
+      if (vowelSpeechRef.current !== mine) return;
+      await speak(`Listen: ${round.id}`);
+      return;
+    }
+    setVowelRound((prev) => (prev ? { ...prev, solved: true, wrong: null, hint: false } : prev));
+    setStrikeKey((k) => k + 1);
+    sfx.stopRain();
+    awardStars(VOWEL_BONUS_STARS);
+    registerStreak();
+    sfx.play('bonus');
+    sfx.haptic([10, 40, 18]);
+    const word = round.letters.join('');
+    showToast(`${word}! +${VOWEL_BONUS_STARS} stars`, 'bonus', VOWEL_CLEAR_MS - 300);
+    setTimeout(endVowelStorm, VOWEL_CLEAR_MS);
+    await new Promise((r) => setTimeout(r, 500)); // let the thunder land first
+    for (const letter of round.letters) {
+      if (vowelSpeechRef.current !== mine) return;
+      await blendLetter(letter);
+      await new Promise((r) => setTimeout(r, 120));
+    }
+    if (vowelSpeechRef.current !== mine) return;
+    await speak(round.id);
+  }
+
+  /** Same re-anchoring as the other storm: the flight kept moving. */
+  function endVowelStorm() {
+    const pending = pendingPresentRef.current;
+    setVowelRound(null);
+    if (!pending) return;
+    pendingPresentRef.current = { ...pending, distance: birdDistanceRef.current + SPAWN_DISTANCE_AHEAD };
+    resumeAfterSpecialRound();
+  }
+
+  /** Dev-mode Alt+V (?dev=true): toggles a Storm Vowels round — opens one now on the cloud in the sky, or clears the current one. */
+  function devToggleVowelStorm() {
+    if (vowelRound) {
+      if (vowelRound.solved) return;
+      vowelSpeechRef.current++;
+      sfx.stopRain();
+      showToast('Storm cleared', 'gentle', 1100);
+      endVowelStorm();
+      return;
+    }
+    const enc = encounterRef.current;
+    if (enc && (enc.status === 'pending' || enc.status === 'active') && !stormRound) {
+      openVowelStorm(buildVowelRound(), { canonicalLetter: enc.canonicalLetter, displayChar: enc.displayChar }, enc.distance);
+      return;
+    }
+    showToast('Wait for a letter cloud, then press again', 'gentle', 1500);
+  }
+  const devToggleVowelStormRef = useRef(devToggleVowelStorm);
+  devToggleVowelStormRef.current = devToggleVowelStorm;
+
+  /**
+   * Reads the storm's three cards aloud, then asks the question — this is
+   * a LISTENING task, and most players can't read yet. Cancelled
+   * part-way by a tap (the child already answering) or a replay.
+   */
+  async function announceStorm(round: OddSoundRound) {
+    const mine = ++stormSpeechRef.current;
+    for (const id of round.cardIds) {
+      await speak(cardWord(id));
+      if (stormSpeechRef.current !== mine) return;
+      await new Promise((r) => setTimeout(r, 250));
+      if (stormSpeechRef.current !== mine) return;
+    }
+    await speak(STORM_PROMPT);
+  }
+
+  /**
+   * A wrong pick isn't punished (no breakStreak — it's a sound game, not
+   * a letter the child failed): the card shakes and the game explains,
+   * "Ball and Bear both start with /b/". After STORM_HINT_AFTER misses
+   * the odd card glows. The right pick clears the storm.
+   */
+  async function handleStormPick(id: string) {
+    const round = stormRound;
+    if (!round || round.solved) return;
+    const mine = ++stormSpeechRef.current;
+    if (id !== round.oddId) {
+      sfx.play('miss');
+      const misses = round.misses + 1;
+      setStormRound((prev) => (prev ? { ...prev, wrongId: id, misses, hint: misses >= STORM_HINT_AFTER } : prev));
+      setTimeout(() => setStormRound((prev) => (prev && prev.wrongId === id ? { ...prev, wrongId: null } : prev)), 400);
+      const partner = round.cardIds.find((c) => c !== id && c !== round.oddId) ?? id;
+      await speak(`${cardWord(id)} and ${cardWord(partner)} both start with`);
+      if (stormSpeechRef.current !== mine) return;
+      await speakLetterSound(letterForSound(round.pairSound));
+      return;
+    }
+    setStormRound((prev) => (prev ? { ...prev, solved: true, wrongId: null, hint: false } : prev));
+    sfx.stopRain();
+    awardStars(STORM_BONUS_STARS);
+    sfx.play('bonus');
+    sfx.haptic([10, 40, 18]);
+    const oddWord = cardWord(round.oddId);
+    showToast(`${oddWord} starts with a different sound! +${STORM_BONUS_STARS} stars`, 'bonus', STORM_CLEAR_MS - 200);
+    setTimeout(endStormRound, STORM_CLEAR_MS);
+    await speak(oddWord);
+    if (stormSpeechRef.current !== mine) return;
+    await speakLetterSound(letterForSound(round.oddSound));
+  }
+
+  /** Same re-anchoring as endRainbowRound: the flight kept moving through the storm. */
+  function endStormRound() {
+    const pending = pendingPresentRef.current;
+    setStormRound(null);
+    if (!pending) return;
+    pendingPresentRef.current = { ...pending, distance: birdDistanceRef.current + SPAWN_DISTANCE_AHEAD };
+    resumeAfterSpecialRound();
   }
 
   const handleTypeLetterRef = useRef(handleTypeLetter);
@@ -793,6 +1260,23 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
   useEffect(() => {
     if (phase !== 'flying') return;
     function onKeyDown(e: KeyboardEvent) {
+      // Matched on `code`: on macOS, Option+R produces "®" as the key.
+      if (DEV_SHORTCUTS && e.altKey && e.code === 'KeyR' && !e.repeat) {
+        e.preventDefault();
+        rainbowDueRef.current = true;
+        showToast('Rainbow coming up next', 'gentle', 1300);
+        return;
+      }
+      if (DEV_SHORTCUTS && e.altKey && e.code === 'KeyS' && !e.repeat) {
+        e.preventDefault();
+        devToggleStormRef.current();
+        return;
+      }
+      if (DEV_SHORTCUTS && e.altKey && e.code === 'KeyV' && !e.repeat) {
+        e.preventDefault();
+        devToggleVowelStormRef.current();
+        return;
+      }
       if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       // Backtick toggles the dev-only ocean/sky tuning panel (DevOceanPanel)
       // — never shown to a player, only reachable by someone who knows to
@@ -878,7 +1362,7 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
       // No fixed round length — always spawn the next one. The session
       // only ends when the night clock catches up (handleMissionTimeUp).
       setFoundCount((n) => n + 1);
-      presentItem(pickEndlessItem(state.letters, profile?.readingLevel), nextSpawnDistanceRef.current);
+      presentItem(pickEndlessItem(state.letters, profile?.readingLevel, focusLetters), nextSpawnDistanceRef.current);
       return;
     }
     const nextIndex = planIndex + 1;
@@ -965,9 +1449,22 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
     ];
     return (
       <ScreenTransition transitionKey={phase}>
-        <div className="flight-intro sky-stage">
+        <div className="flight-intro sky-stage" onPointerDownCapture={() => music.resume()}>
           <SkyBackdrop />
           <div className="flight-intro-corner">
+            <button
+              type="button"
+              className="flight-grownups-btn"
+              onClick={() => {
+                const next = !musicMuted;
+                music.setMuted(next);
+                setMusicMuted(next);
+              }}
+              aria-label={musicMuted ? 'Unmute music' : 'Mute music'}
+            >
+              {musicMuted ? <SoundOffIcon size={16} /> : <SoundOnIcon size={16} />}
+              <span>{musicMuted ? 'Music off' : 'Music on'}</span>
+            </button>
             <div className="flight-about-btn-wrap">
               <button
                 type="button"
@@ -1019,13 +1516,41 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
                     </p>
                   </div>
                 </div>
+                <figure className="flight-about-photo">
+                  <img
+                    src="/art/albatross-photo.jpg"
+                    alt="A real wandering albatross resting on the blue sea"
+                    width={960}
+                    height={640}
+                    loading="lazy"
+                  />
+                  <figcaption>
+                    A real wandering albatross — its wings can stretch wider than a grown-up is tall! Photo:{' '}
+                    <a
+                      href="https://commons.wikimedia.org/wiki/File:Diomedea_exulans_-_SE_Tasmania.jpg"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      JJ Harrison
+                    </a>
+                    , CC BY-SA 3.0
+                  </figcaption>
+                </figure>
+                <a
+                  className="flight-about-video"
+                  href="https://www.youtube.com/watch?v=toJwBgjCZMI"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  ▶ Watch “Wings of the Albatross” (National Geographic) with a grown-up
+                </a>
                 <button type="button" className="btn btn-primary font-display" onClick={() => setAboutOpen(false)}>
                   Keep flying
                 </button>
               </div>
             </div>
           )}
-          <div className="flight-intro-content stagger">
+          <div className="flight-intro-content">
             <div className="flight-intro-keyart">
               <KeyArt />
               {profile && (
@@ -1053,6 +1578,8 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
                     role="tab"
                     aria-selected={mode === m}
                     className={`flight-mode-btn${mode === m ? ' active' : ''}`}
+                    disabled={m === 'name' && nameQueue.length === 0}
+                    title={m === 'name' && nameQueue.length === 0 ? 'Needs a name spelled with English letters' : undefined}
                     onClick={() => {
                       sfx.unlock();
                       sfx.play('tap');
@@ -1063,19 +1590,38 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
                   </button>
                 ))}
               </div>
-              <p className="flight-mode-desc">{MODE_COPY[mode].blurb}</p>
+              <p className="flight-mode-desc">
+                {mode === 'name' ? `Fly the letters of ${profile?.name ?? 'your name'} — and watch your name spell itself in the sky!` : MODE_COPY[mode].blurb}
+              </p>
               <div className="flight-mission-pills">
                 {mode === 'classic' && (
                   <span className="flight-mission-pill">
                     <CloudIcon size={14} /> {MISSION_LENGTH} letters this trip
+                    {focusLetters.length > 0 ? ` · focus ${focusLetters.join(' ')}` : ''}
+                  </span>
+                )}
+                {mode === 'name' && (
+                  <span className="flight-mission-pill">
+                    <CloudIcon size={14} /> {nameQueue.map((q) => q.displayChar).join(' ')}
                   </span>
                 )}
                 <span className="flight-mission-pill">
-                  {Math.round(state.settings.missionDurationSeconds / 60)} min of daylight{mode !== 'classic' ? ' to start' : ''}
+                  {Math.round(state.settings.missionDurationSeconds / 60)} min of daylight{isPlannedMode(mode) ? '' : ' to start'}
                 </span>
               </div>
               <button type="button" className="btn btn-primary btn-lg font-display flight-takeoff-btn" onClick={handleTakeOff}>
                 Take Off!
+              </button>
+              <button
+                type="button"
+                className="flight-nest-btn font-display"
+                onClick={() => {
+                  sfx.unlock();
+                  sfx.play('tap');
+                  onOpenNest();
+                }}
+              >
+                <NestEggIcon /> My nest
               </button>
             </div>
           </div>
@@ -1090,20 +1636,25 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
     // bird flew past unanswered still counts toward that, so "every
     // letter found" is only honest when every planned letter got an
     // answer.
-    const caughtAll = mode !== 'classic' || outcomes.length >= missionPlan.length;
+    const caughtAll = !isPlannedMode(mode) || outcomes.length >= missionPlan.length;
     const starsEarned = Math.max(0, state.starsTotal - starsAtStartRef.current);
     const newlyMastered = Object.values(state.letters)
       .filter((l) => l.box >= 4 && !masteredAtStartRef.current.has(l.letter))
       .map((l) => l.letter)
       .sort();
-    const title =
-      endReason === 'collected'
+    const nameFlown = mode === 'name' && endReason === 'collected';
+    const title = nameFlown
+      ? 'You flew your name!'
+      : endReason === 'collected'
         ? "You're home!"
         : endReason === 'landed'
           ? 'Safe landing!'
           : "Home for the night!";
-    const sub =
-      endReason === 'collected'
+    const sub = nameFlown
+      ? caughtAll
+        ? `Every letter of ${profile?.name} caught — you spelled your whole name in the sky!`
+        : `You spelled ${profile?.name} in the sky! The faint letters slipped past — catch them next time.`
+      : endReason === 'collected'
         ? caughtAll
           ? 'Every letter found and carried safely back to the nest. Amazing flying!'
           : outcomes.length === 0
@@ -1128,6 +1679,19 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
               <div className="flight-end-nest">
                 <NestIllustration size={200} />
               </div>
+              {nameFlown && (
+                <div className="flight-end-name" aria-label={profile?.name}>
+                  {missionPlan.map((q, i) => (
+                    <span
+                      key={i}
+                      className={slotOutcomes[i] && slotOutcomes[i] !== 'missed' ? 'caught' : 'missed'}
+                      style={{ animationDelay: `${0.9 + i * 0.55}s` }}
+                    >
+                      {q.displayChar}
+                    </span>
+                  ))}
+                </div>
+              )}
               {newlyMastered.length > 0 && <MasteredBanner letters={newlyMastered} />}
               <div className="flight-end-stars" aria-label={`${starsEarned} stars earned this flight`}>
                 <StarIcon size={26} color="var(--sun-dark)" />
@@ -1155,6 +1719,16 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
                 }}
               >
                 Fly Again
+              </button>
+              <button
+                type="button"
+                className="flight-nest-btn font-display"
+                onClick={() => {
+                  sfx.play('tap');
+                  onOpenNest();
+                }}
+              >
+                <NestEggIcon /> {newlyMastered.length > 0 ? 'See my new chicks!' : 'See my nest'}
               </button>
               <button
                 type="button"
@@ -1200,16 +1774,22 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
   // and the banner above already carries the round's own instruction;
   // pickHint would otherwise default to "Tap the cloud..." (encounter
   // is null, so its seed falls back to 0), which is actively wrong here.
-  const hint = planeChallenge || letterMatchup || cvcRound ? null : (strugglingHint ?? pickHint(touchOnly, pictureChoices !== null, encounter?.distance ?? 0));
+  const hint = planeChallenge || letterMatchup || cvcRound || rainbowRound || stormRound || vowelRound ? null : (strugglingHint ?? pickHint(touchOnly, pictureChoices !== null, encounter?.distance ?? 0));
   // One shared "what to do" banner for whichever special round (if any)
   // is active — see the JSX below where this is rendered.
   const specialRoundPrompt = planeChallenge
-    ? { text: 'Which plane has the letter I said?', replay: () => speak(planeChallenge.letter) }
+    ? { text: 'Which plane has the letter I said?', replay: () => sayLetterAloud(planeChallenge.letter) }
     : letterMatchup
-      ? { text: 'Which one did I say?', replay: () => speak(letterMatchup.target) }
+      ? { text: 'Which one did I say?', replay: () => sayLetterAloud(letterMatchup.target) }
       : cvcRound
-        ? { text: 'Catch the letters in order to spell a word!', replay: () => speak(cvcRound.letters[cvcRound.nextIndex]) }
-        : null;
+        ? { text: 'Catch the letters in order to spell a word!', replay: () => blendLetter(cvcRound.letters[cvcRound.nextIndex]) }
+        : rainbowRound && !rainbowRound.solved
+          ? { text: RAINBOW_PROMPT, replay: () => speak(RAINBOW_PROMPT) }
+          : stormRound && !stormRound.solved
+            ? { text: STORM_PROMPT, replay: () => void announceStorm(stormRound) }
+            : vowelRound && !vowelRound.solved
+              ? { text: VOWEL_PROMPT, replay: () => void announceVowel(vowelRound) }
+              : null;
   const otherCase = encounter ? (encounter.displayChar === encounter.canonicalLetter ? encounter.canonicalLetter.toLowerCase() : encounter.canonicalLetter) : null;
 
   return (
@@ -1217,13 +1797,17 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
       {/* data-encounter-letter: the glyph currently in the sky, for
           automated playthroughs and assistive tooling — nothing in the
           UI reads it. */}
-      <div className="flight-game" data-encounter-letter={encounter?.displayChar ?? ''} data-encounter-status={encounter?.status ?? ''}>
+      <div className="flight-game" data-encounter-letter={encounter?.displayChar ?? ''} data-encounter-status={encounter?.status ?? ''}
+        data-storm-cards={stormRound?.cardIds.join(',') ?? ''}
+        data-storm-odd={stormRound?.oddId ?? ''}
+      >
         <div className="flight-canvas-wrap">
           <Suspense fallback={<FlightLoadingVeil />}>
             <FlightCanvas
               missionDurationSeconds={state.settings.missionDurationSeconds}
               missionProgress={missionPlan.length > 0 ? planIndex / missionPlan.length : 0}
-              mode={mode}
+              // The name flight runs on Classic's day arc (a fixed plan, night at the end).
+              mode={mode === 'name' ? 'classic' : mode}
               correctTick={correctTick}
               sprintTimeAdjust={sprintTimeAdjust}
               encounter={encounter}
@@ -1236,6 +1820,7 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
               devOcean={devPanelOpen ? devOceanParams : undefined}
               pictureChoices={pictureChoices}
               wrongPickId={wrongPickId}
+              solvedPickId={solvedPickId}
               onPicturePick={handlePicturePick}
               onTraceComplete={handleTraceComplete}
               onTraceActive={handleTraceActive}
@@ -1249,6 +1834,19 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
               cvcRound={cvcRound}
               wrongCvcIndex={wrongCvcIndex}
               onCvcSlotTap={handleCvcSlotTap}
+              rainbowRound={rainbowRound}
+              onRainbowPassed={handleRainbowPassed}
+              stormRound={stormRound}
+              onStormPick={(id) => void handleStormPick(id)}
+              weather={
+                (stormRound && !stormRound.solved) || (vowelRound && !vowelRound.solved)
+                  ? 'storm'
+                  : stormRound || vowelRound
+                    ? 'clearing'
+                    : null
+              }
+              strikeKey={strikeKey}
+              birdDistanceRef={birdDistanceRef}
               masteredCount={masteredLetterCount}
             />
           </Suspense>
@@ -1268,15 +1866,21 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
             <PauseIcon size={18} />
           </button>
 
-          {mode === 'classic' ? (
-            <ol className="flight-slots" aria-label={`${Object.keys(slotOutcomes).length} of ${missionPlan.length} letters caught`}>
+          {isPlannedMode(mode) ? (
+            <ol
+              className={`flight-slots${mode === 'name' ? ' name-slots' : ''}`}
+              aria-label={`${Object.keys(slotOutcomes).length} of ${missionPlan.length} letters caught`}
+            >
               {missionPlan.map((item, i) => {
                 const outcome = slotOutcomes[i];
                 const isCurrent = i === planIndex && !outcome;
                 const isPassed = i < planIndex && !outcome;
+                // The name flight shows the whole name from the start —
+                // faint until each letter is caught — so the child watches it spell itself.
+                const shown = mode === 'name' ? item.displayChar : outcome || isPassed ? item.canonicalLetter : '';
                 return (
                   <li key={i} className={`flight-slot${outcome ? ` ${outcome}` : ''}${isCurrent ? ' current' : ''}${isPassed ? ' passed' : ''}`}>
-                    {outcome || isPassed ? item.canonicalLetter : ''}
+                    {shown}
                   </li>
                 );
               })}
@@ -1314,6 +1918,8 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
           </div>
         )}
 
+        {vowelRound && <VowelStorm round={vowelRound} onPick={(v) => void handleVowelPick(v)} />}
+
         {specialRoundPrompt && (
           <div className="plane-challenge-banner">
             <p className="plane-challenge-prompt">{specialRoundPrompt.text}</p>
@@ -1324,6 +1930,29 @@ export function FlightGameScreen({ onOpenDashboard }: { onOpenDashboard: () => v
         )}
 
         <div className="flight-bottombar">
+          {rainbowRound && (
+            <div className={`rainbow-options${rainbowRound.solved ? ' done' : ''}`} role="group" aria-label="Pick the glowing colour">
+              {rainbowRound.options.map((id) => {
+                const color = RAINBOW_COLORS.find((c) => c.id === id)!;
+                const isAnswer = rainbowRound.solved && id === RAINBOW_COLORS[rainbowRound.glowIndex].id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`rainbow-option${wrongRainbowOption === id ? ' wrong' : ''}${isAnswer ? ' solved' : ''}`}
+                    onClick={() => handleRainbowPick(id)}
+                    disabled={rainbowRound.solved && !isAnswer}
+                  >
+                    <span className="rainbow-swatch" style={{ background: color.hex }} aria-hidden="true" />
+                    <span className="rainbow-word">
+                      <strong>{color.word[0]}</strong>
+                      {color.word.slice(1)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {encounter && (encounter.status === 'pending' || encounter.status === 'active') && (
             <div className="flight-bottom-actions">
               <SpeechLetterButton ref={speechButtonRef} key={encounter.distance} targetLetter={encounter.canonicalLetter} onMatch={handleSpeechMatch} showKeyHint={!touchOnly} />
@@ -1460,20 +2089,6 @@ function pickHint(touchOnly: boolean, hasPictures: boolean, encounterSeed: numbe
   if (isTiltCapable()) hints.push({ key: 'tilt', icon: <CloudIcon size={15} />, text: 'Tilt your tablet to look around the sky' });
   if (hints.length === 0) return null;
   return hints[Math.floor(encounterSeed) % hints.length];
-}
-
-/** Drifting CSS clouds + a warm sun behind the intro — a sky that's alive before the 3D one loads. */
-function SkyBackdrop() {
-  return (
-    <div className="sky-backdrop" aria-hidden="true">
-      <div className="sky-sun" />
-      <div className="sky-cloud c1" />
-      <div className="sky-cloud c2" />
-      <div className="sky-cloud c3" />
-      <div className="sky-cloud c4" />
-      <div className="sky-sea" />
-    </div>
-  );
 }
 
 const STARS = Array.from({ length: 26 }, (_, i) => ({

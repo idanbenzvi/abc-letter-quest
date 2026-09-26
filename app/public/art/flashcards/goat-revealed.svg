@@ -1,0 +1,75 @@
+<svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="125%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#36291e" flood-opacity="0.16"/>
+    </filter>
+    <linearGradient id="cardBg_goat_rev" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fffefc"/>
+      <stop offset="100%" stop-color="#f7f0e4"/>
+    </linearGradient>
+    <linearGradient id="viewportBg_goat_rev" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#eff5f6"/>
+      <stop offset="100%" stop-color="#faf8f2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Card Surface (Handmade Coastal Linen Stock) -->
+  <rect x="8" y="6" width="184" height="228" rx="22" fill="url(#cardBg_goat_rev)" stroke="#c7b29a" stroke-width="3" filter="url(#cardShadow)"/>
+  
+  <!-- Nautical Rope / Twine Trim -->
+  <rect x="15" y="13" width="170" height="214" rx="16" fill="none" stroke="#ba9e82" stroke-width="1.6" stroke-dasharray="5, 3" opacity="0.6"/>
+
+  <!-- Inner Double Border -->
+  <rect x="19" y="17" width="162" height="206" rx="13" fill="none" stroke="#ded2c0" stroke-width="1"/>
+
+  <!-- Boho Corner Flourishes -->
+  <circle cx="24" cy="22" r="1.5" fill="#ba9e82" opacity="0.5"/>
+  <circle cx="176" cy="22" r="1.5" fill="#ba9e82" opacity="0.5"/>
+  <circle cx="24" cy="218" r="1.5" fill="#ba9e82" opacity="0.5"/>
+  <circle cx="176" cy="218" r="1.5" fill="#ba9e82" opacity="0.5"/>
+
+  <!-- Illustration Viewport (Recessed aperture with sea-glass wash) -->
+  <rect x="23" y="24" width="154" height="148" rx="14" fill="url(#viewportBg_goat_rev)" stroke="#ded0be" stroke-width="1.5"/>
+
+  <!-- Artwork Content -->
+  
+    <g transform="translate(38, 36) scale(1.24)">
+      
+      <ellipse cx="50" cy="56" rx="24" ry="26" fill="#fffdfa" stroke="#d49b20" stroke-width="2"/>
+      <path d="M34,34 Q28,16 22,20 M66,34 Q72,16 78,20" stroke="#d49b20" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="26" cy="46" rx="10" ry="5" fill="#f4ede2" transform="rotate(-20 26 46)"/>
+      <ellipse cx="74" cy="46" rx="10" ry="5" fill="#f4ede2" transform="rotate(20 74 46)"/>
+      <circle cx="40" cy="52" r="3.5" fill="#332d29"/>
+      <circle cx="60" cy="52" r="3.5" fill="#332d29"/>
+      <ellipse cx="50" cy="62" rx="5" ry="3.5" fill="#ff6f59"/>
+      <polygon points="46,80 54,80 50,90" fill="#fffdfa"/>
+    
+    </g>
+    
+
+  <!-- Top Corner Seal (Hidden or Revealed) -->
+  
+    <!-- Celebratory Golden Letter Badge -->
+    <g>
+      <line x1="37" y1="20" x2="37" y2="24" stroke="#e5a823" stroke-width="2" stroke-linecap="round"/>
+      <line x1="37" y1="52" x2="37" y2="56" stroke="#e5a823" stroke-width="2" stroke-linecap="round"/>
+      <line x1="19" y1="38" x2="23" y2="38" stroke="#e5a823" stroke-width="2" stroke-linecap="round"/>
+      <line x1="51" y1="38" x2="55" y2="38" stroke="#e5a823" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="37" cy="38" r="14" fill="#f7c948" stroke="#d49b20" stroke-width="2"/>
+      <text x="37" y="44.5" font-family="'Nunito', system-ui, -apple-system, sans-serif" font-weight="900" font-size="17" fill="#332d29" text-anchor="middle">G</text>
+    </g>
+    
+
+  <!-- Bottom Banner (Mystery Wave or Revealed Word) -->
+  
+    <!-- Celebratory Word Reveal Banner -->
+    <g>
+      <rect x="24" y="176" width="152" height="38" rx="12" fill="#fffdfa" stroke="#e5a823" stroke-width="2.5" filter="url(#cardShadow)"/>
+      <polygon points="34,195 36,190 38,195 35,192 37,192" fill="#f7c948"/>
+      <polygon points="166,195 164,190 162,195 165,192 163,192" fill="#f7c948"/>
+      <text x="100" y="202.5" font-family="'Nunito', system-ui, -apple-system, sans-serif" font-weight="900" font-size="21" fill="#332d29" text-anchor="middle">
+        <tspan fill="#e26a57">G</tspan>oat
+      </text>
+    </g>
+    
+</svg>

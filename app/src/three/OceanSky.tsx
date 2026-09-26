@@ -1,7 +1,34 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { oceanVertexShader, buildOceanFragmentShader, OCEAN_SKY_DEFAULTS, OCEAN_QUALITY_HIGH, type OceanQuality } from './oceanSky';
+import { oceanVertexShader, buildOceanFragmentShader, oceanDetailUniforms, OCEAN_SKY_DEFAULTS, OCEAN_QUALITY_HIGH, type OceanQuality } from './oceanSky';
+import { oceanDetailFromQuality } from './adaptiveQuality';
+import { RAINBOW_COLORS } from '../engine/rainbowChoice';
+
+/** The streak-reward rainbow, drawn inside the ocean shader so it reflects in the water — see oceanSky.ts's rainbowSample. */
+export interface OceanRainbow {
+  /** Band (index into RAINBOW_COLORS) that breathes. */
+  glowIndex: number;
+  /** Once answered, the glow holds at full instead of breathing. */
+  solved: boolean;
+  /** Arc centre in world space — FlightScene snapshots it once per round. */
+  center: [number, number, number];
+  /** Outer (red) edge radius and the six bands' combined width, world units. */
+  radius: number;
+  width: number;
+}
+
+const RAINBOW_FADE_SECONDS = 0.8;
+// One full breath (dim → bright → dim). Slow on purpose: a pulse a
+// 4-year-old can follow, not a flash.
+const RAINBOW_BREATH_SECONDS = 1.8;
+// mainImage ends with pow(color, 0.65); feeding the hex colours through
+// the inverse curve is what makes them come out on screen as picked
+// (and matching the answer swatches), not washed out.
+const RAINBOW_UNIFORM_COLORS = RAINBOW_COLORS.map((c) => {
+  const col = new THREE.Color(c.hex);
+  return new THREE.Vector3(col.r ** (1 / 0.65), col.g ** (1 / 0.65), col.b ** (1 / 0.65));
+});
 
 interface OceanSkyProps {
   /** 0-24. Drives the whole day/sunset/night blend inside the shader — see docs/07-architecture.md#flight-game. */
@@ -32,8 +59,24 @@ interface OceanSkyProps {
   nightSkyColor?: [number, number, number];
   sunColor?: [number, number, number];
   moonColor?: [number, number, number];
-  /** Raymarch step/octave budget — see oceanSky.ts's OCEAN_QUALITY_LOW. Fixed for this component's lifetime (device tier doesn't change mid-session), so it's read once at mount, not tracked in `latest`. */
+  /** Compiled loop CEILINGS (see oceanSky.ts's OCEAN_QUALITY_HIGH) — read once at mount. The detail actually rendered is `qualityRef`'s, live. */
   quality?: OceanQuality;
+  /** Live 0..1 frame-rate calibration level — see adaptiveQuality.ts. Absent = full detail (e.g. a standalone preview). */
+  qualityRef?: React.RefObject<number>;
+  /**
+   * 0..1 — how much of the TRUE camera pitch to hand the shader. The
+   * shader's fromEuler() applies pitch with the opposite sign to three.js
+   * (for the forward ray it yields y = -sin(pitch)), so historically the
+   * painted horizon has been mirrored: a camera tilted down draws the sea
+   * tilted up. The whole game's framing was tuned on that look, so it's
+   * left as-is by default (0); the rainbow skim's drone shot blends to 1,
+   * where the bird must visibly sit ON the painted sea.
+   */
+  truePitchRef?: React.RefObject<number>;
+  rainbow?: OceanRainbow | null;
+  /** Storm-round weather: level (0 clear … 1 storm, dips negative as it clears) and lightning flash — see StormWeather.tsx. */
+  stormRef?: React.RefObject<number>;
+  flashRef?: React.RefObject<number>;
 }
 
 /**
@@ -84,6 +127,11 @@ export function OceanSky({
   sunColor = OCEAN_SKY_DEFAULTS.sunColor,
   moonColor = OCEAN_SKY_DEFAULTS.moonColor,
   quality = OCEAN_QUALITY_HIGH,
+  rainbow = null,
+  qualityRef,
+  truePitchRef,
+  stormRef,
+  flashRef,
 }: OceanSkyProps) {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   // Built once per mount, keyed off `quality` — swapping it later would
@@ -91,6 +139,14 @@ export function OceanSky({
   // which nothing here does (device tier is decided once, at spawn).
   const fragmentShader = useMemo(() => buildOceanFragmentShader(quality), [quality]);
   const worldDir = useRef(new THREE.Vector3()).current;
+  // Eased toward the calibrator's target, so even its discrete steps
+  // reach the sea as a slow drift, never a visible pop.
+  const appliedDetail = useRef<number | null>(null);
+  // Keeps the last rainbow around after the prop goes null, so it can
+  // fade out where it was instead of blinking off.
+  const rainbowRef = useRef<{ current: OceanRainbow | null; last: OceanRainbow | null; alpha: number; age: number }>({ current: null, last: null, alpha: 0, age: 0 });
+  rainbowRef.current.current = rainbow;
+  if (rainbow) rainbowRef.current.last = rainbow;
 
   // useFrame's callback closure isn't reliable for fresh prop values
   // either (observed going stale under testing) — read from a ref,
@@ -159,14 +215,57 @@ export function OceanSky({
       uCameraRotZ: { value: 0 },
       uZoom: { value: 2 },
       uCameraOffset: { value: new THREE.Vector2(0, 0) },
+      uMarchSteps: { value: quality.numSteps },
+      uIterGeometry: { value: quality.iterGeometry },
+      uIterFragment: { value: quality.iterFragment },
+      uStorm: { value: 0 },
+      uFlash: { value: 0 },
+      uRainbowAlpha: { value: 0 },
+      uRainbowCenter: { value: new THREE.Vector3() },
+      uRainbowRadius: { value: 1 },
+      uRainbowWidth: { value: 1 },
+      uRainbowGlow: { value: -1 },
+      uRainbowBreath: { value: 0 },
+      uRainbowColors: { value: RAINBOW_UNIFORM_COLORS },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
-  useFrame(({ clock, camera, gl }) => {
+  useFrame(({ clock, camera, gl }, delta) => {
     const u = materialRef.current?.uniforms;
     if (!u) return;
+
+    const targetDetail = oceanDetailFromQuality(qualityRef?.current ?? 1);
+    appliedDetail.current = appliedDetail.current === null ? targetDetail : appliedDetail.current + (targetDetail - appliedDetail.current) * (1 - Math.exp(-2 * delta));
+    const detail = oceanDetailUniforms(appliedDetail.current);
+    // Never above what was compiled in — the loops' constant bounds.
+    u.uMarchSteps.value = Math.min(detail.numSteps, quality.numSteps);
+    u.uIterGeometry.value = Math.min(detail.iterGeometry, quality.iterGeometry);
+    u.uIterFragment.value = Math.min(detail.iterFragment, quality.iterFragment);
+
+    u.uStorm.value = stormRef?.current ?? 0;
+    u.uFlash.value = flashRef?.current ?? 0;
+
+    const rb = rainbowRef.current;
+    if (rb.current && rb.alpha === 0) rb.age = 0;
+    rb.alpha = THREE.MathUtils.clamp(rb.alpha + (rb.current ? 1 : -1) * (delta / RAINBOW_FADE_SECONDS), 0, 1);
+    rb.age += delta;
+    u.uRainbowAlpha.value = rb.alpha;
+    if (rb.last) {
+      // Portrait phones see a much narrower slice of the horizon — shrink
+      // the arc so both feet (and their reflections) stay on screen. The
+      // band width shrinks more gently so the bands stay tappable-looking
+      // fat rather than thinning to threads.
+      const aspect = camera instanceof THREE.PerspectiveCamera ? camera.aspect : 1.5;
+      const fit = THREE.MathUtils.clamp(aspect / 0.75, 0.7, 1);
+      u.uRainbowRadius.value = rb.last.radius * fit;
+      u.uRainbowWidth.value = rb.last.width * Math.sqrt(fit);
+      u.uRainbowCenter.value.set(...rb.last.center);
+      u.uRainbowGlow.value = rb.last.glowIndex;
+      // Cosine-eased 0..1..0 so it swells and settles rather than ticking.
+      u.uRainbowBreath.value = rb.last.solved ? 1 : 0.5 - 0.5 * Math.cos((rb.age / RAINBOW_BREATH_SECONDS) * Math.PI * 2);
+    }
 
     u.iTime.value = clock.getElapsedTime();
     u.iResolution.value.set(gl.domElement.width, gl.domElement.height, 1);
@@ -218,7 +317,7 @@ export function OceanSky({
     // sky would stay suspiciously level under a foreground that's
     // visibly rolling.
     u.uCameraRotX.value = camera.rotation.z;
-    u.uCameraRotY.value = pitch;
+    u.uCameraRotY.value = pitch * (1 - 2 * (truePitchRef?.current ?? 0));
     u.uCameraRotZ.value = yaw;
 
     if (camera instanceof THREE.PerspectiveCamera) {

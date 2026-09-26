@@ -5,6 +5,7 @@ import { AVATARS, AVATAR_LABELS } from '../data/avatars';
 import { AvatarIcon } from '../components/icons/AvatarIcon';
 import { Wordmark } from '../components/Brand';
 import { CheckIcon, ChevronLeftIcon } from '../components/icons/Misc';
+import { SkyBackdrop } from '../components/SkyBackdrop';
 import * as sfx from '../engine/sfx';
 import './Onboarding.css';
 
@@ -52,7 +53,8 @@ export function Onboarding({ onCreated, onCancel }: OnboardingProps = {}) {
   }
 
   return (
-    <div className="onboarding">
+    <div className="onboarding sky-stage">
+      <SkyBackdrop />
       {onCancel && (
         <button type="button" className="back-link onboarding-back" onClick={onCancel}>
           <ChevronLeftIcon size={18} /> Back

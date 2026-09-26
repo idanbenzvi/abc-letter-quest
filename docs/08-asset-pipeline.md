@@ -2,7 +2,14 @@
 
 Full detail lives in `assets/README.md`, `assets/STYLE_GUIDE.md`, and
 `assets/manifest.json` — this doc is just the pointer + how it relates
-to the app.
+to the app. This doc mainly covers the **image** pipeline; for the
+**audio** pipeline (`assets/generate-audio.mjs` — letter names and
+words, Gemini TTS), see
+[07-architecture.md#audio-strategy](./07-architecture.md#audio-strategy)
+and `app/public/audio/letters/README.md` /
+`app/public/audio/words/README.md`. Both pipelines share the same
+`assets/` directory, `.env`/API key, and `@google/genai` dependency —
+`npm install` once in `assets/` covers both.
 
 ## Summary
 

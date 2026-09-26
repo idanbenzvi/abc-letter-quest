@@ -8,6 +8,7 @@ import { useApp } from '../state/AppContext';
 import { AvatarIcon } from '../components/icons/AvatarIcon';
 import { ChevronLeftIcon, ChevronRightIcon, CheckIcon, StarIcon, SoundOnIcon, SoundOffIcon, BookIcon, CloseIcon, NestIcon, CameraIcon } from '../components/icons/Misc';
 import * as sfx from '../engine/sfx';
+import { sayLetter } from '../engine/audio';
 import './Dashboard.css';
 
 function boxClass(box: number): string {
@@ -19,7 +20,7 @@ function boxClass(box: number): string {
 const MISSION_DURATION_PRESETS = [120, 240, 360, 480]; // 2 / 4 / 6 / 8 minutes
 
 export function Dashboard({ onBack, onSwitchPlayer }: { onBack: () => void; onSwitchPlayer: () => void }) {
-  const { state, players, setMissionDuration, setSoundEnabled, setWritingPractice, setLookAlikePractice, setHandwritingCheck, resetProgress } = useApp();
+  const { state, players, setMissionDuration, setSoundEnabled, setWritingPractice, setLookAlikePractice, setHandwritingCheck, setLetterVoice, setFocusLetters, resetProgress } = useApp();
   const { letters, profile } = state;
   // Two-step, in-app confirmation instead of a browser confirm() dialog —
   // the native dialog looks like a crash to a parent and can be styled
@@ -28,6 +29,7 @@ export function Dashboard({ onBack, onSwitchPlayer }: { onBack: () => void; onSw
   const [researchOpen, setResearchOpen] = useState(false);
   const [activityIndex, setActivityIndex] = useState(0);
   if (!profile) return null;
+  const focusLetters = state.settings.focusLetters;
 
   const activity = OFFLINE_ACTIVITIES[activityIndex];
   function stepActivity(delta: number) {
@@ -143,7 +145,7 @@ export function Dashboard({ onBack, onSwitchPlayer }: { onBack: () => void; onSw
         </div>
 
         <div className="dash-column">
-          <div className="card dash-card">
+          <div className="card dash-card leaf">
             <h2 className="font-display dash-card-title leaf">Words I Know Well</h2>
             <div className="word-list">
               {known.length === 0 && <span className="dash-empty">None yet — on the way!</span>}
@@ -165,7 +167,7 @@ export function Dashboard({ onBack, onSwitchPlayer }: { onBack: () => void; onSw
             </div>
           </div>
 
-          <div className="card dash-card">
+          <div className="card dash-card sun">
             <h2 className="font-display dash-card-title sun">Needs More Practice</h2>
             <div className="word-list">
               {needsPractice.length === 0 && <span className="dash-empty">Nothing in progress yet.</span>}
@@ -250,6 +252,84 @@ export function Dashboard({ onBack, onSwitchPlayer }: { onBack: () => void; onSw
                   onClick={() => {
                     sfx.play('tap');
                     setWritingPractice(value);
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="card dash-card">
+          <h2 className="font-display dash-card-title">Focus Letters</h2>
+          <p className="dash-card-note">
+            Pick letters for {profile.name} to practise — this week's letters at school, or ones that keep getting mixed up.
+            About half of every flight will come from them. Leave empty for the usual mix.
+          </p>
+          <div className="dash-focus-grid" role="group" aria-label="Focus letters">
+            {CURRICULUM_ORDER.map((letter) => {
+              const on = focusLetters.includes(letter);
+              return (
+                <button
+                  key={letter}
+                  type="button"
+                  aria-pressed={on}
+                  className={`dash-focus-chip${on ? ' on' : ''}`}
+                  onClick={() => {
+                    sfx.play('tap');
+                    setFocusLetters(on ? focusLetters.filter((l) => l !== letter) : [...focusLetters, letter].sort());
+                  }}
+                >
+                  {letter}
+                  <span className="dash-focus-lower" aria-hidden="true">
+                    {letter.toLowerCase()}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {focusLetters.length > 0 && (
+            <button
+              type="button"
+              className="dash-focus-clear"
+              onClick={() => {
+                sfx.play('tap');
+                setFocusLetters([]);
+              }}
+            >
+              Clear ({focusLetters.join(', ')})
+            </button>
+          )}
+        </div>
+
+        <div className="card dash-card">
+          <h2 className="font-display dash-card-title">Letter Voice</h2>
+          <p className="dash-card-note">
+            What the game says when {profile.name} meets a letter: its name ("bee"), its sound ("buh"), or both. Letter
+            sounds are what reading is built on, so "Both" is recommended. Word games always blend with sounds unless
+            you choose "Names". Tap an option to hear it.
+          </p>
+          <div className="dash-segmented" role="radiogroup" aria-label="Letter voice">
+            {(
+              [
+                ['names', 'Names'],
+                ['sounds', 'Sounds'],
+                ['both', 'Both'],
+              ] as const
+            ).map(([value, label]) => {
+              const active = state.settings.letterVoice === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  className={`dash-segment${active ? ' active' : ''}`}
+                  onClick={() => {
+                    sfx.play('tap');
+                    setLetterVoice(value);
+                    void sayLetter('B', value);
                   }}
                 >
                   {label}

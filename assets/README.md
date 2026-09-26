@@ -6,6 +6,11 @@ Quest using the Gemini API (Nano Banana Pro / Nano Banana 2), styled from
 yet — this is the pipeline configured and ready for whenever you want to
 spend the API budget and actually generate art.
 
+This directory also has a second, separate script, `generate-audio.mjs`,
+for the game's spoken letter/word audio (Gemini TTS) — see "Audio (letters
+& words)" near the bottom. Everything above this point is about the
+**image** pipeline (`generate.mjs`).
+
 ## Setup
 
 ```bash
@@ -105,3 +110,23 @@ design canvas once the real app is being built — drop approved images into
 the app's asset folder and swap the `<svg>` mockup blocks for `<img>` tags
 pointing at them. Nothing in the design canvas itself needs to change for
 this to work later.
+
+## Audio (letters & words)
+
+`generate-audio.mjs` — sharing this same `.env`/API key and
+`@google/genai` dependency — generates the game's spoken letter names
+and words via Gemini's text-to-speech model, in one warm, consistent
+voice. It writes straight into `app/public/audio/letters/` and
+`app/public/audio/words/`, which `engine/audio.ts` picks up
+automatically — see `../docs/07-architecture.md#audio-strategy`.
+
+```bash
+npm run dry-run-audio   # preview every clip's text, no key needed, no cost
+npm run generate-audio  # generate everything missing (skips clips that already exist)
+```
+
+Unlike the image pipeline above, this one reads its word/letter list
+straight out of the app's own source files (`words.ts`, `flashcards.ts`,
+`cvcWords.ts`, `letterNameMatch.ts`) rather than a hand-maintained
+manifest, so there's nothing to keep in sync by hand — see the comment
+at the top of `generate-audio.mjs`.

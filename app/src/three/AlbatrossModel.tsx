@@ -149,7 +149,13 @@ const WING_LIGHT = new THREE.Color('#efe6d2');
 const WING_DARK = new THREE.Color('#463c33');
 
 /** One wing's shoulder->elbow->wrist chain, mirrored via `sign` (+1 right, -1 left). See docs/10-flight-game.md. */
-function WingSide({ geometry, sign }: { geometry: THREE.BufferGeometry; sign: 1 | -1 }) {
+// The skim glide (see FlightScene's SKIM_*): wings locked out nearly
+// flat — a real albatross barely flaps at all when it rides the air
+// cushion over the swell — with only a slow, small flex left in them.
+const GLIDE_DIHEDRAL = 0.04;
+const GLIDE_FLEX = 0.035;
+
+function WingSide({ geometry, sign, glideRef }: { geometry: THREE.BufferGeometry; sign: 1 | -1; glideRef?: React.RefObject<number> }) {
   const shoulderRef = useRef<THREE.Group>(null);
   const elbowRef = useRef<THREE.Group>(null);
   const wristRef = useRef<THREE.Group>(null);
@@ -178,10 +184,13 @@ function WingSide({ geometry, sign }: { geometry: THREE.BufferGeometry; sign: 1 
   // algebra: confirmed via screenshot that the wings flap up/down
   // together, not seesaw.
   useFrame(({ clock }) => {
-    const phi = phaseOf(clock.getElapsedTime(), WINGBEAT_PERIOD_SECONDS);
-    const dihedral = g1(DIHEDRAL_DOWNSTROKE, DIHEDRAL_UPSTROKE, phi);
-    const elbowBend = g2(0, ELBOW_BEND_PEAK, phi);
-    const wristBend = g2(0, WRIST_BEND_PEAK, phi);
+    const t = clock.getElapsedTime();
+    const phi = phaseOf(t, WINGBEAT_PERIOD_SECONDS);
+    const glide = glideRef?.current ?? 0;
+    const flex = GLIDE_DIHEDRAL + Math.sin(t * 1.3) * GLIDE_FLEX;
+    const dihedral = THREE.MathUtils.lerp(g1(DIHEDRAL_DOWNSTROKE, DIHEDRAL_UPSTROKE, phi), flex, glide);
+    const elbowBend = THREE.MathUtils.lerp(g2(0, ELBOW_BEND_PEAK, phi), 0, glide);
+    const wristBend = THREE.MathUtils.lerp(g2(0, WRIST_BEND_PEAK, phi), 0.02, glide);
     if (shoulderRef.current) shoulderRef.current.rotation.x = -sign * dihedral;
     if (elbowRef.current) elbowRef.current.rotation.x = -sign * elbowBend;
     if (wristRef.current) wristRef.current.rotation.x = -sign * wristBend;
@@ -222,7 +231,8 @@ function WingSide({ geometry, sign }: { geometry: THREE.BufferGeometry; sign: 1 
  * the Wu & Popović 2003 wingbeat equations driving it), not the earlier
  * single-hinge split — see docs/10-flight-game.md for the full story.
  */
-export function AlbatrossModel({ scale = 1 }: { scale?: number }) {
+/** `glideRef` (0..1) blends the wingbeat into a locked-out glide — see WingSide. */
+export function AlbatrossModel({ scale = 1, glideRef }: { scale?: number; glideRef?: React.RefObject<number> }) {
   const raw = useLoader(STLLoader, STL_URL) as THREE.BufferGeometry;
 
   const { body, geometry } = useMemo(() => {
@@ -240,8 +250,8 @@ export function AlbatrossModel({ scale = 1 }: { scale?: number }) {
   return (
     <group scale={scale} rotation={[0, Math.PI / 2, 0]}>
       <mesh geometry={body}>{material()}</mesh>
-      <WingSide geometry={geometry} sign={-1} />
-      <WingSide geometry={geometry} sign={1} />
+      <WingSide geometry={geometry} sign={-1} glideRef={glideRef} />
+      <WingSide geometry={geometry} sign={1} glideRef={glideRef} />
     </group>
   );
 }

@@ -1,27 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useFrame, type ThreeEvent } from '@react-three/fiber';
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { OceanSky } from './OceanSky';
 import { AlbatrossModel } from './AlbatrossModel';
 import { LetterCloud } from './LetterCloud';
 import { LetterTracer } from './LetterTracer';
-import { NounSkyIcon } from './NounSkyIcon';
+import { FlashCardSky } from './FlashCardSky';
 import { PlaneChoice } from './PlaneChoice';
 import { LetterMatchup } from './LetterMatchup';
 import { CvcWordRound } from './CvcWordRound';
 import { CompanionFlock } from './CompanionFlock';
+import { SkimSplash, SEA_CREST_Y, type SkimState } from './SkimSplash';
+import * as sfx from '../engine/sfx';
+import { MotionBlur } from './MotionBlur';
+import { StormWeather } from './StormWeather';
+import { StormCards, type StormCardsRound } from './StormCards';
 import type { Encounter } from './flightTypes';
-import { OCEAN_QUALITY_HIGH, OCEAN_QUALITY_LOW, type OceanDevParams } from './oceanSky';
+import { type OceanDevParams } from './oceanSky';
 import type { PictureChoiceEntry } from '../engine/pictureChoice';
 import type { TraceProgress } from '../engine/strokeGeometry';
 import { subscribeTilt, isTiltLive } from '../engine/tilt';
-import { isLowPowerDevice } from '../engine/preload';
-
-// Decided once per mount, not per frame/prop — the device doesn't change
-// tier mid-flight, and OceanSky only picks this up at its own mount too
-// (see its `quality` prop doc comment).
-const oceanQuality = isLowPowerDevice() ? OCEAN_QUALITY_LOW : OCEAN_QUALITY_HIGH;
 
 const HOVER_CASE_SWAP_MS = 2000;
 // How far ahead of the frozen camera a "special round" (plane-choice,
@@ -31,6 +30,62 @@ const HOVER_CASE_SWAP_MS = 2000;
 // cloud-spawn cadence since neither round has an encounter/distance of
 // its own.
 const SPECIAL_ROUND_DISTANCE_AHEAD = 15;
+// The streak-reward rainbow lives in the ocean shader (so it reflects) —
+// see OceanSky.tsx's rainbow prop. It's a real place in the world: the
+// flight keeps going (just slower) and the bird flies under the arch,
+// ~30s away at the slowed speed. With the drone shot's true-to-life
+// horizon (see OceanSky's truePitchRef) an arch grows out of the top of
+// the frame once it's within ~1/3 of its starting distance whatever its
+// scale, so the radius:distance ratio is kept modest — it stays on
+// screen for roughly the first 20s, the window a child has to answer.
+const RAINBOW_DISTANCE_AHEAD = 100;
+const RAINBOW_RADIUS = RAINBOW_DISTANCE_AHEAD * 0.24;
+// All six bands together — chunky, storybook proportions.
+const RAINBOW_WIDTH = RAINBOW_RADIUS * 0.34;
+const RAINBOW_CENTER_Y = -2;
+// "A little bonus", not a stop: the flight eases to 85% while it's up.
+const RAINBOW_SPEED_FACTOR = 0.85;
+// Once the right colour is picked, the bird DASHES through the arch
+// wherever it is — ~6× speed (≤5s from the farthest point), with a wider
+// field of view and zoom motion blur (MotionBlur.tsx) selling the speed.
+const RAINBOW_DASH_FACTOR = 6;
+const DASH_FOV_KICK = 16;
+const DASH_BLUR = 0.09;
+const BASE_FOV = 60;
+// The storm round (StormWeather.tsx / StormCards.tsx): the flight slows
+// like it does for the rainbow; the weather eases in over ~2s; once it's
+// solved the sky overshoots into a brief warm sunburst before settling.
+const STORM_SPEED_FACTOR = 0.85;
+const STORM_EASE = 1.3;
+const STORM_CLEAR_BURST = -0.3;
+// While the rainbow's up the chase cam swings out to a "drone" shot —
+// above and off to the bird's side, looking a little ahead of it so the
+// rainbow stays in frame — for a sense of occasion. Offsets are from
+// the bird; the blend in/out takes DRONE_BLEND_SECONDS, eased.
+// Side offset is scaled down on narrow (portrait) screens, where a wide
+// side angle would push the bird out of the frame entirely.
+const DRONE_SIDE = 3;
+const DRONE_UP = 1.5;
+const DRONE_BACK = 5.5;
+const DRONE_LOOK_AHEAD = 14;
+const DRONE_LOOK_DROP = 0.2;
+const DRONE_BLEND_SECONDS = 1.6;
+// ...and the albatross swoops down to skim the sea into it: wings locked
+// in a glide, banking in slow S-curves so a wingtip clips the crests,
+// with a comic belly-dip (squash, sploosh, hop) every few seconds — see
+// SkimSplash.tsx for the spray/foam. Sea heights there are sampled from
+// the ocean shader's own wave function.
+const SKIM_BLEND_SECONDS = 2.2;
+/** Body height while skimming — just over the tallest typical crests, so it's the banked wingtip that touches, not the belly. */
+const SKIM_Y = SEA_CREST_Y + 0.3;
+const SKIM_BANK = 0.32; // ±18°
+const SKIM_BANK_HZ = 0.09;
+// Wingtip in the bird group's local space (TIP_Z 0.58 × model scale 2.3, along X after the model's own rotation).
+const WING_TIP_LOCAL = 1.33;
+const DIP_SECONDS = 0.8;
+const DIP_DEPTH = 0.5;
+const DIP_GAP_MIN = 2.0;
+const DIP_GAP_MAX = 3.6;
 
 const PASS_BUFFER = 4; // world units past a cloud's distance before it counts as "flown through"
 // The mission's day arc runs dawn -> noon -> sunset -> deep night, not just
@@ -115,6 +170,8 @@ interface FlightSceneProps {
   pictureChoices?: PictureChoiceEntry[] | null;
   /** Which candidate (by word id) just got a wrong tap — triggers that one icon's shake, then clears. */
   wrongPickId?: string | null;
+  /** Which candidate (by word id) was correctly picked — triggers celebratory reveal and word display. */
+  solvedPickId?: string | null;
   onPicturePick?: (choice: PictureChoiceEntry) => void;
   /** Fired once when a child drags/traces over enough of the current letter's own shape — a fourth bonus path alongside tap, type, and picture-choice. See LetterTracer.tsx. */
   onTraceComplete: (canonicalLetter: string) => void;
@@ -134,8 +191,23 @@ interface FlightSceneProps {
   cvcRound?: { id: string; letters: [string, string, string]; nextIndex: number } | null;
   wrongCvcIndex?: number | null;
   onCvcSlotTap?: (index: number) => void;
+  /** "Which colour is glowing?" streak-reward round — see FlightGameScreen's rainbowRound. Drawn by OceanSky; the answers are DOM swatches. Unlike the other rounds it doesn't pause the flight, only slows it. */
+  rainbowRound?: { glowIndex: number; solved: boolean } | null;
+  /** The storm's "which one starts with a different sound?" round — see StormCards.tsx / engine/oddSound.ts. Like the rainbow it slows the flight rather than pausing it. */
+  stormRound?: StormCardsRound | null;
+  onStormPick?: (cardId: string) => void;
+  /** Storm weather, shared by both storm rounds (cards + Storm Vowels): 'storm' while one is open, 'clearing' once it's solved (the sunburst), null otherwise. */
+  weather?: 'storm' | 'clearing' | null;
+  /** Bumping this calls down a lightning strike right now (Storm Vowels' payoff). */
+  strikeKey?: number;
+  /** Fires once when the camera passes under the rainbow's arch, with the bird's distance at that moment. */
+  onRainbowPassed?: (birdDistance: number) => void;
+  /** Written every frame with the bird's travelled distance — for the parent's spawn math when a round ends mid-flight (the rainbow's), where there's no onFadeComplete to hand it over. */
+  birdDistanceRef?: React.RefObject<number>;
   /** How many letters the child has mastered (box >= 4) — see FlightGameScreen.tsx. Drives CompanionFlock, the small creatures that join the bird's formation as a persistent, visible collection reward. */
   masteredCount?: number;
+  /** Live 0..1 frame-rate calibration level (see adaptiveQuality.ts) — FlightCanvas supplies it; OceanSky turns it into ocean detail every frame. */
+  qualityRef?: React.RefObject<number>;
 }
 
 function EncounterCloud({
@@ -271,6 +343,7 @@ export function FlightScene({
   devOcean,
   pictureChoices,
   wrongPickId,
+  solvedPickId,
   onPicturePick,
   onTraceComplete,
   onTraceActive,
@@ -284,7 +357,15 @@ export function FlightScene({
   cvcRound,
   wrongCvcIndex,
   onCvcSlotTap,
+  rainbowRound,
   masteredCount = 0,
+  qualityRef,
+  onRainbowPassed,
+  birdDistanceRef,
+  stormRound,
+  onStormPick,
+  weather = null,
+  strikeKey = 0,
 }: FlightSceneProps) {
   const birdGroupRef = useRef<THREE.Group>(null);
   // CompanionFlock's own anchor — synced to the bird's POSITION only, not
@@ -311,6 +392,7 @@ export function FlightScene({
   // first frame's target rather than easing in from a stale 0.
   const flightXSmoothed = useRef<number | null>(null);
   const distanceRef = useRef(0);
+  const camera = useThree((s) => s.camera);
   // A plane challenge has no `encounter.distance` of its own to anchor
   // to (there's no encounter at all while it's active — see
   // FlightSceneProps' doc comment). distanceRef stays frozen the whole
@@ -325,6 +407,16 @@ export function FlightScene({
   // whole object, since `nextIndex` changes on every correct tap within
   // the SAME round and must not re-anchor the position each time.
   const cvcRoundDistance = useMemo(() => distanceRef.current + SPECIAL_ROUND_DISTANCE_AHEAD, [cvcRound?.id]);
+  // Keyed on glowIndex, not the object — `solved` flipping mid-round must
+  // not re-anchor it (it goes undefined between rounds, so a repeat
+  // colour still re-anchors). Far out on the horizon, the way a real
+  // rainbow sits, centred just under the waterline so its feet sink
+  // into the sea and the reflection meets them.
+  const rainbowCenter = useMemo<[number, number, number] | null>(
+    () => (rainbowRound ? [camera.position.x, RAINBOW_CENTER_Y, camera.position.z - RAINBOW_DISTANCE_AHEAD] : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rainbowRound?.glowIndex],
+  );
   const missionElapsedRef = useRef(0);
   const timeUpFiredRef = useRef(false);
   // Set once the mode's own day-arc condition is first met; from then on
@@ -401,6 +493,35 @@ export function FlightScene({
   // useFrame closures here can't be trusted to see fresh props/state.
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
+  const rainbowCenterRef = useRef(rainbowCenter);
+  rainbowCenterRef.current = rainbowCenter;
+  const onRainbowPassedRef = useRef(onRainbowPassed);
+  onRainbowPassedRef.current = onRainbowPassed;
+  const rainbowPassedFor = useRef<[number, number, number] | null>(null);
+  // Eased, so entering/leaving the rainbow's slow-down is a glide, not a lurch.
+  const speedFactorRef = useRef(1);
+  const rainbowSolvedRef = useRef(false);
+  // Storm weather: 0 clear … 1 full storm, dipping to STORM_CLEAR_BURST
+  // (a warm sunburst) once the round is solved, then back to 0.
+  const stormLevelRef = useRef(0);
+  const flashRef = useRef(0);
+  const weatherRef = useRef(weather);
+  weatherRef.current = weather;
+  rainbowSolvedRef.current = !!rainbowRound?.solved;
+  // 0..1 — how far into the post-answer dash; drives FOV kick + blur.
+  const dashRef = useRef(0);
+  const blurRef = useRef(0);
+  // 0 = normal chase cam, 1 = drone shot; linear here, eased where used.
+  const droneRef = useRef(0);
+  // The eased drone blend, shared with OceanSky's truePitchRef.
+  const droneEasedRef = useRef(0);
+  const skimLinear = useRef(0);
+  const skimPrev = useRef(0);
+  const glideRef = useRef(0);
+  const dip = useRef({ t: -1, fired: false, wait: DIP_GAP_MIN });
+  const skimState = useRef<SkimState>({ intensity: 0, body: new THREE.Vector3(), tips: [new THREE.Vector3(), new THREE.Vector3()], bursts: 0, nightDim: 0, speed: 1 });
+  const dronePos = useRef(new THREE.Vector3()).current;
+  const droneLook = useRef(new THREE.Vector3()).current;
   const lookFrozenRef = useRef(lookFrozen);
   lookFrozenRef.current = lookFrozen;
   const encounterRef = useRef(encounter);
@@ -432,7 +553,7 @@ export function FlightScene({
   const sprintRemainingRef = useRef(missionDurationSeconds);
   const lastSprintAdjustRef = useRef(0);
 
-  useFrame(({ camera }, delta) => {
+  useFrame(({ camera, clock }, delta) => {
     // Default Euler order ('XYZ') couples yaw and pitch: decomposing a
     // pure lookAt() orientation (genuine yaw+pitch, no intentional
     // roll) into XYZ angles can produce a nonzero Z component purely as
@@ -447,9 +568,35 @@ export function FlightScene({
     // screenshot, not just by the theory.
     camera.rotation.order = 'YXZ';
 
+    const stormTarget = weatherRef.current === 'storm' ? 1 : weatherRef.current === 'clearing' ? STORM_CLEAR_BURST : 0;
+    stormLevelRef.current += (stormTarget - stormLevelRef.current) * (1 - Math.exp(-STORM_EASE * delta));
+    const targetSpeedFactor = rainbowCenterRef.current
+      ? rainbowSolvedRef.current
+        ? RAINBOW_DASH_FACTOR
+        : RAINBOW_SPEED_FACTOR
+      : weatherRef.current === 'storm'
+        ? STORM_SPEED_FACTOR
+        : 1;
+    // Faster easing than a plain glide so the dash kicks in (and bleeds off after the arch) with some punch.
+    speedFactorRef.current += (targetSpeedFactor - speedFactorRef.current) * (1 - Math.exp(-2.6 * delta));
+    dashRef.current = THREE.MathUtils.clamp((speedFactorRef.current - 1) / (RAINBOW_DASH_FACTOR - 1), 0, 1);
+    blurRef.current = dashRef.current * DASH_BLUR;
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const fov = BASE_FOV + DASH_FOV_KICK * dashRef.current;
+      if (Math.abs(camera.fov - fov) > 0.01) {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
+    }
     if (!pausedRef.current) {
-      distanceRef.current += delta * speed;
+      distanceRef.current += delta * speed * speedFactorRef.current;
       missionElapsedRef.current += delta;
+    }
+    if (birdDistanceRef) birdDistanceRef.current = distanceRef.current;
+    const rc = rainbowCenterRef.current;
+    if (rc && rainbowPassedFor.current !== rc && camera.position.z < rc[2]) {
+      rainbowPassedFor.current = rc;
+      onRainbowPassedRef.current?.(distanceRef.current);
     }
 
     let frac: number;
@@ -549,8 +696,12 @@ export function FlightScene({
     // night extension.
     const nightDim = THREE.MathUtils.clamp((displayedTimeOfDay.current - 17) / 5, 0, 1);
     nightDimRef.current = nightDim;
-    if (ambientLightRef.current) ambientLightRef.current.intensity = THREE.MathUtils.lerp(0.7, 0.22, nightDim);
-    if (directionalLightRef.current) directionalLightRef.current.intensity = THREE.MathUtils.lerp(1.3, 0.3, nightDim);
+    // The storm dims the lights on the bird/cards too (not just the painted
+    // sky), and each lightning flash briefly lights everything up.
+    const stormDim = 1 - 0.45 * Math.max(0, stormLevelRef.current);
+    const flash = flashRef.current * 1.4;
+    if (ambientLightRef.current) ambientLightRef.current.intensity = THREE.MathUtils.lerp(0.7, 0.22, nightDim) * stormDim + flash;
+    if (directionalLightRef.current) directionalLightRef.current.intensity = THREE.MathUtils.lerp(1.3, 0.3, nightDim) * stormDim + flash;
 
     if (!pausedRef.current) {
       if (missionShouldEnd && !timeUpFiredRef.current) {
@@ -637,18 +788,78 @@ export function FlightScene({
     const mouseRoll = mouseX * 0.07;
     const totalRoll = bank + mouseRoll;
 
+    // --- the rainbow skim (see SKIM_* above) ---
+    const now = clock.getElapsedTime();
+    skimLinear.current = THREE.MathUtils.clamp(skimLinear.current + (rainbowCenterRef.current ? 1 : -1) * (delta / SKIM_BLEND_SECONDS), 0, 1);
+    const skim = THREE.MathUtils.smootherstep(skimLinear.current, 0, 1);
+    // + while diving in, − while climbing out: pitches the nose into it.
+    const skimVel = delta > 0 ? (skim - skimPrev.current) / delta : 0;
+    skimPrev.current = skim;
+    glideRef.current = THREE.MathUtils.smoothstep(skim, 0.15, 0.7);
+    // Comic belly-dip: down, SQUASH on the water, sploosh, hop up past
+    // the skim line, settle. Only once fully skimming, never mid-dive.
+    const d = dip.current;
+    let dipY = 0;
+    let squash = 0;
+    // No belly-dips mid-dash — it's a straight, fast run at the arch.
+    if (skim > 0.97 && !pausedRef.current && dashRef.current < 0.2) {
+      d.wait -= delta;
+      if (d.t < 0 && d.wait <= 0) {
+        d.t = 0;
+        d.fired = false;
+      }
+    }
+    if (d.t >= 0) {
+      d.t += delta / DIP_SECONDS;
+      const p = Math.min(d.t, 1);
+      if (p < 0.5) dipY = -DIP_DEPTH * Math.sin(Math.PI * p);
+      else {
+        const q = (p - 0.5) / 0.5;
+        dipY = -DIP_DEPTH * (1 - q) * (1 - q) + 0.45 * DIP_DEPTH * Math.sin(Math.PI * q);
+      }
+      squash = Math.exp(-(((p - 0.5) / 0.07) ** 2));
+      if (!d.fired && p >= 0.5) {
+        d.fired = true;
+        skimState.current.bursts += 1;
+        sfx.play('splash');
+      }
+      if (d.t >= 1) {
+        d.t = -1;
+        d.wait = DIP_GAP_MIN + Math.random() * (DIP_GAP_MAX - DIP_GAP_MIN);
+      }
+    }
+    if (skim === 0) {
+      d.t = -1;
+      d.wait = DIP_GAP_MIN;
+    }
+    // Base height every other consumer (camera, flock) follows — no dip/bob jitter.
+    const baseY = THREE.MathUtils.lerp(altitude, SKIM_Y, skim);
+    const birdY = baseY + bob * (1 - skim) + skim * Math.sin(now * 1.7) * 0.06 + dipY;
+    const skimBank = Math.sin(now * Math.PI * 2 * SKIM_BANK_HZ) * SKIM_BANK * (1 - squash);
+
     if (birdGroupRef.current) {
-      birdGroupRef.current.position.set(flightX, altitude + bob, worldZ);
+      birdGroupRef.current.position.set(flightX, birdY, worldZ);
       // The bird's own attitude shares the same parallax input as the
       // camera's look-around (yaw/pitch below) — reads as one connected
       // viewing angle turning together, not a flat camera pan over a
       // static model. Roll (banking) is bird-only, see above.
-      birdGroupRef.current.rotation.y = mouseX * 0.16;
-      birdGroupRef.current.rotation.x = mouseY * 0.08;
-      birdGroupRef.current.rotation.z = totalRoll * 1.4;
+      birdGroupRef.current.rotation.y = mouseX * 0.16 * (1 - skim);
+      birdGroupRef.current.rotation.x = mouseY * 0.08 * (1 - skim) - THREE.MathUtils.clamp(skimVel * 0.9, -0.35, 0.35) - dipY * 0.35;
+      birdGroupRef.current.rotation.z = THREE.MathUtils.lerp(totalRoll * 1.4, skimBank, skim);
+      birdGroupRef.current.scale.set(1 + 0.12 * squash, 1 - 0.22 * squash, 1 + 0.12 * squash);
+
+      const st = skimState.current;
+      st.intensity = skim;
+      st.nightDim = nightDimRef.current;
+      st.speed = speedFactorRef.current;
+      birdGroupRef.current.updateMatrixWorld();
+      st.body.set(flightX, birdY, worldZ);
+      birdGroupRef.current.localToWorld(st.tips[0].set(-WING_TIP_LOCAL, 0, 0));
+      birdGroupRef.current.localToWorld(st.tips[1].set(WING_TIP_LOCAL, 0, 0));
     }
     if (flockGroupRef.current) {
-      flockGroupRef.current.position.set(flightX, altitude + bob, worldZ);
+      // The companions keep a little height rather than following the bird into the sea.
+      flockGroupRef.current.position.set(flightX, baseY + bob + skim * 1.1, worldZ);
     }
 
     // The camera's horizontal aim (yaw, i.e. panning left/right) still
@@ -696,9 +907,23 @@ export function FlightScene({
     const lagEase = 1 - Math.exp(-3.0 * delta);
     cameraLagX.current += (flightX - cameraLagX.current) * lagEase;
 
+    droneRef.current = THREE.MathUtils.clamp(droneRef.current + (rainbowCenterRef.current ? 1 : -1) * (delta / DRONE_BLEND_SECONDS), 0, 1);
+    const drone = THREE.MathUtils.smootherstep(droneRef.current, 0, 1);
+    droneEasedRef.current = drone;
+
     if (!devOceanRef.current) {
-      camera.position.set(cameraLagX.current, altitude + 1.6, worldZ + 6);
-      lookTarget.current.set(flightX, altitude + bob - 0.2 + cameraPitchOffset + approachSmoothed.current * APPROACH_LOOK_LIFT, worldZ - 4);
+      camera.position.set(cameraLagX.current, baseY + 1.6, worldZ + 6);
+      lookTarget.current.set(flightX, baseY + bob - 0.2 + cameraPitchOffset + approachSmoothed.current * APPROACH_LOOK_LIFT, worldZ - 4);
+      if (drone > 0) {
+        const aspect = camera instanceof THREE.PerspectiveCamera ? camera.aspect : 1.5;
+        const side = DRONE_SIDE * THREE.MathUtils.clamp((aspect - 0.3) / 1.2, 0.12, 1);
+        dronePos.set(cameraLagX.current + side, baseY + DRONE_UP, worldZ + DRONE_BACK);
+        // Aimed well ahead of the bird and a touch to its side: the bird
+        // sits in the lower-left of the frame, the rainbow ahead of it.
+        droneLook.set(flightX + side * 0.4, baseY - DRONE_LOOK_DROP, worldZ - DRONE_LOOK_AHEAD);
+        camera.position.lerp(dronePos, drone);
+        lookTarget.current.lerp(droneLook, drone);
+      }
       camera.lookAt(lookTarget.current);
       // Roll applied directly after lookAt(), not folded into the
       // target — lookAt() only ever produces pitch+yaw (no roll by
@@ -714,7 +939,8 @@ export function FlightScene({
       // (see its uCameraRotX assignment) so the sky rolls along with it
       // instead of the background staying suspiciously level under a
       // rolling foreground.
-      camera.rotateZ(cameraRoll);
+      // A drone holds itself level — the chase-cam's banking fades out with the blend.
+      camera.rotateZ(cameraRoll * (1 - drone));
     }
 
     if (enc) {
@@ -739,7 +965,10 @@ export function FlightScene({
         <OrbitControls makeDefault target={[lookTarget.current.x, lookTarget.current.y, lookTarget.current.z]} />
       )}
       <OceanSky
-        quality={oceanQuality}
+        qualityRef={qualityRef}
+        truePitchRef={droneEasedRef}
+        stormRef={stormLevelRef}
+        flashRef={flashRef}
         timeOfDayRef={devOcean ? undefined : oceanTimeOfDayRef}
         timeOfDay={devOcean?.timeOfDay}
         seaHeight={devOcean?.seaHeight}
@@ -757,13 +986,22 @@ export function FlightScene({
         nightSkyColor={devOcean?.nightSkyColor}
         sunColor={devOcean?.sunColor}
         moonColor={devOcean?.moonColor}
+        rainbow={
+          rainbowRound && rainbowCenter
+            ? { glowIndex: rainbowRound.glowIndex, solved: rainbowRound.solved, center: rainbowCenter, radius: RAINBOW_RADIUS, width: RAINBOW_WIDTH }
+            : null
+        }
       />
       <ambientLight ref={ambientLightRef} intensity={0.7} />
       <directionalLight ref={directionalLightRef} position={[6, 10, 4]} intensity={1.3} />
 
       <group ref={birdGroupRef}>
-        <AlbatrossModel scale={2.3} />
+        <AlbatrossModel scale={2.3} glideRef={glideRef} />
       </group>
+      <SkimSplash stateRef={skimState} />
+      <StormWeather levelRef={stormLevelRef} flashRef={flashRef} active={weather === 'storm'} strikeKey={strikeKey} />
+      {stormRound && <StormCards round={stormRound} isNight={isNightIcons} onPick={(id) => onStormPick?.(id)} />}
+      <MotionBlur amountRef={blurRef} />
       <group ref={flockGroupRef}>
         <CompanionFlock masteredCount={masteredCount} />
       </group>
@@ -796,58 +1034,39 @@ export function FlightScene({
       )}
 
       {encounter &&
-        encounter.status === 'pending' &&
+        (encounter.status === 'pending' || encounter.status === 'glowing') &&
         pictureChoices &&
         pictureChoices.map((choice, i) => {
-          // Each candidate is its own independent object scattered
-          // through the sky near the encounter, NOT a child of the
-          // letter's own group and not lined up in a neat row under
-          // it — a real sky has things at different heights and
-          // distances, not a HUD strip. The seed mixes the encounter's
-          // (unique per spawn) distance with the choice's word id, so
-          // the scatter is stable for this encounter but different
-          // every time, and different per candidate.
-          // Fixed sky "slots" well clear of where the letter itself sits
-          // (laneX, altitude+2.5): wide left, wide right, and high
-          // center — evenly spread around the view instead of clustered
-          // near the letter's own position. Horizontal placement is
-          // angle-based off a floored view distance (never below
-          // MIN_VIEW_DISTANCE) specifically so the offset can't collapse
-          // toward zero and drift back over the letter as the bird
-          // closes in on it — the near-letter case is exactly what
-          // "covers the letter at times" was about.
-          // Angles kept inside the camera's own field of view (60°
-          // vertical, so ~40-50° horizontal depending on aspect) —
-          // ±34° base +16° jitter (worst case ±50°) landed outside it
-          // often enough that the icons were routinely off-screen in
-          // ordinary gameplay, only ever seen by manually orbiting the
-          // dev camera. Caught by actually going and looking for one in
-          // a normal flight view and not finding it, not assumed.
+          // Three flash cards closely framing the letter cloud: Left, Right, and Center-Top.
+          // Positioned directly relative to the letter's laneX and distance so they stay
+          // reliably framed inside the camera's FOV on all screens (landscape & portrait)
+          // without colliding with the letter cloud.
           const SLOTS = [
-            { angleDeg: -18, elevation: 4 },
-            { angleDeg: 18, elevation: 4 },
-            { angleDeg: 0, elevation: 8 },
+            { dx: -6.8, dy: 0.4 }, // Left flank
+            { dx: 6.8, dy: 0.4 },  // Right flank
+            { dx: 0, dy: 4.8 },    // Center-top crown
           ];
-          const MIN_VIEW_DISTANCE = 16;
           const slot = SLOTS[i % SLOTS.length];
           const seed = hashSeed(`${encounter.distance}:${choice.word.id}`);
-          const jitterAngle = (seededRandom(seed + 1) - 0.5) * 6; // degrees
-          const jitterElev = (seededRandom(seed + 2) - 0.5) * 2;
-          const jitterDepth = (seededRandom(seed + 3) - 0.5) * 8;
+          const jitterX = (seededRandom(seed + 1) - 0.5) * 0.35;
+          const jitterY = (seededRandom(seed + 2) - 0.5) * 0.25;
+          const jitterZ = (seededRandom(seed + 3) - 0.5) * 0.4;
           const rs = seededRandom(seed + 4);
-          const angleRad = ((slot.angleDeg + jitterAngle) * Math.PI) / 180;
-          const viewDistance = Math.max(MIN_VIEW_DISTANCE, encounter.distance);
-          const x = encounter.laneX + Math.tan(angleRad) * viewDistance;
-          const y = altitude + slot.elevation + jitterElev;
-          const z = -encounter.distance + jitterDepth;
-          const scale = 0.02 + rs * 0.014;
+          const x = encounter.laneX + slot.dx + jitterX;
+          const y = altitude + 2.5 + slot.dy + jitterY;
+          const z = -encounter.distance + jitterZ;
+          const cardScale = 0.9 + rs * 0.08;
+          const isRevealed = solvedPickId === choice.word.id;
+          const isFading = solvedPickId !== null && !isRevealed;
           return (
             <group key={choice.word.id} position={[x, y, z]}>
-              <NounSkyIcon
+              <FlashCardSky
                 wordId={choice.word.id}
                 isNight={isNightIcons}
-                scale={scale}
+                scale={cardScale}
                 wrong={wrongPickId === choice.word.id}
+                revealed={isRevealed}
+                fading={isFading}
                 onTap={() => onPicturePick?.(choice)}
               />
             </group>

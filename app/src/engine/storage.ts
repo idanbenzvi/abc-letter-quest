@@ -7,7 +7,7 @@ export const EMPTY_PLAYER_STATE: PlayerState = {
   letters: {},
   sessions: [],
   starsTotal: 0,
-  settings: { missionDurationSeconds: 240, soundEnabled: true, writingPractice: 'first-assisted', lookAlikePractice: true, handwritingCheck: false },
+  settings: { missionDurationSeconds: 240, soundEnabled: true, writingPractice: 'first-assisted', lookAlikePractice: true, handwritingCheck: false, letterVoice: 'both', focusLetters: [] },
 };
 
 export const EMPTY_STATE: AppState = {

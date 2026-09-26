@@ -19,21 +19,29 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /**
- * "3 pictures, one starts with the letter" bonus — tapping the right
- * one pays the same bonus as typing the letter. Only offered when the
- * target letter has a real illustrated word AND there are enough other
- * illustrated letters to fill the distractor slots — see
- * docs/08-asset-pipeline.md for why icon coverage is still narrow
- * (only A-F today). Returns null to mean "skip this bonus for this
- * encounter", not an error.
+ * "3 flash cards, one starts with the letter" bonus — tapping the right
+ * one pays the same bonus as typing the letter. Now supported across all
+ * 26 letters with multiple possible illustrated flash cards per letter.
  */
 export function buildPictureChoices(canonicalLetter: string, count = 3): PictureChoiceEntry[] | null {
-  const target = ILLUSTRATED_WORDS.find((w) => w.letter === canonicalLetter);
-  if (!target) return null;
+  const targetCandidates = ILLUSTRATED_WORDS.filter((w) => w.letter === canonicalLetter);
+  if (targetCandidates.length === 0) return null;
+  const target = targetCandidates[Math.floor(Math.random() * targetCandidates.length)];
 
-  const distractorPool = shuffle(ILLUSTRATED_WORDS.filter((w) => w.letter !== canonicalLetter));
-  const distractors = distractorPool.slice(0, count - 1);
-  if (distractors.length < count - 1) return null;
+  // Pick distractors from distinct other letters
+  const otherLetters = shuffle(
+    Array.from(new Set(ILLUSTRATED_WORDS.filter((w) => w.letter !== canonicalLetter).map((w) => w.letter)))
+  );
+  if (otherLetters.length < count - 1) return null;
+
+  const distractors: WordEntry[] = [];
+  for (let i = 0; i < count - 1; i++) {
+    const letter = otherLetters[i];
+    const wordsForLetter = ILLUSTRATED_WORDS.filter((w) => w.letter === letter);
+    const chosen = wordsForLetter[Math.floor(Math.random() * wordsForLetter.length)];
+    distractors.push(chosen);
+  }
 
   return shuffle([{ word: target, isTarget: true }, ...distractors.map((word) => ({ word, isTarget: false }))]);
 }
+

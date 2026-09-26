@@ -81,6 +81,32 @@ of suns. It only ever shows growth.
 Everything runs locally in the browser. There's no account or server, and
 progress is saved on the device.
 
+## How it works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/game-engine-dark.png" />
+  <img src="docs/images/game-engine-light.png" alt="Diagram of the flight game engine: take off builds a letter queue; each letter goes through presentItem, which may first run a bonus round, then becomes a letter cloud; the answer is scored, fed to the Leitner scheduler and saved, and the flight advances to the next letter or lands." />
+</picture>
+
+- **One letter at a time.** Take off builds a short queue of letters from
+  the child's current pool. Each letter goes through a single function,
+  `presentItem`, which decides whether a bonus round plays first. The
+  letter's own cloud always follows, so no letter is ever skipped.
+- **Catching and scoring.** A cloud can be caught five ways (tap, trace,
+  type, say, or spot the picture). The answer earns stars and streaks, and
+  every third traced letter opens a lined writing page.
+- **Remembering.** Every right or wrong answer moves the letter between
+  Leitner boxes 0 to 4, saved in the browser. That decides how soon each
+  letter comes back, and which letters the next flight is built from.
+- **The world.** The sea and sky are a single raymarched shader, and the
+  albatross, clouds and cards are three.js objects (via React Three Fiber)
+  drawn over it. The rainbow and the storm are drawn inside the shader, so
+  they reflect in the water.
+
+For an interactive version with guided walkthroughs, download
+[`docs/diagrams/game-engine.html`](docs/diagrams/game-engine.html) and open
+it in a browser. The full design notes are in [`docs/`](docs/README.md).
+
 ## Running it
 
 ```bash
@@ -91,7 +117,6 @@ npm run build    # type-check and production build
 npm run lint
 ```
 
-The design and engineering notes live in [`docs/`](docs/README.md).
 [`docs/10-flight-game.md`](docs/10-flight-game.md) is the detailed log of
 how the flight game works and why.
 

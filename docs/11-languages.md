@@ -1,0 +1,322 @@
+# Languages: the language-pack system
+
+ABCtross was built for one child learning **English** letters. This doc is the
+design for teaching **any** alphabet — Hebrew, Arabic, Japanese kana, Russian,
+Korean, Spanish… — from the same game, and the reference for the tooling in
+`app/scripts/lang/`.
+
+- **Workflow for adding a language:** `.claude/skills/add-language/SKILL.md`
+- **How to author the content (sounds, words, rounds, strokes, review):** `docs/languages/README.md`
+- **Per-script guides:** `docs/languages/hebrew.md`, `arabic.md`, `japanese.md`, `other-scripts.md`
+
+Status (Sep 2026): the **pack format, validator and generators exist and are
+tested** (English is extracted into a pack and validates clean; Hebrew,
+Arabic, Japanese, Russian and Korean scaffold correctly). The **game itself
+still reads the hardcoded English data** — making it read packs is the
+one-time **Phase 0** refactor specified [below](#phase-0-making-the-game-read-packs).
+`node app/scripts/lang/audit.mjs --summary` measures how much of it is left.
+
+---
+
+## Concepts
+
+**A language pack** is everything language-specific the game needs: the
+letters and their names and sounds, teaching order, words with pictures,
+the content of each bonus round, spoken phrases, fonts, text direction,
+speech locales and which features work. The contract is
+`app/src/lang/types.ts` (`LanguagePack`), documented field by field, each
+field naming the engine code that consumes it.
+
+**Letters are ids, not characters.** Progress, audio files and stroke data
+are keyed by a stable ASCII slug (`alef`, `ka`, `b`). The displayed
+character lives in `char`. This keeps storage keys, file names and URLs
+ASCII and lets a letter's glyph change without losing a child's progress.
+
+**Forms, not case.** English shows lowercase once uppercase is solid
+(`flightMission.ts` `lowercaseChance`). Other scripts have a different
+"second form"; the pack's `forms.model` says which:
+
+| model | scripts | `secondary` holds |
+|---|---|---|
+| `case` | Latin, Cyrillic, Greek | the lowercase letter |
+| `final` | Hebrew | the word-final form (ך ם ן ף ץ), `null` for the other 17 letters |
+| `positional` | Arabic | the initial (joined) form as `char + U+200D`, `null` for the 6 non-joiners |
+| `kana` | Japanese | the katakana counterpart of the hiragana |
+| `none` | hiragana-only, Hangul jamo | always `null` |
+
+`introduceSecondaryFromBox` generalises "lowercase appears from mastery box 2".
+
+**Sounds, not letters.** The odd-one-out storm compares the first *sound* of
+words (`initialSound`), never their letter — "Cat, Car, Kite" are all /k/.
+Every language has these traps (Hebrew ט/ת are both /t/, Japanese お/を are
+both /o/), so every word carries an `initialSound` key.
+
+**Writing guides.** The lined writing page and the stroke metrics depend on
+the script (`script.writingGuide`): `four-line` (Latin), `two-line` (Hebrew
+print), `baseline` (Arabic), `grid` (Japanese/Korean square). Metrics are in
+`app/scripts/lang/stroke-kit.mjs` `GUIDE_METRICS`.
+
+**Feature switches.** Some mechanics can't work everywhere: the webcam
+handwriting check uses an English-only EMNIST model; typing a kana needs an
+IME. `pack.features` turns them off per language instead of breaking.
+
+---
+
+## Files
+
+```
+app/languages/<code>/            AUTHORED — the source of truth, reviewed by humans
+  pack.json                      letters, words, rounds, phrases, fonts, locales
+  strokes.mjs                    stroke order, authored with the stroke kit
+  NOTES.md                       sources, decisions, known warnings, review log
+  ui.json                        (Phase 0+) interface strings, keyed like en/ui.json
+
+app/src/lang/                    APP-SIDE (typed)
+  types.ts                       the LanguagePack contract
+  <code>/pack.generated.ts       pack.json as a typed module (checked by tsc)
+  <code>/strokes.generated.ts    STROKES, STROKE_VIEW_BOX, STROKE_LINES, STROKE_GUIDE
+  <code>/cards.generated.ts      flash cards in the FlashCardDef shape
+
+app/public/art/flashcards/<code>/<wordId>-card.svg / -revealed.svg   per-language cards
+app/public/art/flashcards/<art>.jpg|svg                             shared pictures (language-neutral)
+app/public/audio/<code>/{letters,sounds,words,pieces,colors,phrases}/*.wav   recorded speech
+
+app/scripts/lang/                TOOLING (Node 18+, no extra deps)
+  lib.mjs, stroke-kit.mjs, profiles/*.json
+  new-language.mjs  validate.mjs  build.mjs  build-strokes.mjs  build-flashcards.mjs
+  preview.mjs  audit.mjs  extract-english-pack.mjs
+  out/     generated previews (gitignored)     .cache/   downloaded fonts (gitignored)
+assets/generate-language-audio.mjs   Gemini TTS for a pack
+```
+
+English is special only in two ways: its pack is **extracted** from the
+current data files (`extract-english-pack.mjs`, rerun after editing them;
+`--check` fails if stale), and its audio keeps the original paths
+(`public/audio/{letters,sounds,words}/`, generated by `assets/generate-audio.mjs`).
+
+---
+
+## Scripts
+
+All run from the repo root (they resolve paths themselves).
+
+| Command | What it does |
+|---|---|
+| `node app/scripts/lang/new-language.mjs --list` | Lists script profiles (letter inventories, names, forms, fonts, locales). |
+| `node app/scripts/lang/new-language.mjs <code> --profile=<p>` | Scaffolds `app/languages/<code>/` (pack.json with TODOs, strokes.mjs template, NOTES.md). |
+| `node app/scripts/lang/validate.mjs <code> [--offline] [--json]` | All rules below. Errors = to-do list; exit 1 while any remain. `--offline` skips the font check. |
+| `node app/scripts/lang/build.mjs <code> [--draft] [--offline]` | validate → strokes (+preview) → cards (+art requests) → pack.generated.ts → review sheet. `--draft` builds previews despite errors. |
+| `node app/scripts/lang/build-strokes.mjs <code> [--preview]` | Checks every path; writes strokes.generated.ts; `--preview` writes `out/<code>-strokes.html` (strokes over the real cloud glyph, fitted like `three/strokeFit.ts`). |
+| `node app/scripts/lang/build-flashcards.mjs <code> [--art-manifest]` | Card SVGs + cards.generated.ts; `--art-manifest` writes `out/<code>-art-manifest.json` for words without pictures. |
+| `node app/scripts/lang/preview.mjs <code>` | `out/<code>-review.html`: the native-speaker review sheet (letters, words with pictures, rounds, phrases, audio players). |
+| `node app/scripts/lang/audit.mjs [--summary] [--category=<id>]` | Every place the app still assumes English. Phase 0's checklist. |
+| `node app/scripts/lang/extract-english-pack.mjs [--check]` | Rebuilds `app/languages/en/pack.json` from the English data files. |
+| `node assets/generate-language-audio.mjs --lang=<code> [--dry-run] [--only=…] [--force]` | Gemini TTS for every letter name, sound, word, piece, colour and fixed phrase. |
+
+Viewing the HTML previews headlessly: open the file with Playwright (see the
+repo `CLAUDE.md` for the cached Chromium) and wait for
+`body[data-ready]` — both previews set it once their web fonts have loaded.
+
+---
+
+## Validation rules
+
+`validate.mjs` enforces these; every one exists because a round, the
+storage or the review depends on it.
+
+**Errors (must fix):**
+- Any string still containing `TODO`.
+- `schemaVersion` 1, `code` equals the folder name, known enum values for
+  direction, forms model, writing guide, look-alike form.
+- Letters: ASCII-slug ids, unique; `char` exactly one NFC grapheme, unique;
+  `secondary` shaped per forms model (one grapheme for case/kana; `null` for
+  none; `char + U+200D` or `null` for positional); a spoken `name`;
+  `sound` text or `null`.
+- Curriculum: every letter exactly once. Chapter sizes sum to its length.
+- Words: slug ids, unique; letter exists; NFC text; an `initialSound`.
+  Every letter has at least one word.
+- Look-alikes reference real letters (and, with `lookAlikeForm:
+  "secondary"`, letters that have one).
+- Blend words use real letters, at least 2.
+- Missing-piece: ≥ 3 choices; every answer is a choice; `gap` indexes `parts`.
+- Rainbow: exactly red, orange, yellow, green, blue, purple.
+- Phrases: every English key exists, with exactly the same `{placeholders}`;
+  counted phrases are plural objects with at least `other`.
+- `features.handwritingCheck` only for English (EMNIST).
+- Strokes: `strokes.mjs` runs and every form (`char` and `secondary`) has strokes.
+- Fonts: the display font covers every character the game will render for
+  the pack (letters, forms, words, round text, chapter names); the UI font
+  covers letters and phrases. Checked against the real TTF's cmap.
+
+**Warnings (fix or explain in NOTES.md):**
+- Status `draft` (always, until a native speaker signs off).
+- A word that doesn't start with its letter (either form; vowel marks,
+  Hangul blocks and joiners are unpacked before comparing).
+- A letter with only one word, or no pictured word.
+- Fewer than half the letters able to host an odd-one-out storm (two
+  pictured words sharing a first sound).
+- A confusable-sound key no word uses.
+- A blend word whose letters don't spell its text (final forms count as their letter).
+- Fewer than 5 blend words / 6 missing-piece words.
+- A rainbow word that doesn't start with its letter.
+- A plural category the language uses (`Intl.PluralRules(code)`) that a
+  counted phrase lacks — Arabic uses all six.
+- Typing enabled for kana.
+
+---
+
+## Phase 0: making the game read packs
+
+A one-time refactor, done on its own branch (`lang/phase-0`) **before** the
+first non-English language ships. The acceptance test is strict: with the
+English pack active the game must look, sound and play **exactly** as it
+does today. Work through it in this order; after each step run
+`npx tsc -b`, `npm run lint`, `node app/scripts/lang/audit.mjs --summary`
+(the count only goes down) and a headless playthrough.
+
+### 1. The language runtime
+- `app/src/lang/index.ts`: a registry of packs (`import.meta.glob('./*/pack.generated.ts')`,
+  lazily loaded so one language's data never ships in another's first
+  chunk), `getPack()` for the active pack, and a `useLanguage()` hook.
+- Active language: a per-player setting (`Settings.language`, default `'en'`,
+  with the full "add a setting" checklist in `CLAUDE.md`: type, default in
+  `storage.ts` `withSettingsDefaults`, reducer action, Dashboard card).
+  `?lang=<code>` overrides it for testing, like `?quality=`.
+- Derived helpers used everywhere below: `letterById`, `letterByChar`
+  (both forms), `curriculumChars`, `wordsForLetter`, `cardsForLetter`.
+
+### 2. Storage and progress
+- `PlayerState.letters` is keyed by uppercase English letter today. Key it
+  by **letter id** and namespace it per language:
+  `PlayerState.progress: Record<langCode, Record<letterId, LetterProgress>>`.
+- Migration in `storage.ts`: an old save's `letters` becomes
+  `progress.en` with keys lowercased (`'A'` → `'a'`, which is the English
+  letter id). `nestSeen`, `focusLetters` and session logs move to ids the
+  same way. Never drop a save.
+- `LetterProgress.letter` becomes the id.
+
+### 3. Letters, forms and the mission queue
+- `data/curriculum.ts` → `pack.curriculum`.
+- `engine/flightMission.ts`: `QueueItem.canonicalLetter` becomes the letter
+  id; `displayChar` is `char` or `secondary`. `lowercaseChance` becomes
+  `secondaryChance(box, pack.script.forms.introduceSecondaryFromBox)`,
+  and is 0 when the letter has no secondary. The "My Name" flight
+  (`buildNameQueue`) keeps only graphemes that are a pack letter in either
+  form (so a Hebrew name ending in ם queues מ shown as ם).
+- `engine/planeChoice.ts`: distractors from the pack, matched to the
+  target's form.
+
+### 4. Speech out (audio)
+- `engine/audio.ts`: `speak()` recognises a letter by pack membership, not
+  `/^[A-Z]$/`; recorded clips come from `public/audio/<code>/…` (English
+  keeps its paths); `spokenLetterName` → `letter.name`;
+  `LETTER_SOUND_SPELLING` → `letter.sound` (null ⇒ `sayLetter` speaks the
+  name only). Word clips are found by word id, never by normalising text.
+- Voice selection filters on `pack.locales.speechSynthesis` instead of
+  `'en'`; the curated female-voice list is English-only, so for other
+  languages prefer any voice whose `lang` matches, then any voice.
+- A `sayPhrase(key, vars)` helper: plays `phrases/<key>.wav` for fixed
+  phrases, otherwise fills `{placeholders}`, picks the plural form with
+  `new Intl.PluralRules(code).select(count)`, and synthesises.
+
+### 5. Speech in, keyboard in
+- `engine/speech.ts` `listenOnce(pack.locales.speechRecognition)`.
+- `engine/letterNameMatch.ts` → `letter.nameAliases` (compare NFC,
+  case-folded). `engine/wordMatch.ts` compares the transcript's first
+  grapheme's base letter with the pack (strip combining marks; unpack Hangul).
+- Keyboard (`FlightGameScreen.tsx` `handleTypeLetter`): accept
+  `e.key` when it is in the current letter's `keys` (default `[char,
+  secondary]`, NFC). Disabled when `features.typing` is false.
+- Gate the speech bonus rounds and the webcam check on `pack.features`.
+
+### 6. Glyphs: fonts and clouds
+- Load the pack's two fonts from Google Fonts at runtime (a `<link>` added
+  by the runtime; keep `display=swap`), and wait on
+  `document.fonts.load()` before sampling a cloud — `cloudLetter.ts` samples
+  pixels from a canvas, and an unloaded font silently samples the fallback.
+- Replace `Nunito` in every canvas font string (`cloudLetter.ts` ×2,
+  `planeTexture.ts`, `guideTextures.ts`) with the pack's display font.
+- `cloudLetter.ts` handles any single grapheme already (it's `fillText`),
+  including an Arabic initial form (`char + ZWJ` renders joined).
+  `strokeFit.ts`'s `INSET_X/INSET_Y` ("half a Nunito Black stem") become
+  per-font values; measure them from the build-strokes preview.
+- `document.documentElement.lang` and `dir` follow the pack.
+
+### 7. Strokes, tracing and the writing page
+- `data/letterStrokes.ts` `getLetterForm(letter, isUpper)` → the pack's
+  `STROKES[displayChar]` (`strokes.generated.ts`), plus `STROKE_VIEW_BOX`.
+- `components/WritingPractice.tsx` draws its lines from `STROKE_LINES` by
+  `STROKE_GUIDE`: four-line (today), two-line (top + base, dashed asc/desc),
+  baseline (one strong line), grid (square + dashed centre cross).
+- Writing direction: the page's three slots run right-to-left for RTL
+  packs. Scoring (`engine/writingScore.ts`) is direction-agnostic already.
+- The handwriting camera check stays English-only (`features.handwritingCheck`).
+
+### 8. Words, cards and rounds
+- Cards: `data/flashcards.ts` → the pack's `CARDS` (`cards.generated.ts`);
+  `three/flashCardTexture.ts` unchanged.
+  **Improvement worth doing here:** draw the word banner and letter seal at
+  runtime with the loaded display font instead of relying on SVG `<text>`
+  (web fonts don't apply inside an SVG image, so today's card text falls
+  back to a system font — acceptable for Latin, noticeably worse for
+  rounded kid fonts in other scripts).
+- Odd-one-out storm (`engine/oddSound.ts`, `data/initialSounds.ts`):
+  `word.initialSound` and `pack.confusableSounds`; `letterForSound` becomes
+  "the letter whose sound clip voices this key" (a map built from the pack:
+  the first letter whose words mostly use that key).
+- Blend round (`three/CvcWordRound.tsx`, `data/cvcWords.ts`):
+  `pack.rounds.blend.words`; slots laid out in reading direction (RTL:
+  first letter on the right); the blended word shown as `text` (joined
+  Arabic, pointed Hebrew). Off when `blend` is null.
+- Missing piece (`engine/vowelRound.ts`, `components/VowelStorm.tsx`):
+  generalise from "letters[1] is the vowel" to `parts` / `gap` / `answer`
+  with `choices` (text + speak). Off when null.
+- Look-alike matchup (`data/confusablePairs.ts`, `three/LetterMatchup.tsx`):
+  `pack.lookAlikes`, shown in `pack.lookAlikeForm`.
+- Rainbow (`engine/rainbowChoice.ts`): colour words from
+  `pack.rounds.rainbow`; the "glow the colour of the next letter" match uses
+  the colour's `letter` id. Hex values stay in code.
+- Picture choice / word bank (`engine/pictureChoice.ts`, `engine/wordBank.ts`):
+  pack words.
+
+### 9. Interface text and layout (i18n)
+- A tiny `t(key, vars?)` over `app/languages/<code>/ui.json`, falling back
+  to English per key. Extract every string `audit.mjs` lists under
+  `ui-text` / `ui-attr` / `spoken-english`, including the Nest summary
+  (plurals via `Intl.PluralRules`). Key names describe the place
+  (`nest.summary.hatched`), not the English words.
+- Decide per install whether the **grown-ups** screens follow the learning
+  language or stay in the parent's language: add `Settings.uiLanguage`
+  (default = learning language).
+- RTL: set `dir` on `<html>`; convert the physical CSS `audit.mjs` lists
+  under `rtl-css` to logical properties; the 3D scene doesn't mirror (the
+  sky has no reading direction), but DOM HUD rows that imply order (the
+  progress slots, CVC slots) follow `dir`.
+- Numbers: `Intl.NumberFormat(code)` if a pack wants native digits.
+
+### 10. Grown-ups dashboard
+- Letter grids iterate the pack curriculum and show `char` (+ secondary with
+  the pack's labels). Focus letters store ids. A "Learning language" card
+  switches `Settings.language` (progress is kept per language).
+
+**Phase 0 acceptance checklist**
+1. `node app/scripts/lang/extract-english-pack.mjs --check` passes and the game imports nothing from the old English data modules (`audit.mjs --category=english-data` is empty outside `app/src/lang/`).
+2. A full headless playthrough in English matches today: same letters and casing progression, same words, sounds, cards, rounds, stars and Nest.
+3. An old save loads with all progress intact (seed `localStorage['abc-letter-quest:v1']` with a pre-Phase-0 save).
+4. `?lang=he` with a draft Hebrew pack (`build.mjs he --draft`) renders Hebrew clouds in Varela Round, right-to-left UI, and doesn't crash in any round that has content.
+5. `audit.mjs --summary`: only `english-only-feature` hits remain, each gated.
+
+---
+
+## Known limitations
+
+- **Card text font** (see Phase 0 step 8): until cards draw text at
+  runtime, card words use system fonts inside the SVG.
+- **Speech recognition quality** varies a lot by language and browser; a
+  miss must never count against the child (already true for English).
+- **Syllabaries and abugidas** (kana, Devanagari, Thai) don't have an
+  English-style "letter sound" separate from the name, and their blend and
+  missing-piece rounds need language-specific design — see the script guides.
+- **Logographic scripts** (Chinese characters, kanji) are out of scope: the
+  game teaches a small alphabet to mastery; thousands of characters need a
+  different game. A Chinese pack could teach Zhuyin (Bopomofo) or Pinyin instead.

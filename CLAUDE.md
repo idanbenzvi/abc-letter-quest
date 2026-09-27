@@ -55,6 +55,20 @@ There is **no test runner**. Verification is done by driving the real app headle
 Audio generation (from `assets/`, needs `GEMINI_API_KEY` in `assets/.env`, free tier ≈10
 clips/day, skips existing files): `node generate-audio.mjs --dry-run | --only=letters|sounds|words|<id>`.
 
+## Other languages
+
+The game can be taught in other alphabets through **language packs**
+(`docs/11-languages.md`). To add one, use the `add-language` skill
+(`.claude/skills/add-language/SKILL.md`). In short:
+- Authored source per language: `app/languages/<code>/` (`pack.json`, `strokes.mjs`, `NOTES.md`).
+- The contract: `app/src/lang/types.ts`.
+- Tooling: `app/scripts/lang/` (`new-language`, `validate`, `build`, `audit`, …) and
+  `assets/generate-language-audio.mjs`.
+- The English pack is extracted from the current data files. After editing English words,
+  cards, sounds or rounds, rerun `node app/scripts/lang/extract-english-pack.mjs`.
+- The game still reads the hardcoded English data until the Phase 0 refactor in
+  `docs/11-languages.md` is done. `node app/scripts/lang/audit.mjs --summary` shows what's left.
+
 ## Architecture (the parts that span files)
 
 **App shell.** `App.tsx` is a plain view switch (no router): onboarding, player select,

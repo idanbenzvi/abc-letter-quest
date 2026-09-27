@@ -1,0 +1,414 @@
+{
+  "profile": "latin",
+  "name": "TODO",
+  "nativeName": "TODO",
+  "script": {
+    "id": "latin",
+    "direction": "ltr",
+    "forms": {
+      "model": "case",
+      "primaryLabel": "Uppercase",
+      "secondaryLabel": "Lowercase",
+      "introduceSecondaryFromBox": 2
+    },
+    "fonts": {
+      "display": {
+        "family": "Nunito",
+        "weight": 900
+      },
+      "ui": {
+        "family": "Nunito",
+        "weight": 400
+      }
+    },
+    "writingGuide": "four-line"
+  },
+  "locales": {
+    "speechRecognition": "TODO",
+    "speechSynthesis": "TODO"
+  },
+  "features": {
+    "handwritingCheck": false,
+    "typing": true,
+    "speakLetter": true,
+    "ownWord": true
+  },
+  "lookAlikeForm": "secondary",
+  "lookAlikes": [
+    [
+      "b",
+      "d"
+    ],
+    [
+      "b",
+      "p"
+    ],
+    [
+      "d",
+      "q"
+    ],
+    [
+      "p",
+      "q"
+    ],
+    [
+      "m",
+      "w"
+    ],
+    [
+      "n",
+      "u"
+    ],
+    [
+      "h",
+      "n"
+    ]
+  ],
+  "rainbow": [
+    {
+      "id": "red",
+      "text": "TODO",
+      "letter": null
+    },
+    {
+      "id": "orange",
+      "text": "TODO",
+      "letter": null
+    },
+    {
+      "id": "yellow",
+      "text": "TODO",
+      "letter": null
+    },
+    {
+      "id": "green",
+      "text": "TODO",
+      "letter": null
+    },
+    {
+      "id": "blue",
+      "text": "TODO",
+      "letter": null
+    },
+    {
+      "id": "purple",
+      "text": "TODO",
+      "letter": null
+    }
+  ],
+  "letters": [
+    {
+      "id": "a",
+      "char": "A",
+      "secondary": "a",
+      "name": "TODO",
+      "nameAliases": [
+        "a"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "a"
+    },
+    {
+      "id": "b",
+      "char": "B",
+      "secondary": "b",
+      "name": "TODO",
+      "nameAliases": [
+        "b"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "b"
+    },
+    {
+      "id": "c",
+      "char": "C",
+      "secondary": "c",
+      "name": "TODO",
+      "nameAliases": [
+        "c"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "c"
+    },
+    {
+      "id": "d",
+      "char": "D",
+      "secondary": "d",
+      "name": "TODO",
+      "nameAliases": [
+        "d"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "d"
+    },
+    {
+      "id": "e",
+      "char": "E",
+      "secondary": "e",
+      "name": "TODO",
+      "nameAliases": [
+        "e"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "e"
+    },
+    {
+      "id": "f",
+      "char": "F",
+      "secondary": "f",
+      "name": "TODO",
+      "nameAliases": [
+        "f"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "f"
+    },
+    {
+      "id": "g",
+      "char": "G",
+      "secondary": "g",
+      "name": "TODO",
+      "nameAliases": [
+        "g"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "g"
+    },
+    {
+      "id": "h",
+      "char": "H",
+      "secondary": "h",
+      "name": "TODO",
+      "nameAliases": [
+        "h"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "h"
+    },
+    {
+      "id": "i",
+      "char": "I",
+      "secondary": "i",
+      "name": "TODO",
+      "nameAliases": [
+        "i"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "i"
+    },
+    {
+      "id": "j",
+      "char": "J",
+      "secondary": "j",
+      "name": "TODO",
+      "nameAliases": [
+        "j"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "j"
+    },
+    {
+      "id": "k",
+      "char": "K",
+      "secondary": "k",
+      "name": "TODO",
+      "nameAliases": [
+        "k"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "k"
+    },
+    {
+      "id": "l",
+      "char": "L",
+      "secondary": "l",
+      "name": "TODO",
+      "nameAliases": [
+        "l"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "l"
+    },
+    {
+      "id": "m",
+      "char": "M",
+      "secondary": "m",
+      "name": "TODO",
+      "nameAliases": [
+        "m"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "m"
+    },
+    {
+      "id": "n",
+      "char": "N",
+      "secondary": "n",
+      "name": "TODO",
+      "nameAliases": [
+        "n"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "n"
+    },
+    {
+      "id": "o",
+      "char": "O",
+      "secondary": "o",
+      "name": "TODO",
+      "nameAliases": [
+        "o"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "o"
+    },
+    {
+      "id": "p",
+      "char": "P",
+      "secondary": "p",
+      "name": "TODO",
+      "nameAliases": [
+        "p"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "p"
+    },
+    {
+      "id": "q",
+      "char": "Q",
+      "secondary": "q",
+      "name": "TODO",
+      "nameAliases": [
+        "q"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "q"
+    },
+    {
+      "id": "r",
+      "char": "R",
+      "secondary": "r",
+      "name": "TODO",
+      "nameAliases": [
+        "r"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "r"
+    },
+    {
+      "id": "s",
+      "char": "S",
+      "secondary": "s",
+      "name": "TODO",
+      "nameAliases": [
+        "s"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "s"
+    },
+    {
+      "id": "t",
+      "char": "T",
+      "secondary": "t",
+      "name": "TODO",
+      "nameAliases": [
+        "t"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "t"
+    },
+    {
+      "id": "u",
+      "char": "U",
+      "secondary": "u",
+      "name": "TODO",
+      "nameAliases": [
+        "u"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "u"
+    },
+    {
+      "id": "v",
+      "char": "V",
+      "secondary": "v",
+      "name": "TODO",
+      "nameAliases": [
+        "v"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "v"
+    },
+    {
+      "id": "w",
+      "char": "W",
+      "secondary": "w",
+      "name": "TODO",
+      "nameAliases": [
+        "w"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "w"
+    },
+    {
+      "id": "x",
+      "char": "X",
+      "secondary": "x",
+      "name": "TODO",
+      "nameAliases": [
+        "x"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "x"
+    },
+    {
+      "id": "y",
+      "char": "Y",
+      "secondary": "y",
+      "name": "TODO",
+      "nameAliases": [
+        "y"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "y"
+    },
+    {
+      "id": "z",
+      "char": "Z",
+      "secondary": "z",
+      "name": "TODO",
+      "nameAliases": [
+        "z"
+      ],
+      "sound": "TODO",
+      "ipa": "TODO",
+      "romanization": "z"
+    }
+  ],
+  "notes": "Add the language's extra letters (ñ, ç, ä ö ü ß, å, ł …) as their own letters, in the order children learn them; remove letters the language doesn't use natively."
+}

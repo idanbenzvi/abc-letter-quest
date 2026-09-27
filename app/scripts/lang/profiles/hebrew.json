@@ -1,0 +1,414 @@
+{
+  "profile": "hebrew",
+  "name": "Hebrew",
+  "nativeName": "עברית",
+  "script": {
+    "id": "hebrew",
+    "direction": "rtl",
+    "forms": {
+      "model": "final",
+      "primaryLabel": "Regular form",
+      "secondaryLabel": "Final form",
+      "introduceSecondaryFromBox": 3
+    },
+    "fonts": {
+      "display": {
+        "family": "Fredoka",
+        "weight": 700
+      },
+      "ui": {
+        "family": "Rubik",
+        "weight": 400
+      }
+    },
+    "writingGuide": "two-line"
+  },
+  "locales": {
+    "speechRecognition": "he-IL",
+    "speechSynthesis": "he"
+  },
+  "features": {
+    "handwritingCheck": false,
+    "typing": true,
+    "speakLetter": true,
+    "ownWord": true
+  },
+  "lookAlikeForm": "primary",
+  "lookAlikes": [
+    [
+      "bet",
+      "kaf"
+    ],
+    [
+      "dalet",
+      "resh"
+    ],
+    [
+      "he",
+      "het"
+    ],
+    [
+      "het",
+      "tav"
+    ],
+    [
+      "vav",
+      "zayin"
+    ],
+    [
+      "gimel",
+      "nun"
+    ],
+    [
+      "samekh",
+      "mem"
+    ],
+    [
+      "ayin",
+      "tsadi"
+    ]
+  ],
+  "rainbow": [
+    {
+      "id": "red",
+      "text": "אָדֹם",
+      "letter": "alef"
+    },
+    {
+      "id": "orange",
+      "text": "כָּתֹם",
+      "letter": "kaf"
+    },
+    {
+      "id": "yellow",
+      "text": "צָהֹב",
+      "letter": "tsadi"
+    },
+    {
+      "id": "green",
+      "text": "יָרֹק",
+      "letter": "yod"
+    },
+    {
+      "id": "blue",
+      "text": "כָּחֹל",
+      "letter": "kaf"
+    },
+    {
+      "id": "purple",
+      "text": "סָגֹל",
+      "letter": "samekh"
+    }
+  ],
+  "letters": [
+    {
+      "id": "alef",
+      "char": "א",
+      "secondary": null,
+      "name": "אָלֶף",
+      "nameAliases": [
+        "א",
+        "אלף"
+      ],
+      "sound": null,
+      "ipa": "silent (ʔ)",
+      "romanization": "'",
+      "note": "Silent vowel carrier: teach with its vowel (אָ). No sound of its own to drill."
+    },
+    {
+      "id": "bet",
+      "char": "ב",
+      "secondary": null,
+      "name": "בֵּית",
+      "nameAliases": [
+        "ב",
+        "בית"
+      ],
+      "sound": "TODO",
+      "ipa": "/b/ (/v/ without dagesh)",
+      "romanization": "b",
+      "note": "With dagesh בּ = /b/, without ב = /v/ (vet). Word-initial is almost always /b/."
+    },
+    {
+      "id": "gimel",
+      "char": "ג",
+      "secondary": null,
+      "name": "גִּימֶל",
+      "nameAliases": [
+        "ג",
+        "גימל"
+      ],
+      "sound": "TODO",
+      "ipa": "/g/",
+      "romanization": "g"
+    },
+    {
+      "id": "dalet",
+      "char": "ד",
+      "secondary": null,
+      "name": "דָּלֶת",
+      "nameAliases": [
+        "ד",
+        "דלת"
+      ],
+      "sound": "TODO",
+      "ipa": "/d/",
+      "romanization": "d"
+    },
+    {
+      "id": "he",
+      "char": "ה",
+      "secondary": null,
+      "name": "הֵא",
+      "nameAliases": [
+        "ה",
+        "הא",
+        "הי"
+      ],
+      "sound": "TODO",
+      "ipa": "/h/",
+      "romanization": "h",
+      "note": "Silent at the end of a word (סוּסָה)."
+    },
+    {
+      "id": "vav",
+      "char": "ו",
+      "secondary": null,
+      "name": "וָו",
+      "nameAliases": [
+        "ו",
+        "וו",
+        "ואו"
+      ],
+      "sound": "TODO",
+      "ipa": "/v/",
+      "romanization": "v",
+      "note": "Also the vowel carrier for /o/ (וֹ) and /u/ (וּ)."
+    },
+    {
+      "id": "zayin",
+      "char": "ז",
+      "secondary": null,
+      "name": "זַיִן",
+      "nameAliases": [
+        "ז",
+        "זין"
+      ],
+      "sound": "TODO",
+      "ipa": "/z/",
+      "romanization": "z",
+      "note": "Its name is also slang; say 'zayin' with niqqud and check the TTS clip."
+    },
+    {
+      "id": "het",
+      "char": "ח",
+      "secondary": null,
+      "name": "חֵית",
+      "nameAliases": [
+        "ח",
+        "חית"
+      ],
+      "sound": "TODO",
+      "ipa": "/χ/",
+      "romanization": "ch",
+      "note": "Same modern sound as כ without dagesh (khaf)."
+    },
+    {
+      "id": "tet",
+      "char": "ט",
+      "secondary": null,
+      "name": "טֵית",
+      "nameAliases": [
+        "ט",
+        "טית"
+      ],
+      "sound": "TODO",
+      "ipa": "/t/",
+      "romanization": "t",
+      "note": "Same modern sound as ת."
+    },
+    {
+      "id": "yod",
+      "char": "י",
+      "secondary": null,
+      "name": "יוֹד",
+      "nameAliases": [
+        "י",
+        "יוד"
+      ],
+      "sound": "TODO",
+      "ipa": "/j/",
+      "romanization": "y"
+    },
+    {
+      "id": "kaf",
+      "char": "כ",
+      "secondary": "ך",
+      "name": "כַּף",
+      "nameAliases": [
+        "כ",
+        "כף"
+      ],
+      "sound": "TODO",
+      "ipa": "/k/ (/χ/ without dagesh)",
+      "romanization": "k",
+      "note": "Final form ך. Word-initial is /k/."
+    },
+    {
+      "id": "lamed",
+      "char": "ל",
+      "secondary": null,
+      "name": "לָמֶד",
+      "nameAliases": [
+        "ל",
+        "למד"
+      ],
+      "sound": "TODO",
+      "ipa": "/l/",
+      "romanization": "l",
+      "note": "The only letter that rises above the top line."
+    },
+    {
+      "id": "mem",
+      "char": "מ",
+      "secondary": "ם",
+      "name": "מֵם",
+      "nameAliases": [
+        "מ",
+        "מם"
+      ],
+      "sound": "TODO",
+      "ipa": "/m/",
+      "romanization": "m",
+      "note": "Final form ם."
+    },
+    {
+      "id": "nun",
+      "char": "נ",
+      "secondary": "ן",
+      "name": "נוּן",
+      "nameAliases": [
+        "נ",
+        "נון"
+      ],
+      "sound": "TODO",
+      "ipa": "/n/",
+      "romanization": "n",
+      "note": "Final form ן."
+    },
+    {
+      "id": "samekh",
+      "char": "ס",
+      "secondary": null,
+      "name": "סָמֶךְ",
+      "nameAliases": [
+        "ס",
+        "סמך"
+      ],
+      "sound": "TODO",
+      "ipa": "/s/",
+      "romanization": "s",
+      "note": "Same sound as שׂ (sin)."
+    },
+    {
+      "id": "ayin",
+      "char": "ע",
+      "secondary": null,
+      "name": "עַיִן",
+      "nameAliases": [
+        "ע",
+        "עין"
+      ],
+      "sound": null,
+      "ipa": "silent (ʕ/ʔ)",
+      "romanization": "'",
+      "note": "Silent vowel carrier in most modern speech, like א."
+    },
+    {
+      "id": "pe",
+      "char": "פ",
+      "secondary": "ף",
+      "name": "פֵּא",
+      "nameAliases": [
+        "פ",
+        "פא",
+        "פה",
+        "פי"
+      ],
+      "sound": "TODO",
+      "ipa": "/p/ (/f/ without dagesh)",
+      "romanization": "p",
+      "note": "Final form ף. Word-initial is usually /p/."
+    },
+    {
+      "id": "tsadi",
+      "char": "צ",
+      "secondary": "ץ",
+      "name": "צָדִי",
+      "nameAliases": [
+        "צ",
+        "צדי",
+        "צדיק"
+      ],
+      "sound": "TODO",
+      "ipa": "/ts/",
+      "romanization": "ts",
+      "note": "Final form ץ."
+    },
+    {
+      "id": "qof",
+      "char": "ק",
+      "secondary": null,
+      "name": "קוֹף",
+      "nameAliases": [
+        "ק",
+        "קוף"
+      ],
+      "sound": "TODO",
+      "ipa": "/k/",
+      "romanization": "q",
+      "note": "Same modern sound as כּ."
+    },
+    {
+      "id": "resh",
+      "char": "ר",
+      "secondary": null,
+      "name": "רֵישׁ",
+      "nameAliases": [
+        "ר",
+        "ריש"
+      ],
+      "sound": "TODO",
+      "ipa": "/ʁ/",
+      "romanization": "r"
+    },
+    {
+      "id": "shin",
+      "char": "ש",
+      "secondary": null,
+      "name": "שִׁין",
+      "nameAliases": [
+        "ש",
+        "שין"
+      ],
+      "sound": "TODO",
+      "ipa": "/ʃ/ (/s/ as שׂ sin)",
+      "romanization": "sh",
+      "note": "Dot on the right שׁ = shin /ʃ/; on the left שׂ = sin /s/."
+    },
+    {
+      "id": "tav",
+      "char": "ת",
+      "secondary": null,
+      "name": "תָּו",
+      "nameAliases": [
+        "ת",
+        "תו",
+        "טאו"
+      ],
+      "sound": "TODO",
+      "ipa": "/t/",
+      "romanization": "t"
+    }
+  ]
+}

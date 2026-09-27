@@ -12,6 +12,7 @@ Read in this order:
 8. [Asset pipeline](./08-asset-pipeline.md) — how AI-generated art plugs in
 9. [Roadmap](./09-roadmap.md) — phase status, what's real vs. placeholder right now
 10. [Flight game](./10-flight-game.md) — the new core gameplay replacing World Map + Letter Learning; start here for anything 3D
+11. [Languages](./11-languages.md) — the language-pack system for teaching other alphabets (Hebrew, Arabic, Japanese…); authoring guides in [`languages/`](./languages/README.md)
 
 Related, outside `docs/`:
 - `design/` — the Design Components mockup canvas (visual pitch)

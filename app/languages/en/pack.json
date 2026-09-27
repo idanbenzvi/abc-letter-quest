@@ -1,0 +1,1686 @@
+{
+  "schemaVersion": 1,
+  "code": "en",
+  "name": "English",
+  "nativeName": "English",
+  "status": "reviewed",
+  "script": {
+    "id": "latin",
+    "direction": "ltr",
+    "forms": {
+      "model": "case",
+      "primaryLabel": "Uppercase",
+      "secondaryLabel": "Lowercase",
+      "introduceSecondaryFromBox": 2
+    },
+    "fonts": {
+      "display": {
+        "family": "Nunito",
+        "weight": 900
+      },
+      "ui": {
+        "family": "Nunito",
+        "weight": 400
+      }
+    },
+    "writingGuide": "four-line"
+  },
+  "locales": {
+    "speechRecognition": "en-US",
+    "speechSynthesis": "en"
+  },
+  "features": {
+    "handwritingCheck": true,
+    "typing": true,
+    "speakLetter": true,
+    "ownWord": true
+  },
+  "letters": [
+    {
+      "id": "a",
+      "char": "A",
+      "secondary": "a",
+      "name": "Ay",
+      "nameAliases": [
+        "a",
+        "ay",
+        "eh"
+      ],
+      "sound": "ah",
+      "ipa": "/æ/",
+      "romanization": "a"
+    },
+    {
+      "id": "b",
+      "char": "B",
+      "secondary": "b",
+      "name": "Bee",
+      "nameAliases": [
+        "b",
+        "be",
+        "bee"
+      ],
+      "sound": "buh",
+      "ipa": "/b/",
+      "romanization": "b"
+    },
+    {
+      "id": "c",
+      "char": "C",
+      "secondary": "c",
+      "name": "See",
+      "nameAliases": [
+        "c",
+        "see",
+        "sea",
+        "si"
+      ],
+      "sound": "kuh",
+      "ipa": "/k/",
+      "romanization": "c"
+    },
+    {
+      "id": "d",
+      "char": "D",
+      "secondary": "d",
+      "name": "Dee",
+      "nameAliases": [
+        "d",
+        "dee"
+      ],
+      "sound": "duh",
+      "ipa": "/d/",
+      "romanization": "d"
+    },
+    {
+      "id": "e",
+      "char": "E",
+      "secondary": "e",
+      "name": "Ee",
+      "nameAliases": [
+        "e",
+        "ee"
+      ],
+      "sound": "eh",
+      "ipa": "/ɛ/",
+      "romanization": "e"
+    },
+    {
+      "id": "f",
+      "char": "F",
+      "secondary": "f",
+      "name": "Eff",
+      "nameAliases": [
+        "f",
+        "ef",
+        "eff"
+      ],
+      "sound": "ffff",
+      "ipa": "/f/",
+      "romanization": "f"
+    },
+    {
+      "id": "g",
+      "char": "G",
+      "secondary": "g",
+      "name": "Jee",
+      "nameAliases": [
+        "g",
+        "gee"
+      ],
+      "sound": "guh",
+      "ipa": "/g/",
+      "romanization": "g"
+    },
+    {
+      "id": "h",
+      "char": "H",
+      "secondary": "h",
+      "name": "Aitch",
+      "nameAliases": [
+        "h",
+        "aitch",
+        "aych",
+        "haitch"
+      ],
+      "sound": "huh",
+      "ipa": "/h/",
+      "romanization": "h"
+    },
+    {
+      "id": "i",
+      "char": "I",
+      "secondary": "i",
+      "name": "Eye",
+      "nameAliases": [
+        "i",
+        "eye",
+        "aye"
+      ],
+      "sound": "ih",
+      "ipa": "/ɪ/",
+      "romanization": "i"
+    },
+    {
+      "id": "j",
+      "char": "J",
+      "secondary": "j",
+      "name": "Jay",
+      "nameAliases": [
+        "j",
+        "jay"
+      ],
+      "sound": "juh",
+      "ipa": "/dʒ/",
+      "romanization": "j"
+    },
+    {
+      "id": "k",
+      "char": "K",
+      "secondary": "k",
+      "name": "Kay",
+      "nameAliases": [
+        "k",
+        "kay"
+      ],
+      "sound": "kuh",
+      "ipa": "/k/",
+      "romanization": "k"
+    },
+    {
+      "id": "l",
+      "char": "L",
+      "secondary": "l",
+      "name": "El",
+      "nameAliases": [
+        "l",
+        "el",
+        "ell"
+      ],
+      "sound": "llll",
+      "ipa": "/l/",
+      "romanization": "l"
+    },
+    {
+      "id": "m",
+      "char": "M",
+      "secondary": "m",
+      "name": "Em",
+      "nameAliases": [
+        "m",
+        "em"
+      ],
+      "sound": "mmmm",
+      "ipa": "/m/",
+      "romanization": "m"
+    },
+    {
+      "id": "n",
+      "char": "N",
+      "secondary": "n",
+      "name": "En",
+      "nameAliases": [
+        "n",
+        "en"
+      ],
+      "sound": "nnnn",
+      "ipa": "/n/",
+      "romanization": "n"
+    },
+    {
+      "id": "o",
+      "char": "O",
+      "secondary": "o",
+      "name": "Oh",
+      "nameAliases": [
+        "o",
+        "oh"
+      ],
+      "sound": "aw",
+      "ipa": "/ɒ/",
+      "romanization": "o"
+    },
+    {
+      "id": "p",
+      "char": "P",
+      "secondary": "p",
+      "name": "Pee",
+      "nameAliases": [
+        "p",
+        "pee"
+      ],
+      "sound": "puh",
+      "ipa": "/p/",
+      "romanization": "p"
+    },
+    {
+      "id": "q",
+      "char": "Q",
+      "secondary": "q",
+      "name": "Cue",
+      "nameAliases": [
+        "q",
+        "cue",
+        "queue",
+        "kyoo"
+      ],
+      "sound": "kwuh",
+      "ipa": "/kw/",
+      "romanization": "q"
+    },
+    {
+      "id": "r",
+      "char": "R",
+      "secondary": "r",
+      "name": "Ar",
+      "nameAliases": [
+        "r",
+        "are",
+        "ar"
+      ],
+      "sound": "rrrr",
+      "ipa": "/r/",
+      "romanization": "r"
+    },
+    {
+      "id": "s",
+      "char": "S",
+      "secondary": "s",
+      "name": "Ess",
+      "nameAliases": [
+        "s",
+        "es",
+        "ess"
+      ],
+      "sound": "ssss",
+      "ipa": "/s/",
+      "romanization": "s"
+    },
+    {
+      "id": "t",
+      "char": "T",
+      "secondary": "t",
+      "name": "Tee",
+      "nameAliases": [
+        "t",
+        "tee",
+        "tea"
+      ],
+      "sound": "tuh",
+      "ipa": "/t/",
+      "romanization": "t"
+    },
+    {
+      "id": "u",
+      "char": "U",
+      "secondary": "u",
+      "name": "You",
+      "nameAliases": [
+        "u",
+        "you",
+        "yew"
+      ],
+      "sound": "uh",
+      "ipa": "/ʌ/",
+      "romanization": "u"
+    },
+    {
+      "id": "v",
+      "char": "V",
+      "secondary": "v",
+      "name": "Vee",
+      "nameAliases": [
+        "v",
+        "vee"
+      ],
+      "sound": "vvvv",
+      "ipa": "/v/",
+      "romanization": "v"
+    },
+    {
+      "id": "w",
+      "char": "W",
+      "secondary": "w",
+      "name": "Double-you",
+      "nameAliases": [
+        "w",
+        "double u",
+        "double-u",
+        "doubleu",
+        "dubya"
+      ],
+      "sound": "wuh",
+      "ipa": "/w/",
+      "romanization": "w"
+    },
+    {
+      "id": "x",
+      "char": "X",
+      "secondary": "x",
+      "name": "Ex",
+      "nameAliases": [
+        "x",
+        "ex",
+        "ecks"
+      ],
+      "sound": "ks",
+      "ipa": "/z/",
+      "romanization": "x"
+    },
+    {
+      "id": "y",
+      "char": "Y",
+      "secondary": "y",
+      "name": "Why",
+      "nameAliases": [
+        "y",
+        "why"
+      ],
+      "sound": "yuh",
+      "ipa": "/j/",
+      "romanization": "y"
+    },
+    {
+      "id": "z",
+      "char": "Z",
+      "secondary": "z",
+      "name": "Zee",
+      "nameAliases": [
+        "z",
+        "zee",
+        "zed"
+      ],
+      "sound": "zzzz",
+      "ipa": "/z/",
+      "romanization": "z"
+    }
+  ],
+  "curriculum": [
+    "a",
+    "b",
+    "c",
+    "d",
+    "e",
+    "f",
+    "g",
+    "h",
+    "i",
+    "j",
+    "k",
+    "l",
+    "m",
+    "n",
+    "o",
+    "p",
+    "q",
+    "r",
+    "s",
+    "t",
+    "u",
+    "v",
+    "w",
+    "x",
+    "y",
+    "z"
+  ],
+  "chapters": [
+    {
+      "id": "whisper-woods",
+      "name": "Whisper Woods",
+      "size": 6
+    },
+    {
+      "id": "sunny-meadow",
+      "name": "Sunny Meadow",
+      "size": 6
+    },
+    {
+      "id": "sparkle-shore",
+      "name": "Sparkle Shore",
+      "size": 6
+    },
+    {
+      "id": "starlight-peak",
+      "name": "Starlight Peak",
+      "size": 8
+    }
+  ],
+  "words": [
+    {
+      "id": "apple",
+      "letter": "a",
+      "text": "Apple",
+      "initialSound": "a",
+      "art": "apple",
+      "gloss": "Apple"
+    },
+    {
+      "id": "ant",
+      "letter": "a",
+      "text": "Ant",
+      "initialSound": "a",
+      "art": "ant",
+      "gloss": "Ant"
+    },
+    {
+      "id": "alligator",
+      "letter": "a",
+      "text": "Alligator",
+      "initialSound": "a",
+      "art": "alligator",
+      "gloss": "Alligator"
+    },
+    {
+      "id": "ball",
+      "letter": "b",
+      "text": "Ball",
+      "initialSound": "b",
+      "art": "ball",
+      "gloss": "Ball"
+    },
+    {
+      "id": "banana",
+      "letter": "b",
+      "text": "Banana",
+      "initialSound": "b",
+      "art": "banana",
+      "gloss": "Banana"
+    },
+    {
+      "id": "bear",
+      "letter": "b",
+      "text": "Bear",
+      "initialSound": "b",
+      "art": "bear",
+      "gloss": "Bear"
+    },
+    {
+      "id": "cat",
+      "letter": "c",
+      "text": "Cat",
+      "initialSound": "k",
+      "art": "cat",
+      "gloss": "Cat"
+    },
+    {
+      "id": "cake",
+      "letter": "c",
+      "text": "Cake",
+      "initialSound": "k",
+      "art": "cake",
+      "gloss": "Cake"
+    },
+    {
+      "id": "car",
+      "letter": "c",
+      "text": "Car",
+      "initialSound": "k",
+      "art": "car",
+      "gloss": "Car"
+    },
+    {
+      "id": "dog",
+      "letter": "d",
+      "text": "Dog",
+      "initialSound": "d",
+      "art": "dog",
+      "gloss": "Dog"
+    },
+    {
+      "id": "duck",
+      "letter": "d",
+      "text": "Duck",
+      "initialSound": "d",
+      "art": "duck",
+      "gloss": "Duck"
+    },
+    {
+      "id": "drum",
+      "letter": "d",
+      "text": "Drum",
+      "initialSound": "d",
+      "art": "drum",
+      "gloss": "Drum"
+    },
+    {
+      "id": "elephant",
+      "letter": "e",
+      "text": "Elephant",
+      "initialSound": "e",
+      "art": "elephant",
+      "gloss": "Elephant"
+    },
+    {
+      "id": "egg",
+      "letter": "e",
+      "text": "Egg",
+      "initialSound": "e",
+      "art": "egg",
+      "gloss": "Egg"
+    },
+    {
+      "id": "fish",
+      "letter": "f",
+      "text": "Fish",
+      "initialSound": "f",
+      "art": "fish",
+      "gloss": "Fish"
+    },
+    {
+      "id": "frog",
+      "letter": "f",
+      "text": "Frog",
+      "initialSound": "f",
+      "art": "frog",
+      "gloss": "Frog"
+    },
+    {
+      "id": "feather",
+      "letter": "f",
+      "text": "Feather",
+      "initialSound": "f",
+      "art": "feather",
+      "gloss": "Feather"
+    },
+    {
+      "id": "goat",
+      "letter": "g",
+      "text": "Goat",
+      "initialSound": "g",
+      "art": "goat",
+      "gloss": "Goat"
+    },
+    {
+      "id": "grapes",
+      "letter": "g",
+      "text": "Grapes",
+      "initialSound": "g",
+      "art": "grapes",
+      "gloss": "Grapes"
+    },
+    {
+      "id": "guitar",
+      "letter": "g",
+      "text": "Guitar",
+      "initialSound": "g",
+      "art": "guitar",
+      "gloss": "Guitar"
+    },
+    {
+      "id": "hat",
+      "letter": "h",
+      "text": "Hat",
+      "initialSound": "h",
+      "art": "hat",
+      "gloss": "Hat"
+    },
+    {
+      "id": "horse",
+      "letter": "h",
+      "text": "Horse",
+      "initialSound": "h",
+      "art": "horse",
+      "gloss": "Horse"
+    },
+    {
+      "id": "house",
+      "letter": "h",
+      "text": "House",
+      "initialSound": "h",
+      "art": "house",
+      "gloss": "House"
+    },
+    {
+      "id": "igloo",
+      "letter": "i",
+      "text": "Igloo",
+      "initialSound": "i",
+      "art": "igloo",
+      "gloss": "Igloo"
+    },
+    {
+      "id": "insect",
+      "letter": "i",
+      "text": "Insect",
+      "initialSound": "i",
+      "art": "insect",
+      "gloss": "Insect"
+    },
+    {
+      "id": "jam",
+      "letter": "j",
+      "text": "Jam",
+      "initialSound": "j",
+      "art": "jam",
+      "gloss": "Jam"
+    },
+    {
+      "id": "jellyfish",
+      "letter": "j",
+      "text": "Jellyfish",
+      "initialSound": "j",
+      "art": "jellyfish",
+      "gloss": "Jellyfish"
+    },
+    {
+      "id": "juice",
+      "letter": "j",
+      "text": "Juice",
+      "initialSound": "j",
+      "art": "juice",
+      "gloss": "Juice"
+    },
+    {
+      "id": "kite",
+      "letter": "k",
+      "text": "Kite",
+      "initialSound": "k",
+      "art": "kite",
+      "gloss": "Kite"
+    },
+    {
+      "id": "key",
+      "letter": "k",
+      "text": "Key",
+      "initialSound": "k",
+      "art": "key",
+      "gloss": "Key"
+    },
+    {
+      "id": "kangaroo",
+      "letter": "k",
+      "text": "Kangaroo",
+      "initialSound": "k",
+      "art": "kangaroo",
+      "gloss": "Kangaroo"
+    },
+    {
+      "id": "lion",
+      "letter": "l",
+      "text": "Lion",
+      "initialSound": "l",
+      "art": "lion",
+      "gloss": "Lion"
+    },
+    {
+      "id": "leaf",
+      "letter": "l",
+      "text": "Leaf",
+      "initialSound": "l",
+      "art": "leaf",
+      "gloss": "Leaf"
+    },
+    {
+      "id": "lamp",
+      "letter": "l",
+      "text": "Lamp",
+      "initialSound": "l",
+      "art": "lamp",
+      "gloss": "Lamp"
+    },
+    {
+      "id": "moon",
+      "letter": "m",
+      "text": "Moon",
+      "initialSound": "m",
+      "art": "moon",
+      "gloss": "Moon"
+    },
+    {
+      "id": "mouse",
+      "letter": "m",
+      "text": "Mouse",
+      "initialSound": "m",
+      "art": "mouse",
+      "gloss": "Mouse"
+    },
+    {
+      "id": "mushroom",
+      "letter": "m",
+      "text": "Mushroom",
+      "initialSound": "m",
+      "art": "mushroom",
+      "gloss": "Mushroom"
+    },
+    {
+      "id": "nest",
+      "letter": "n",
+      "text": "Nest",
+      "initialSound": "n",
+      "art": "nest",
+      "gloss": "Nest"
+    },
+    {
+      "id": "nut",
+      "letter": "n",
+      "text": "Nut",
+      "initialSound": "n",
+      "art": "nut",
+      "gloss": "Nut"
+    },
+    {
+      "id": "necklace",
+      "letter": "n",
+      "text": "Necklace",
+      "initialSound": "n",
+      "art": "necklace",
+      "gloss": "Necklace"
+    },
+    {
+      "id": "octopus",
+      "letter": "o",
+      "text": "Octopus",
+      "initialSound": "o",
+      "art": "octopus",
+      "gloss": "Octopus"
+    },
+    {
+      "id": "orange",
+      "letter": "o",
+      "text": "Orange",
+      "initialSound": "o",
+      "art": "orange",
+      "gloss": "Orange"
+    },
+    {
+      "id": "ostrich",
+      "letter": "o",
+      "text": "Ostrich",
+      "initialSound": "o",
+      "art": "ostrich",
+      "gloss": "Ostrich"
+    },
+    {
+      "id": "pig",
+      "letter": "p",
+      "text": "Pig",
+      "initialSound": "p",
+      "art": "pig",
+      "gloss": "Pig"
+    },
+    {
+      "id": "pumpkin",
+      "letter": "p",
+      "text": "Pumpkin",
+      "initialSound": "p",
+      "art": "pumpkin",
+      "gloss": "Pumpkin"
+    },
+    {
+      "id": "panda",
+      "letter": "p",
+      "text": "Panda",
+      "initialSound": "p",
+      "art": "panda",
+      "gloss": "Panda"
+    },
+    {
+      "id": "queen",
+      "letter": "q",
+      "text": "Queen",
+      "initialSound": "kw",
+      "art": "queen",
+      "gloss": "Queen"
+    },
+    {
+      "id": "quilt",
+      "letter": "q",
+      "text": "Quilt",
+      "initialSound": "kw",
+      "art": "quilt",
+      "gloss": "Quilt"
+    },
+    {
+      "id": "rabbit",
+      "letter": "r",
+      "text": "Rabbit",
+      "initialSound": "r",
+      "art": "rabbit",
+      "gloss": "Rabbit"
+    },
+    {
+      "id": "rainbow",
+      "letter": "r",
+      "text": "Rainbow",
+      "initialSound": "r",
+      "art": "rainbow",
+      "gloss": "Rainbow"
+    },
+    {
+      "id": "rocket",
+      "letter": "r",
+      "text": "Rocket",
+      "initialSound": "r",
+      "art": "rocket",
+      "gloss": "Rocket"
+    },
+    {
+      "id": "sun",
+      "letter": "s",
+      "text": "Sun",
+      "initialSound": "s",
+      "art": "sun",
+      "gloss": "Sun"
+    },
+    {
+      "id": "star",
+      "letter": "s",
+      "text": "Star",
+      "initialSound": "s",
+      "art": "star",
+      "gloss": "Star"
+    },
+    {
+      "id": "snail",
+      "letter": "s",
+      "text": "Snail",
+      "initialSound": "s",
+      "art": "snail",
+      "gloss": "Snail"
+    },
+    {
+      "id": "tiger",
+      "letter": "t",
+      "text": "Tiger",
+      "initialSound": "t",
+      "art": "tiger",
+      "gloss": "Tiger"
+    },
+    {
+      "id": "turtle",
+      "letter": "t",
+      "text": "Turtle",
+      "initialSound": "t",
+      "art": "turtle",
+      "gloss": "Turtle"
+    },
+    {
+      "id": "train",
+      "letter": "t",
+      "text": "Train",
+      "initialSound": "t",
+      "art": "train",
+      "gloss": "Train"
+    },
+    {
+      "id": "umbrella",
+      "letter": "u",
+      "text": "Umbrella",
+      "initialSound": "u",
+      "art": "umbrella",
+      "gloss": "Umbrella"
+    },
+    {
+      "id": "unicorn",
+      "letter": "u",
+      "text": "Unicorn",
+      "initialSound": "y",
+      "art": "unicorn",
+      "gloss": "Unicorn"
+    },
+    {
+      "id": "van",
+      "letter": "v",
+      "text": "Van",
+      "initialSound": "v",
+      "art": "van",
+      "gloss": "Van"
+    },
+    {
+      "id": "violin",
+      "letter": "v",
+      "text": "Violin",
+      "initialSound": "v",
+      "art": "violin",
+      "gloss": "Violin"
+    },
+    {
+      "id": "volcano",
+      "letter": "v",
+      "text": "Volcano",
+      "initialSound": "v",
+      "art": "volcano",
+      "gloss": "Volcano"
+    },
+    {
+      "id": "whale",
+      "letter": "w",
+      "text": "Whale",
+      "initialSound": "w",
+      "art": "whale",
+      "gloss": "Whale"
+    },
+    {
+      "id": "watermelon",
+      "letter": "w",
+      "text": "Watermelon",
+      "initialSound": "w",
+      "art": "watermelon",
+      "gloss": "Watermelon"
+    },
+    {
+      "id": "worm",
+      "letter": "w",
+      "text": "Worm",
+      "initialSound": "w",
+      "art": "worm",
+      "gloss": "Worm"
+    },
+    {
+      "id": "xylophone",
+      "letter": "x",
+      "text": "Xylophone",
+      "initialSound": "z",
+      "art": "xylophone",
+      "gloss": "Xylophone"
+    },
+    {
+      "id": "xray",
+      "letter": "x",
+      "text": "X-ray",
+      "initialSound": "e",
+      "art": "xray",
+      "gloss": "X-ray"
+    },
+    {
+      "id": "yoyo",
+      "letter": "y",
+      "text": "Yoyo",
+      "initialSound": "y",
+      "art": "yoyo",
+      "gloss": "Yoyo"
+    },
+    {
+      "id": "yarn",
+      "letter": "y",
+      "text": "Yarn",
+      "initialSound": "y",
+      "art": "yarn",
+      "gloss": "Yarn"
+    },
+    {
+      "id": "yak",
+      "letter": "y",
+      "text": "Yak",
+      "initialSound": "y",
+      "art": "yak",
+      "gloss": "Yak"
+    },
+    {
+      "id": "zebra",
+      "letter": "z",
+      "text": "Zebra",
+      "initialSound": "z",
+      "art": "zebra",
+      "gloss": "Zebra"
+    },
+    {
+      "id": "zipper",
+      "letter": "z",
+      "text": "Zipper",
+      "initialSound": "z",
+      "art": "zipper",
+      "gloss": "Zipper"
+    },
+    {
+      "id": "astronaut",
+      "letter": "a",
+      "text": "Astronaut",
+      "initialSound": "a",
+      "gloss": "Astronaut"
+    },
+    {
+      "id": "butterfly",
+      "letter": "b",
+      "text": "Butterfly",
+      "initialSound": "b",
+      "gloss": "Butterfly"
+    },
+    {
+      "id": "caterpillar",
+      "letter": "c",
+      "text": "Caterpillar",
+      "initialSound": "c",
+      "gloss": "Caterpillar"
+    },
+    {
+      "id": "dinosaur",
+      "letter": "d",
+      "text": "Dinosaur",
+      "initialSound": "d",
+      "gloss": "Dinosaur"
+    },
+    {
+      "id": "engine",
+      "letter": "e",
+      "text": "Engine",
+      "initialSound": "e",
+      "gloss": "Engine"
+    },
+    {
+      "id": "firetruck",
+      "letter": "f",
+      "text": "Fire Truck",
+      "initialSound": "f",
+      "gloss": "Fire Truck"
+    },
+    {
+      "id": "giraffe",
+      "letter": "g",
+      "text": "Giraffe",
+      "initialSound": "g",
+      "gloss": "Giraffe"
+    },
+    {
+      "id": "honey",
+      "letter": "h",
+      "text": "Honey",
+      "initialSound": "h",
+      "gloss": "Honey"
+    },
+    {
+      "id": "iguana",
+      "letter": "i",
+      "text": "Iguana",
+      "initialSound": "i",
+      "gloss": "Iguana"
+    },
+    {
+      "id": "jacket",
+      "letter": "j",
+      "text": "Jacket",
+      "initialSound": "j",
+      "gloss": "Jacket"
+    },
+    {
+      "id": "koala",
+      "letter": "k",
+      "text": "Koala",
+      "initialSound": "k",
+      "gloss": "Koala"
+    },
+    {
+      "id": "ladybug",
+      "letter": "l",
+      "text": "Ladybug",
+      "initialSound": "l",
+      "gloss": "Ladybug"
+    },
+    {
+      "id": "monkey",
+      "letter": "m",
+      "text": "Monkey",
+      "initialSound": "m",
+      "gloss": "Monkey"
+    },
+    {
+      "id": "noodle",
+      "letter": "n",
+      "text": "Noodle",
+      "initialSound": "n",
+      "gloss": "Noodle"
+    },
+    {
+      "id": "popcorn",
+      "letter": "p",
+      "text": "Popcorn",
+      "initialSound": "p",
+      "gloss": "Popcorn"
+    },
+    {
+      "id": "robot",
+      "letter": "r",
+      "text": "Robot",
+      "initialSound": "r",
+      "gloss": "Robot"
+    },
+    {
+      "id": "snake",
+      "letter": "s",
+      "text": "Snake",
+      "initialSound": "s",
+      "gloss": "Snake"
+    },
+    {
+      "id": "tomato",
+      "letter": "t",
+      "text": "Tomato",
+      "initialSound": "t",
+      "gloss": "Tomato"
+    }
+  ],
+  "confusableSounds": [
+    [
+      "b",
+      "p"
+    ],
+    [
+      "d",
+      "t"
+    ],
+    [
+      "g",
+      "k"
+    ],
+    [
+      "f",
+      "v"
+    ],
+    [
+      "s",
+      "z"
+    ],
+    [
+      "m",
+      "n"
+    ],
+    [
+      "k",
+      "kw"
+    ],
+    [
+      "a",
+      "e"
+    ],
+    [
+      "e",
+      "i"
+    ],
+    [
+      "a",
+      "u"
+    ],
+    [
+      "o",
+      "u"
+    ]
+  ],
+  "lookAlikes": [
+    [
+      "b",
+      "d"
+    ],
+    [
+      "b",
+      "p"
+    ],
+    [
+      "d",
+      "q"
+    ],
+    [
+      "p",
+      "q"
+    ],
+    [
+      "m",
+      "w"
+    ],
+    [
+      "n",
+      "u"
+    ],
+    [
+      "h",
+      "n"
+    ]
+  ],
+  "lookAlikeForm": "secondary",
+  "rounds": {
+    "blend": {
+      "words": [
+        {
+          "id": "cat",
+          "letters": [
+            "c",
+            "a",
+            "t"
+          ],
+          "text": "CAT",
+          "gloss": "cat",
+          "art": "cat"
+        },
+        {
+          "id": "dog",
+          "letters": [
+            "d",
+            "o",
+            "g"
+          ],
+          "text": "DOG",
+          "gloss": "dog",
+          "art": "dog"
+        },
+        {
+          "id": "sun",
+          "letters": [
+            "s",
+            "u",
+            "n"
+          ],
+          "text": "SUN",
+          "gloss": "sun",
+          "art": "sun"
+        },
+        {
+          "id": "bag",
+          "letters": [
+            "b",
+            "a",
+            "g"
+          ],
+          "text": "BAG",
+          "gloss": "bag"
+        },
+        {
+          "id": "bed",
+          "letters": [
+            "b",
+            "e",
+            "d"
+          ],
+          "text": "BED",
+          "gloss": "bed"
+        },
+        {
+          "id": "pig",
+          "letters": [
+            "p",
+            "i",
+            "g"
+          ],
+          "text": "PIG",
+          "gloss": "pig",
+          "art": "pig"
+        },
+        {
+          "id": "hot",
+          "letters": [
+            "h",
+            "o",
+            "t"
+          ],
+          "text": "HOT",
+          "gloss": "hot"
+        },
+        {
+          "id": "map",
+          "letters": [
+            "m",
+            "a",
+            "p"
+          ],
+          "text": "MAP",
+          "gloss": "map"
+        },
+        {
+          "id": "run",
+          "letters": [
+            "r",
+            "u",
+            "n"
+          ],
+          "text": "RUN",
+          "gloss": "run"
+        },
+        {
+          "id": "bus",
+          "letters": [
+            "b",
+            "u",
+            "s"
+          ],
+          "text": "BUS",
+          "gloss": "bus"
+        },
+        {
+          "id": "cup",
+          "letters": [
+            "c",
+            "u",
+            "p"
+          ],
+          "text": "CUP",
+          "gloss": "cup"
+        },
+        {
+          "id": "hat",
+          "letters": [
+            "h",
+            "a",
+            "t"
+          ],
+          "text": "HAT",
+          "gloss": "hat",
+          "art": "hat"
+        },
+        {
+          "id": "web",
+          "letters": [
+            "w",
+            "e",
+            "b"
+          ],
+          "text": "WEB",
+          "gloss": "web"
+        },
+        {
+          "id": "red",
+          "letters": [
+            "r",
+            "e",
+            "d"
+          ],
+          "text": "RED",
+          "gloss": "red"
+        },
+        {
+          "id": "big",
+          "letters": [
+            "b",
+            "i",
+            "g"
+          ],
+          "text": "BIG",
+          "gloss": "big"
+        }
+      ]
+    },
+    "missingPiece": {
+      "choices": [
+        {
+          "id": "a",
+          "text": "A",
+          "speak": "ah"
+        },
+        {
+          "id": "e",
+          "text": "E",
+          "speak": "eh"
+        },
+        {
+          "id": "i",
+          "text": "I",
+          "speak": "ih"
+        },
+        {
+          "id": "o",
+          "text": "O",
+          "speak": "aw"
+        },
+        {
+          "id": "u",
+          "text": "U",
+          "speak": "uh"
+        }
+      ],
+      "words": [
+        {
+          "id": "cat",
+          "parts": [
+            "C",
+            "A",
+            "T"
+          ],
+          "gap": 1,
+          "answer": "a",
+          "text": "CAT",
+          "gloss": "cat",
+          "art": "cat"
+        },
+        {
+          "id": "hat",
+          "parts": [
+            "H",
+            "A",
+            "T"
+          ],
+          "gap": 1,
+          "answer": "a",
+          "text": "HAT",
+          "gloss": "hat",
+          "art": "hat"
+        },
+        {
+          "id": "jam",
+          "parts": [
+            "J",
+            "A",
+            "M"
+          ],
+          "gap": 1,
+          "answer": "a",
+          "text": "JAM",
+          "gloss": "jam",
+          "art": "jam"
+        },
+        {
+          "id": "van",
+          "parts": [
+            "V",
+            "A",
+            "N"
+          ],
+          "gap": 1,
+          "answer": "a",
+          "text": "VAN",
+          "gloss": "van",
+          "art": "van"
+        },
+        {
+          "id": "yak",
+          "parts": [
+            "Y",
+            "A",
+            "K"
+          ],
+          "gap": 1,
+          "answer": "a",
+          "text": "YAK",
+          "gloss": "yak",
+          "art": "yak"
+        },
+        {
+          "id": "map",
+          "parts": [
+            "M",
+            "A",
+            "P"
+          ],
+          "gap": 1,
+          "answer": "a",
+          "text": "MAP",
+          "gloss": "map"
+        },
+        {
+          "id": "bed",
+          "parts": [
+            "B",
+            "E",
+            "D"
+          ],
+          "gap": 1,
+          "answer": "e",
+          "text": "BED",
+          "gloss": "bed"
+        },
+        {
+          "id": "web",
+          "parts": [
+            "W",
+            "E",
+            "B"
+          ],
+          "gap": 1,
+          "answer": "e",
+          "text": "WEB",
+          "gloss": "web"
+        },
+        {
+          "id": "red",
+          "parts": [
+            "R",
+            "E",
+            "D"
+          ],
+          "gap": 1,
+          "answer": "e",
+          "text": "RED",
+          "gloss": "red"
+        },
+        {
+          "id": "pig",
+          "parts": [
+            "P",
+            "I",
+            "G"
+          ],
+          "gap": 1,
+          "answer": "i",
+          "text": "PIG",
+          "gloss": "pig",
+          "art": "pig"
+        },
+        {
+          "id": "big",
+          "parts": [
+            "B",
+            "I",
+            "G"
+          ],
+          "gap": 1,
+          "answer": "i",
+          "text": "BIG",
+          "gloss": "big"
+        },
+        {
+          "id": "dog",
+          "parts": [
+            "D",
+            "O",
+            "G"
+          ],
+          "gap": 1,
+          "answer": "o",
+          "text": "DOG",
+          "gloss": "dog",
+          "art": "dog"
+        },
+        {
+          "id": "hot",
+          "parts": [
+            "H",
+            "O",
+            "T"
+          ],
+          "gap": 1,
+          "answer": "o",
+          "text": "HOT",
+          "gloss": "hot"
+        },
+        {
+          "id": "sun",
+          "parts": [
+            "S",
+            "U",
+            "N"
+          ],
+          "gap": 1,
+          "answer": "u",
+          "text": "SUN",
+          "gloss": "sun",
+          "art": "sun"
+        },
+        {
+          "id": "nut",
+          "parts": [
+            "N",
+            "U",
+            "T"
+          ],
+          "gap": 1,
+          "answer": "u",
+          "text": "NUT",
+          "gloss": "nut",
+          "art": "nut"
+        },
+        {
+          "id": "bus",
+          "parts": [
+            "B",
+            "U",
+            "S"
+          ],
+          "gap": 1,
+          "answer": "u",
+          "text": "BUS",
+          "gloss": "bus"
+        },
+        {
+          "id": "cup",
+          "parts": [
+            "C",
+            "U",
+            "P"
+          ],
+          "gap": 1,
+          "answer": "u",
+          "text": "CUP",
+          "gloss": "cup"
+        }
+      ]
+    },
+    "oddSound": true,
+    "rainbow": [
+      {
+        "id": "red",
+        "text": "Red",
+        "letter": "r"
+      },
+      {
+        "id": "orange",
+        "text": "Orange",
+        "letter": "o"
+      },
+      {
+        "id": "yellow",
+        "text": "Yellow",
+        "letter": "y"
+      },
+      {
+        "id": "green",
+        "text": "Green",
+        "letter": "g"
+      },
+      {
+        "id": "blue",
+        "text": "Blue",
+        "letter": "b"
+      },
+      {
+        "id": "purple",
+        "text": "Purple",
+        "letter": "p"
+      }
+    ],
+    "planeChoice": true
+  },
+  "phrases": {
+    "rainbowPrompt": "Which colour is glowing?",
+    "stormPrompt": "Which one starts with a different sound?",
+    "missingPiecePrompt": "Which sound is missing?",
+    "listenWord": "Listen: {word}",
+    "bothStartWith": "{a} and {b} both start with",
+    "nestEggsWarming": "Your eggs are warming up! Catch letters on your flights to hatch them.",
+    "nestHatched": {
+      "one": "You've hatched {count} letter!",
+      "other": "You've hatched {count} letters!"
+    },
+    "nestNewChicks": {
+      "one": "New chick: {list}!",
+      "other": "New chicks: {list}!"
+    },
+    "nestMoreToCompanion": "{count} more and a {companion} joins your flock!",
+    "nestWholeFlock": "Your whole flock is here!"
+  }
+}

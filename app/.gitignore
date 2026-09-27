@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Language-pack tooling: downloaded fonts and generated previews
+scripts/lang/.cache
+scripts/lang/out

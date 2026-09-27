@@ -1,0 +1,493 @@
+{
+  "profile": "arabic",
+  "name": "Arabic",
+  "nativeName": "العربية",
+  "script": {
+    "id": "arabic",
+    "direction": "rtl",
+    "forms": {
+      "model": "positional",
+      "primaryLabel": "Letter on its own",
+      "secondaryLabel": "Start of a word",
+      "introduceSecondaryFromBox": 3
+    },
+    "fonts": {
+      "display": {
+        "family": "Baloo Bhaijaan 2",
+        "weight": 800
+      },
+      "ui": {
+        "family": "Baloo Bhaijaan 2",
+        "weight": 500
+      }
+    },
+    "writingGuide": "baseline"
+  },
+  "locales": {
+    "speechRecognition": "ar-SA",
+    "speechSynthesis": "ar"
+  },
+  "features": {
+    "handwritingCheck": false,
+    "typing": true,
+    "speakLetter": true,
+    "ownWord": true
+  },
+  "lookAlikeForm": "primary",
+  "lookAlikes": [
+    [
+      "ba",
+      "ta"
+    ],
+    [
+      "ta",
+      "tha"
+    ],
+    [
+      "ba",
+      "nun"
+    ],
+    [
+      "jim",
+      "hha"
+    ],
+    [
+      "hha",
+      "kha"
+    ],
+    [
+      "dal",
+      "dhal"
+    ],
+    [
+      "ra",
+      "zay"
+    ],
+    [
+      "sin",
+      "shin"
+    ],
+    [
+      "sad",
+      "dad"
+    ],
+    [
+      "taa",
+      "dhaa"
+    ],
+    [
+      "ayn",
+      "ghayn"
+    ],
+    [
+      "fa",
+      "qaf"
+    ]
+  ],
+  "rainbow": [
+    {
+      "id": "red",
+      "text": "أحمر",
+      "letter": "alif"
+    },
+    {
+      "id": "orange",
+      "text": "برتقالي",
+      "letter": "ba"
+    },
+    {
+      "id": "yellow",
+      "text": "أصفر",
+      "letter": "alif"
+    },
+    {
+      "id": "green",
+      "text": "أخضر",
+      "letter": "alif"
+    },
+    {
+      "id": "blue",
+      "text": "أزرق",
+      "letter": "alif"
+    },
+    {
+      "id": "purple",
+      "text": "بنفسجي",
+      "letter": "ba"
+    }
+  ],
+  "letters": [
+    {
+      "id": "alif",
+      "char": "ا",
+      "secondary": null,
+      "name": "ألف",
+      "nameAliases": [
+        "ا",
+        "ألف"
+      ],
+      "sound": "TODO",
+      "ipa": "/ʔ/, /aː/",
+      "romanization": "a",
+      "note": "Carrier for hamza (أ) and long /aː/. Does not join to the next letter."
+    },
+    {
+      "id": "ba",
+      "char": "ب",
+      "secondary": "ب‍",
+      "name": "باء",
+      "nameAliases": [
+        "ب",
+        "باء"
+      ],
+      "sound": "TODO",
+      "ipa": "/b/",
+      "romanization": "b"
+    },
+    {
+      "id": "ta",
+      "char": "ت",
+      "secondary": "ت‍",
+      "name": "تاء",
+      "nameAliases": [
+        "ت",
+        "تاء"
+      ],
+      "sound": "TODO",
+      "ipa": "/t/",
+      "romanization": "t"
+    },
+    {
+      "id": "tha",
+      "char": "ث",
+      "secondary": "ث‍",
+      "name": "ثاء",
+      "nameAliases": [
+        "ث",
+        "ثاء"
+      ],
+      "sound": "TODO",
+      "ipa": "/θ/",
+      "romanization": "th"
+    },
+    {
+      "id": "jim",
+      "char": "ج",
+      "secondary": "ج‍",
+      "name": "جيم",
+      "nameAliases": [
+        "ج",
+        "جيم"
+      ],
+      "sound": "TODO",
+      "ipa": "/dʒ/",
+      "romanization": "j",
+      "note": "Pronounced /g/ in Egyptian Arabic — pick the variety with the reviewer."
+    },
+    {
+      "id": "hha",
+      "char": "ح",
+      "secondary": "ح‍",
+      "name": "حاء",
+      "nameAliases": [
+        "ح",
+        "حاء"
+      ],
+      "sound": "TODO",
+      "ipa": "/ħ/",
+      "romanization": "ḥ"
+    },
+    {
+      "id": "kha",
+      "char": "خ",
+      "secondary": "خ‍",
+      "name": "خاء",
+      "nameAliases": [
+        "خ",
+        "خاء"
+      ],
+      "sound": "TODO",
+      "ipa": "/x/",
+      "romanization": "kh"
+    },
+    {
+      "id": "dal",
+      "char": "د",
+      "secondary": null,
+      "name": "دال",
+      "nameAliases": [
+        "د",
+        "دال"
+      ],
+      "sound": "TODO",
+      "ipa": "/d/",
+      "romanization": "d",
+      "note": "Does not join to the next letter."
+    },
+    {
+      "id": "dhal",
+      "char": "ذ",
+      "secondary": null,
+      "name": "ذال",
+      "nameAliases": [
+        "ذ",
+        "ذال"
+      ],
+      "sound": "TODO",
+      "ipa": "/ð/",
+      "romanization": "dh",
+      "note": "Does not join to the next letter."
+    },
+    {
+      "id": "ra",
+      "char": "ر",
+      "secondary": null,
+      "name": "راء",
+      "nameAliases": [
+        "ر",
+        "راء"
+      ],
+      "sound": "TODO",
+      "ipa": "/r/",
+      "romanization": "r",
+      "note": "Does not join to the next letter."
+    },
+    {
+      "id": "zay",
+      "char": "ز",
+      "secondary": null,
+      "name": "زاي",
+      "nameAliases": [
+        "ز",
+        "زاي"
+      ],
+      "sound": "TODO",
+      "ipa": "/z/",
+      "romanization": "z",
+      "note": "Does not join to the next letter."
+    },
+    {
+      "id": "sin",
+      "char": "س",
+      "secondary": "س‍",
+      "name": "سين",
+      "nameAliases": [
+        "س",
+        "سين"
+      ],
+      "sound": "TODO",
+      "ipa": "/s/",
+      "romanization": "s"
+    },
+    {
+      "id": "shin",
+      "char": "ش",
+      "secondary": "ش‍",
+      "name": "شين",
+      "nameAliases": [
+        "ش",
+        "شين"
+      ],
+      "sound": "TODO",
+      "ipa": "/ʃ/",
+      "romanization": "sh"
+    },
+    {
+      "id": "sad",
+      "char": "ص",
+      "secondary": "ص‍",
+      "name": "صاد",
+      "nameAliases": [
+        "ص",
+        "صاد"
+      ],
+      "sound": "TODO",
+      "ipa": "/sˤ/",
+      "romanization": "ṣ"
+    },
+    {
+      "id": "dad",
+      "char": "ض",
+      "secondary": "ض‍",
+      "name": "ضاد",
+      "nameAliases": [
+        "ض",
+        "ضاد"
+      ],
+      "sound": "TODO",
+      "ipa": "/dˤ/",
+      "romanization": "ḍ"
+    },
+    {
+      "id": "taa",
+      "char": "ط",
+      "secondary": "ط‍",
+      "name": "طاء",
+      "nameAliases": [
+        "ط",
+        "طاء"
+      ],
+      "sound": "TODO",
+      "ipa": "/tˤ/",
+      "romanization": "ṭ"
+    },
+    {
+      "id": "dhaa",
+      "char": "ظ",
+      "secondary": "ظ‍",
+      "name": "ظاء",
+      "nameAliases": [
+        "ظ",
+        "ظاء"
+      ],
+      "sound": "TODO",
+      "ipa": "/ðˤ/",
+      "romanization": "ẓ"
+    },
+    {
+      "id": "ayn",
+      "char": "ع",
+      "secondary": "ع‍",
+      "name": "عين",
+      "nameAliases": [
+        "ع",
+        "عين"
+      ],
+      "sound": "TODO",
+      "ipa": "/ʕ/",
+      "romanization": "ʿ"
+    },
+    {
+      "id": "ghayn",
+      "char": "غ",
+      "secondary": "غ‍",
+      "name": "غين",
+      "nameAliases": [
+        "غ",
+        "غين"
+      ],
+      "sound": "TODO",
+      "ipa": "/ɣ/",
+      "romanization": "gh"
+    },
+    {
+      "id": "fa",
+      "char": "ف",
+      "secondary": "ف‍",
+      "name": "فاء",
+      "nameAliases": [
+        "ف",
+        "فاء"
+      ],
+      "sound": "TODO",
+      "ipa": "/f/",
+      "romanization": "f"
+    },
+    {
+      "id": "qaf",
+      "char": "ق",
+      "secondary": "ق‍",
+      "name": "قاف",
+      "nameAliases": [
+        "ق",
+        "قاف"
+      ],
+      "sound": "TODO",
+      "ipa": "/q/",
+      "romanization": "q"
+    },
+    {
+      "id": "kaf",
+      "char": "ك",
+      "secondary": "ك‍",
+      "name": "كاف",
+      "nameAliases": [
+        "ك",
+        "كاف"
+      ],
+      "sound": "TODO",
+      "ipa": "/k/",
+      "romanization": "k"
+    },
+    {
+      "id": "lam",
+      "char": "ل",
+      "secondary": "ل‍",
+      "name": "لام",
+      "nameAliases": [
+        "ل",
+        "لام"
+      ],
+      "sound": "TODO",
+      "ipa": "/l/",
+      "romanization": "l"
+    },
+    {
+      "id": "mim",
+      "char": "م",
+      "secondary": "م‍",
+      "name": "ميم",
+      "nameAliases": [
+        "م",
+        "ميم"
+      ],
+      "sound": "TODO",
+      "ipa": "/m/",
+      "romanization": "m"
+    },
+    {
+      "id": "nun",
+      "char": "ن",
+      "secondary": "ن‍",
+      "name": "نون",
+      "nameAliases": [
+        "ن",
+        "نون"
+      ],
+      "sound": "TODO",
+      "ipa": "/n/",
+      "romanization": "n"
+    },
+    {
+      "id": "ha",
+      "char": "ه",
+      "secondary": "ه‍",
+      "name": "هاء",
+      "nameAliases": [
+        "ه",
+        "هاء"
+      ],
+      "sound": "TODO",
+      "ipa": "/h/",
+      "romanization": "h"
+    },
+    {
+      "id": "waw",
+      "char": "و",
+      "secondary": null,
+      "name": "واو",
+      "nameAliases": [
+        "و",
+        "واو"
+      ],
+      "sound": "TODO",
+      "ipa": "/w/, /uː/",
+      "romanization": "w",
+      "note": "Does not join to the next letter. Also long /uː/."
+    },
+    {
+      "id": "ya",
+      "char": "ي",
+      "secondary": "ي‍",
+      "name": "ياء",
+      "nameAliases": [
+        "ي",
+        "ياء"
+      ],
+      "sound": "TODO",
+      "ipa": "/j/, /iː/",
+      "romanization": "y",
+      "note": "Also long /iː/."
+    }
+  ]
+}

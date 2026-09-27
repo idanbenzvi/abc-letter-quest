@@ -1,0 +1,715 @@
+{
+  "profile": "japanese-hiragana",
+  "name": "Japanese",
+  "nativeName": "日本語",
+  "script": {
+    "id": "kana",
+    "direction": "ltr",
+    "forms": {
+      "model": "kana",
+      "primaryLabel": "Hiragana",
+      "secondaryLabel": "Katakana",
+      "introduceSecondaryFromBox": 4
+    },
+    "fonts": {
+      "display": {
+        "family": "M PLUS Rounded 1c",
+        "weight": 800
+      },
+      "ui": {
+        "family": "M PLUS Rounded 1c",
+        "weight": 500
+      }
+    },
+    "writingGuide": "grid"
+  },
+  "locales": {
+    "speechRecognition": "ja-JP",
+    "speechSynthesis": "ja"
+  },
+  "features": {
+    "handwritingCheck": false,
+    "typing": false,
+    "speakLetter": true,
+    "ownWord": true
+  },
+  "lookAlikeForm": "primary",
+  "lookAlikes": [
+    [
+      "sa",
+      "chi"
+    ],
+    [
+      "ki",
+      "sa"
+    ],
+    [
+      "nu",
+      "me"
+    ],
+    [
+      "ne",
+      "re"
+    ],
+    [
+      "re",
+      "wa"
+    ],
+    [
+      "ru",
+      "ro"
+    ],
+    [
+      "ha",
+      "ho"
+    ],
+    [
+      "i",
+      "ri"
+    ],
+    [
+      "ko",
+      "ni"
+    ],
+    [
+      "a",
+      "o"
+    ]
+  ],
+  "rainbow": [
+    {
+      "id": "red",
+      "text": "あか",
+      "letter": "a"
+    },
+    {
+      "id": "orange",
+      "text": "オレンジ",
+      "letter": "o"
+    },
+    {
+      "id": "yellow",
+      "text": "きいろ",
+      "letter": "ki"
+    },
+    {
+      "id": "green",
+      "text": "みどり",
+      "letter": "mi"
+    },
+    {
+      "id": "blue",
+      "text": "あお",
+      "letter": "a"
+    },
+    {
+      "id": "purple",
+      "text": "むらさき",
+      "letter": "mu"
+    }
+  ],
+  "letters": [
+    {
+      "id": "a",
+      "char": "あ",
+      "secondary": "ア",
+      "name": "あ",
+      "nameAliases": [
+        "あ",
+        "ア"
+      ],
+      "sound": null,
+      "ipa": "/a/",
+      "romanization": "a"
+    },
+    {
+      "id": "i",
+      "char": "い",
+      "secondary": "イ",
+      "name": "い",
+      "nameAliases": [
+        "い",
+        "イ"
+      ],
+      "sound": null,
+      "ipa": "/i/",
+      "romanization": "i"
+    },
+    {
+      "id": "u",
+      "char": "う",
+      "secondary": "ウ",
+      "name": "う",
+      "nameAliases": [
+        "う",
+        "ウ"
+      ],
+      "sound": null,
+      "ipa": "/ɯ/",
+      "romanization": "u"
+    },
+    {
+      "id": "e",
+      "char": "え",
+      "secondary": "エ",
+      "name": "え",
+      "nameAliases": [
+        "え",
+        "エ"
+      ],
+      "sound": null,
+      "ipa": "/e/",
+      "romanization": "e"
+    },
+    {
+      "id": "o",
+      "char": "お",
+      "secondary": "オ",
+      "name": "お",
+      "nameAliases": [
+        "お",
+        "オ"
+      ],
+      "sound": null,
+      "ipa": "/o/",
+      "romanization": "o"
+    },
+    {
+      "id": "ka",
+      "char": "か",
+      "secondary": "カ",
+      "name": "か",
+      "nameAliases": [
+        "か",
+        "カ"
+      ],
+      "sound": null,
+      "ipa": "/ka/",
+      "romanization": "ka"
+    },
+    {
+      "id": "ki",
+      "char": "き",
+      "secondary": "キ",
+      "name": "き",
+      "nameAliases": [
+        "き",
+        "キ"
+      ],
+      "sound": null,
+      "ipa": "/ki/",
+      "romanization": "ki"
+    },
+    {
+      "id": "ku",
+      "char": "く",
+      "secondary": "ク",
+      "name": "く",
+      "nameAliases": [
+        "く",
+        "ク"
+      ],
+      "sound": null,
+      "ipa": "/kɯ/",
+      "romanization": "ku"
+    },
+    {
+      "id": "ke",
+      "char": "け",
+      "secondary": "ケ",
+      "name": "け",
+      "nameAliases": [
+        "け",
+        "ケ"
+      ],
+      "sound": null,
+      "ipa": "/ke/",
+      "romanization": "ke"
+    },
+    {
+      "id": "ko",
+      "char": "こ",
+      "secondary": "コ",
+      "name": "こ",
+      "nameAliases": [
+        "こ",
+        "コ"
+      ],
+      "sound": null,
+      "ipa": "/ko/",
+      "romanization": "ko"
+    },
+    {
+      "id": "sa",
+      "char": "さ",
+      "secondary": "サ",
+      "name": "さ",
+      "nameAliases": [
+        "さ",
+        "サ"
+      ],
+      "sound": null,
+      "ipa": "/sa/",
+      "romanization": "sa"
+    },
+    {
+      "id": "shi",
+      "char": "し",
+      "secondary": "シ",
+      "name": "し",
+      "nameAliases": [
+        "し",
+        "シ"
+      ],
+      "sound": null,
+      "ipa": "/ɕi/",
+      "romanization": "shi"
+    },
+    {
+      "id": "su",
+      "char": "す",
+      "secondary": "ス",
+      "name": "す",
+      "nameAliases": [
+        "す",
+        "ス"
+      ],
+      "sound": null,
+      "ipa": "/sɯ/",
+      "romanization": "su"
+    },
+    {
+      "id": "se",
+      "char": "せ",
+      "secondary": "セ",
+      "name": "せ",
+      "nameAliases": [
+        "せ",
+        "セ"
+      ],
+      "sound": null,
+      "ipa": "/se/",
+      "romanization": "se"
+    },
+    {
+      "id": "so",
+      "char": "そ",
+      "secondary": "ソ",
+      "name": "そ",
+      "nameAliases": [
+        "そ",
+        "ソ"
+      ],
+      "sound": null,
+      "ipa": "/so/",
+      "romanization": "so"
+    },
+    {
+      "id": "ta",
+      "char": "た",
+      "secondary": "タ",
+      "name": "た",
+      "nameAliases": [
+        "た",
+        "タ"
+      ],
+      "sound": null,
+      "ipa": "/ta/",
+      "romanization": "ta"
+    },
+    {
+      "id": "chi",
+      "char": "ち",
+      "secondary": "チ",
+      "name": "ち",
+      "nameAliases": [
+        "ち",
+        "チ"
+      ],
+      "sound": null,
+      "ipa": "/tɕi/",
+      "romanization": "chi"
+    },
+    {
+      "id": "tsu",
+      "char": "つ",
+      "secondary": "ツ",
+      "name": "つ",
+      "nameAliases": [
+        "つ",
+        "ツ"
+      ],
+      "sound": null,
+      "ipa": "/tsɯ/",
+      "romanization": "tsu"
+    },
+    {
+      "id": "te",
+      "char": "て",
+      "secondary": "テ",
+      "name": "て",
+      "nameAliases": [
+        "て",
+        "テ"
+      ],
+      "sound": null,
+      "ipa": "/te/",
+      "romanization": "te"
+    },
+    {
+      "id": "to",
+      "char": "と",
+      "secondary": "ト",
+      "name": "と",
+      "nameAliases": [
+        "と",
+        "ト"
+      ],
+      "sound": null,
+      "ipa": "/to/",
+      "romanization": "to"
+    },
+    {
+      "id": "na",
+      "char": "な",
+      "secondary": "ナ",
+      "name": "な",
+      "nameAliases": [
+        "な",
+        "ナ"
+      ],
+      "sound": null,
+      "ipa": "/na/",
+      "romanization": "na"
+    },
+    {
+      "id": "ni",
+      "char": "に",
+      "secondary": "ニ",
+      "name": "に",
+      "nameAliases": [
+        "に",
+        "ニ"
+      ],
+      "sound": null,
+      "ipa": "/ɲi/",
+      "romanization": "ni"
+    },
+    {
+      "id": "nu",
+      "char": "ぬ",
+      "secondary": "ヌ",
+      "name": "ぬ",
+      "nameAliases": [
+        "ぬ",
+        "ヌ"
+      ],
+      "sound": null,
+      "ipa": "/nɯ/",
+      "romanization": "nu"
+    },
+    {
+      "id": "ne",
+      "char": "ね",
+      "secondary": "ネ",
+      "name": "ね",
+      "nameAliases": [
+        "ね",
+        "ネ"
+      ],
+      "sound": null,
+      "ipa": "/ne/",
+      "romanization": "ne"
+    },
+    {
+      "id": "no",
+      "char": "の",
+      "secondary": "ノ",
+      "name": "の",
+      "nameAliases": [
+        "の",
+        "ノ"
+      ],
+      "sound": null,
+      "ipa": "/no/",
+      "romanization": "no"
+    },
+    {
+      "id": "ha",
+      "char": "は",
+      "secondary": "ハ",
+      "name": "は",
+      "nameAliases": [
+        "は",
+        "ハ"
+      ],
+      "sound": null,
+      "ipa": "/ha/",
+      "romanization": "ha",
+      "note": "Read 'wa' as the topic particle; its name is still 'ha'."
+    },
+    {
+      "id": "hi",
+      "char": "ひ",
+      "secondary": "ヒ",
+      "name": "ひ",
+      "nameAliases": [
+        "ひ",
+        "ヒ"
+      ],
+      "sound": null,
+      "ipa": "/çi/",
+      "romanization": "hi"
+    },
+    {
+      "id": "fu",
+      "char": "ふ",
+      "secondary": "フ",
+      "name": "ふ",
+      "nameAliases": [
+        "ふ",
+        "フ"
+      ],
+      "sound": null,
+      "ipa": "/ɸɯ/",
+      "romanization": "fu"
+    },
+    {
+      "id": "he",
+      "char": "へ",
+      "secondary": "ヘ",
+      "name": "へ",
+      "nameAliases": [
+        "へ",
+        "ヘ"
+      ],
+      "sound": null,
+      "ipa": "/he/",
+      "romanization": "he",
+      "note": "Read 'e' as the direction particle."
+    },
+    {
+      "id": "ho",
+      "char": "ほ",
+      "secondary": "ホ",
+      "name": "ほ",
+      "nameAliases": [
+        "ほ",
+        "ホ"
+      ],
+      "sound": null,
+      "ipa": "/ho/",
+      "romanization": "ho"
+    },
+    {
+      "id": "ma",
+      "char": "ま",
+      "secondary": "マ",
+      "name": "ま",
+      "nameAliases": [
+        "ま",
+        "マ"
+      ],
+      "sound": null,
+      "ipa": "/ma/",
+      "romanization": "ma"
+    },
+    {
+      "id": "mi",
+      "char": "み",
+      "secondary": "ミ",
+      "name": "み",
+      "nameAliases": [
+        "み",
+        "ミ"
+      ],
+      "sound": null,
+      "ipa": "/mi/",
+      "romanization": "mi"
+    },
+    {
+      "id": "mu",
+      "char": "む",
+      "secondary": "ム",
+      "name": "む",
+      "nameAliases": [
+        "む",
+        "ム"
+      ],
+      "sound": null,
+      "ipa": "/mɯ/",
+      "romanization": "mu"
+    },
+    {
+      "id": "me",
+      "char": "め",
+      "secondary": "メ",
+      "name": "め",
+      "nameAliases": [
+        "め",
+        "メ"
+      ],
+      "sound": null,
+      "ipa": "/me/",
+      "romanization": "me"
+    },
+    {
+      "id": "mo",
+      "char": "も",
+      "secondary": "モ",
+      "name": "も",
+      "nameAliases": [
+        "も",
+        "モ"
+      ],
+      "sound": null,
+      "ipa": "/mo/",
+      "romanization": "mo"
+    },
+    {
+      "id": "ya",
+      "char": "や",
+      "secondary": "ヤ",
+      "name": "や",
+      "nameAliases": [
+        "や",
+        "ヤ"
+      ],
+      "sound": null,
+      "ipa": "/ja/",
+      "romanization": "ya"
+    },
+    {
+      "id": "yu",
+      "char": "ゆ",
+      "secondary": "ユ",
+      "name": "ゆ",
+      "nameAliases": [
+        "ゆ",
+        "ユ"
+      ],
+      "sound": null,
+      "ipa": "/jɯ/",
+      "romanization": "yu"
+    },
+    {
+      "id": "yo",
+      "char": "よ",
+      "secondary": "ヨ",
+      "name": "よ",
+      "nameAliases": [
+        "よ",
+        "ヨ"
+      ],
+      "sound": null,
+      "ipa": "/jo/",
+      "romanization": "yo"
+    },
+    {
+      "id": "ra",
+      "char": "ら",
+      "secondary": "ラ",
+      "name": "ら",
+      "nameAliases": [
+        "ら",
+        "ラ"
+      ],
+      "sound": null,
+      "ipa": "/ɾa/",
+      "romanization": "ra"
+    },
+    {
+      "id": "ri",
+      "char": "り",
+      "secondary": "リ",
+      "name": "り",
+      "nameAliases": [
+        "り",
+        "リ"
+      ],
+      "sound": null,
+      "ipa": "/ɾi/",
+      "romanization": "ri"
+    },
+    {
+      "id": "ru",
+      "char": "る",
+      "secondary": "ル",
+      "name": "る",
+      "nameAliases": [
+        "る",
+        "ル"
+      ],
+      "sound": null,
+      "ipa": "/ɾɯ/",
+      "romanization": "ru"
+    },
+    {
+      "id": "re",
+      "char": "れ",
+      "secondary": "レ",
+      "name": "れ",
+      "nameAliases": [
+        "れ",
+        "レ"
+      ],
+      "sound": null,
+      "ipa": "/ɾe/",
+      "romanization": "re"
+    },
+    {
+      "id": "ro",
+      "char": "ろ",
+      "secondary": "ロ",
+      "name": "ろ",
+      "nameAliases": [
+        "ろ",
+        "ロ"
+      ],
+      "sound": null,
+      "ipa": "/ɾo/",
+      "romanization": "ro"
+    },
+    {
+      "id": "wa",
+      "char": "わ",
+      "secondary": "ワ",
+      "name": "わ",
+      "nameAliases": [
+        "わ",
+        "ワ"
+      ],
+      "sound": null,
+      "ipa": "/wa/",
+      "romanization": "wa"
+    },
+    {
+      "id": "wo",
+      "char": "を",
+      "secondary": "ヲ",
+      "name": "を",
+      "nameAliases": [
+        "を",
+        "ヲ"
+      ],
+      "sound": null,
+      "ipa": "/o/",
+      "romanization": "wo",
+      "note": "Sounds exactly like お; only used as the object particle, so no word starts with it — give it no words and teach it late."
+    },
+    {
+      "id": "n",
+      "char": "ん",
+      "secondary": "ン",
+      "name": "ん",
+      "nameAliases": [
+        "ん",
+        "ン"
+      ],
+      "sound": null,
+      "ipa": "/ɴ/",
+      "romanization": "n",
+      "note": "No word starts with ん; teach it inside words (みかん)."
+    }
+  ]
+}

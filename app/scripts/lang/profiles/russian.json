@@ -1,0 +1,533 @@
+{
+  "profile": "russian",
+  "name": "Russian",
+  "nativeName": "Русский",
+  "script": {
+    "id": "cyrillic",
+    "direction": "ltr",
+    "forms": {
+      "model": "case",
+      "primaryLabel": "Uppercase",
+      "secondaryLabel": "Lowercase",
+      "introduceSecondaryFromBox": 2
+    },
+    "fonts": {
+      "display": {
+        "family": "Nunito",
+        "weight": 900
+      },
+      "ui": {
+        "family": "Nunito",
+        "weight": 400
+      }
+    },
+    "writingGuide": "four-line"
+  },
+  "locales": {
+    "speechRecognition": "ru-RU",
+    "speechSynthesis": "ru"
+  },
+  "features": {
+    "handwritingCheck": false,
+    "typing": true,
+    "speakLetter": true,
+    "ownWord": true
+  },
+  "lookAlikeForm": "secondary",
+  "lookAlikes": [
+    [
+      "be",
+      "ve"
+    ],
+    [
+      "sha",
+      "shcha"
+    ],
+    [
+      "tse",
+      "shcha"
+    ],
+    [
+      "i",
+      "i_kratkoye"
+    ],
+    [
+      "ye",
+      "yo"
+    ],
+    [
+      "myagky_znak",
+      "tvyordy_znak"
+    ],
+    [
+      "e",
+      "ye"
+    ]
+  ],
+  "rainbow": [
+    {
+      "id": "red",
+      "text": "красный",
+      "letter": "ka"
+    },
+    {
+      "id": "orange",
+      "text": "оранжевый",
+      "letter": "o"
+    },
+    {
+      "id": "yellow",
+      "text": "жёлтый",
+      "letter": "zhe"
+    },
+    {
+      "id": "green",
+      "text": "зелёный",
+      "letter": "ze"
+    },
+    {
+      "id": "blue",
+      "text": "синий",
+      "letter": "es"
+    },
+    {
+      "id": "purple",
+      "text": "фиолетовый",
+      "letter": "ef"
+    }
+  ],
+  "letters": [
+    {
+      "id": "a",
+      "char": "А",
+      "secondary": "а",
+      "name": "а",
+      "nameAliases": [
+        "а",
+        "а"
+      ],
+      "sound": "TODO",
+      "ipa": "/a/",
+      "romanization": "a"
+    },
+    {
+      "id": "be",
+      "char": "Б",
+      "secondary": "б",
+      "name": "бэ",
+      "nameAliases": [
+        "б",
+        "бэ"
+      ],
+      "sound": "TODO",
+      "ipa": "/b/",
+      "romanization": "be"
+    },
+    {
+      "id": "ve",
+      "char": "В",
+      "secondary": "в",
+      "name": "вэ",
+      "nameAliases": [
+        "в",
+        "вэ"
+      ],
+      "sound": "TODO",
+      "ipa": "/v/",
+      "romanization": "ve"
+    },
+    {
+      "id": "ge",
+      "char": "Г",
+      "secondary": "г",
+      "name": "гэ",
+      "nameAliases": [
+        "г",
+        "гэ"
+      ],
+      "sound": "TODO",
+      "ipa": "/g/",
+      "romanization": "ge"
+    },
+    {
+      "id": "de",
+      "char": "Д",
+      "secondary": "д",
+      "name": "дэ",
+      "nameAliases": [
+        "д",
+        "дэ"
+      ],
+      "sound": "TODO",
+      "ipa": "/d/",
+      "romanization": "de"
+    },
+    {
+      "id": "ye",
+      "char": "Е",
+      "secondary": "е",
+      "name": "е",
+      "nameAliases": [
+        "е",
+        "е"
+      ],
+      "sound": "TODO",
+      "ipa": "/je/",
+      "romanization": "ye"
+    },
+    {
+      "id": "yo",
+      "char": "Ё",
+      "secondary": "ё",
+      "name": "ё",
+      "nameAliases": [
+        "ё",
+        "ё"
+      ],
+      "sound": "TODO",
+      "ipa": "/jo/",
+      "romanization": "yo"
+    },
+    {
+      "id": "zhe",
+      "char": "Ж",
+      "secondary": "ж",
+      "name": "жэ",
+      "nameAliases": [
+        "ж",
+        "жэ"
+      ],
+      "sound": "TODO",
+      "ipa": "/ʐ/",
+      "romanization": "zhe"
+    },
+    {
+      "id": "ze",
+      "char": "З",
+      "secondary": "з",
+      "name": "зэ",
+      "nameAliases": [
+        "з",
+        "зэ"
+      ],
+      "sound": "TODO",
+      "ipa": "/z/",
+      "romanization": "ze"
+    },
+    {
+      "id": "i",
+      "char": "И",
+      "secondary": "и",
+      "name": "и",
+      "nameAliases": [
+        "и",
+        "и"
+      ],
+      "sound": "TODO",
+      "ipa": "/i/",
+      "romanization": "i"
+    },
+    {
+      "id": "i_kratkoye",
+      "char": "Й",
+      "secondary": "й",
+      "name": "и краткое",
+      "nameAliases": [
+        "й",
+        "и краткое"
+      ],
+      "sound": "TODO",
+      "ipa": "/j/",
+      "romanization": "i_kratkoye"
+    },
+    {
+      "id": "ka",
+      "char": "К",
+      "secondary": "к",
+      "name": "ка",
+      "nameAliases": [
+        "к",
+        "ка"
+      ],
+      "sound": "TODO",
+      "ipa": "/k/",
+      "romanization": "ka"
+    },
+    {
+      "id": "el",
+      "char": "Л",
+      "secondary": "л",
+      "name": "эль",
+      "nameAliases": [
+        "л",
+        "эль"
+      ],
+      "sound": "TODO",
+      "ipa": "/l/",
+      "romanization": "el"
+    },
+    {
+      "id": "em",
+      "char": "М",
+      "secondary": "м",
+      "name": "эм",
+      "nameAliases": [
+        "м",
+        "эм"
+      ],
+      "sound": "TODO",
+      "ipa": "/m/",
+      "romanization": "em"
+    },
+    {
+      "id": "en",
+      "char": "Н",
+      "secondary": "н",
+      "name": "эн",
+      "nameAliases": [
+        "н",
+        "эн"
+      ],
+      "sound": "TODO",
+      "ipa": "/n/",
+      "romanization": "en"
+    },
+    {
+      "id": "o",
+      "char": "О",
+      "secondary": "о",
+      "name": "о",
+      "nameAliases": [
+        "о",
+        "о"
+      ],
+      "sound": "TODO",
+      "ipa": "/o/",
+      "romanization": "o"
+    },
+    {
+      "id": "pe",
+      "char": "П",
+      "secondary": "п",
+      "name": "пэ",
+      "nameAliases": [
+        "п",
+        "пэ"
+      ],
+      "sound": "TODO",
+      "ipa": "/p/",
+      "romanization": "pe"
+    },
+    {
+      "id": "er",
+      "char": "Р",
+      "secondary": "р",
+      "name": "эр",
+      "nameAliases": [
+        "р",
+        "эр"
+      ],
+      "sound": "TODO",
+      "ipa": "/r/",
+      "romanization": "er"
+    },
+    {
+      "id": "es",
+      "char": "С",
+      "secondary": "с",
+      "name": "эс",
+      "nameAliases": [
+        "с",
+        "эс"
+      ],
+      "sound": "TODO",
+      "ipa": "/s/",
+      "romanization": "es"
+    },
+    {
+      "id": "te",
+      "char": "Т",
+      "secondary": "т",
+      "name": "тэ",
+      "nameAliases": [
+        "т",
+        "тэ"
+      ],
+      "sound": "TODO",
+      "ipa": "/t/",
+      "romanization": "te"
+    },
+    {
+      "id": "u",
+      "char": "У",
+      "secondary": "у",
+      "name": "у",
+      "nameAliases": [
+        "у",
+        "у"
+      ],
+      "sound": "TODO",
+      "ipa": "/u/",
+      "romanization": "u"
+    },
+    {
+      "id": "ef",
+      "char": "Ф",
+      "secondary": "ф",
+      "name": "эф",
+      "nameAliases": [
+        "ф",
+        "эф"
+      ],
+      "sound": "TODO",
+      "ipa": "/f/",
+      "romanization": "ef"
+    },
+    {
+      "id": "kha",
+      "char": "Х",
+      "secondary": "х",
+      "name": "ха",
+      "nameAliases": [
+        "х",
+        "ха"
+      ],
+      "sound": "TODO",
+      "ipa": "/x/",
+      "romanization": "kha"
+    },
+    {
+      "id": "tse",
+      "char": "Ц",
+      "secondary": "ц",
+      "name": "цэ",
+      "nameAliases": [
+        "ц",
+        "цэ"
+      ],
+      "sound": "TODO",
+      "ipa": "/ts/",
+      "romanization": "tse"
+    },
+    {
+      "id": "che",
+      "char": "Ч",
+      "secondary": "ч",
+      "name": "че",
+      "nameAliases": [
+        "ч",
+        "че"
+      ],
+      "sound": "TODO",
+      "ipa": "/tɕ/",
+      "romanization": "che"
+    },
+    {
+      "id": "sha",
+      "char": "Ш",
+      "secondary": "ш",
+      "name": "ша",
+      "nameAliases": [
+        "ш",
+        "ша"
+      ],
+      "sound": "TODO",
+      "ipa": "/ʂ/",
+      "romanization": "sha"
+    },
+    {
+      "id": "shcha",
+      "char": "Щ",
+      "secondary": "щ",
+      "name": "ща",
+      "nameAliases": [
+        "щ",
+        "ща"
+      ],
+      "sound": "TODO",
+      "ipa": "/ɕː/",
+      "romanization": "shcha"
+    },
+    {
+      "id": "tvyordy_znak",
+      "char": "Ъ",
+      "secondary": "ъ",
+      "name": "твёрдый знак",
+      "nameAliases": [
+        "ъ",
+        "твёрдый знак"
+      ],
+      "sound": "TODO",
+      "ipa": "silent (hard sign)",
+      "romanization": "tvyordy_znak",
+      "note": "No sound and no word starts with it: teach late, with no words (validation will flag it — explain in NOTES.md)."
+    },
+    {
+      "id": "y",
+      "char": "Ы",
+      "secondary": "ы",
+      "name": "ы",
+      "nameAliases": [
+        "ы",
+        "ы"
+      ],
+      "sound": "TODO",
+      "ipa": "/ɨ/",
+      "romanization": "y",
+      "note": "No everyday word starts with ы: teach inside words (сыр)."
+    },
+    {
+      "id": "myagky_znak",
+      "char": "Ь",
+      "secondary": "ь",
+      "name": "мягкий знак",
+      "nameAliases": [
+        "ь",
+        "мягкий знак"
+      ],
+      "sound": "TODO",
+      "ipa": "silent (soft sign)",
+      "romanization": "myagky_znak",
+      "note": "No sound and no word starts with it: teach late, with no words."
+    },
+    {
+      "id": "e",
+      "char": "Э",
+      "secondary": "э",
+      "name": "э",
+      "nameAliases": [
+        "э",
+        "э"
+      ],
+      "sound": "TODO",
+      "ipa": "/e/",
+      "romanization": "e"
+    },
+    {
+      "id": "yu",
+      "char": "Ю",
+      "secondary": "ю",
+      "name": "ю",
+      "nameAliases": [
+        "ю",
+        "ю"
+      ],
+      "sound": "TODO",
+      "ipa": "/ju/",
+      "romanization": "yu"
+    },
+    {
+      "id": "ya",
+      "char": "Я",
+      "secondary": "я",
+      "name": "я",
+      "nameAliases": [
+        "я",
+        "я"
+      ],
+      "sound": "TODO",
+      "ipa": "/ja/",
+      "romanization": "ya"
+    }
+  ]
+}

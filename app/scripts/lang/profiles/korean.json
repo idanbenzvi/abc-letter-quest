@@ -1,0 +1,417 @@
+{
+  "profile": "korean",
+  "name": "Korean",
+  "nativeName": "한국어",
+  "script": {
+    "id": "hangul",
+    "direction": "ltr",
+    "forms": {
+      "model": "none",
+      "primaryLabel": "Letter",
+      "secondaryLabel": null,
+      "introduceSecondaryFromBox": 4
+    },
+    "fonts": {
+      "display": {
+        "family": "Jua",
+        "weight": 400
+      },
+      "ui": {
+        "family": "Gowun Dodum",
+        "weight": 400
+      }
+    },
+    "writingGuide": "grid"
+  },
+  "locales": {
+    "speechRecognition": "ko-KR",
+    "speechSynthesis": "ko"
+  },
+  "features": {
+    "handwritingCheck": false,
+    "typing": true,
+    "speakLetter": true,
+    "ownWord": true
+  },
+  "lookAlikeForm": "primary",
+  "lookAlikes": [
+    [
+      "giyeok",
+      "kieuk"
+    ],
+    [
+      "digeut",
+      "tieut"
+    ],
+    [
+      "bieup",
+      "pieup"
+    ],
+    [
+      "jieut",
+      "chieut"
+    ],
+    [
+      "a",
+      "eo"
+    ],
+    [
+      "o",
+      "u"
+    ],
+    [
+      "ya",
+      "yeo"
+    ],
+    [
+      "yo",
+      "yu"
+    ]
+  ],
+  "rainbow": [
+    {
+      "id": "red",
+      "text": "빨강",
+      "letter": null
+    },
+    {
+      "id": "orange",
+      "text": "주황",
+      "letter": "jieut"
+    },
+    {
+      "id": "yellow",
+      "text": "노랑",
+      "letter": "nieun"
+    },
+    {
+      "id": "green",
+      "text": "초록",
+      "letter": "chieut"
+    },
+    {
+      "id": "blue",
+      "text": "파랑",
+      "letter": "pieup"
+    },
+    {
+      "id": "purple",
+      "text": "보라",
+      "letter": "bieup"
+    }
+  ],
+  "letters": [
+    {
+      "id": "giyeok",
+      "char": "ㄱ",
+      "secondary": null,
+      "name": "기역",
+      "nameAliases": [
+        "ㄱ",
+        "기역"
+      ],
+      "sound": "TODO",
+      "ipa": "/k/, /g/",
+      "romanization": "giyeok"
+    },
+    {
+      "id": "nieun",
+      "char": "ㄴ",
+      "secondary": null,
+      "name": "니은",
+      "nameAliases": [
+        "ㄴ",
+        "니은"
+      ],
+      "sound": "TODO",
+      "ipa": "/n/",
+      "romanization": "nieun"
+    },
+    {
+      "id": "digeut",
+      "char": "ㄷ",
+      "secondary": null,
+      "name": "디귿",
+      "nameAliases": [
+        "ㄷ",
+        "디귿"
+      ],
+      "sound": "TODO",
+      "ipa": "/t/, /d/",
+      "romanization": "digeut"
+    },
+    {
+      "id": "rieul",
+      "char": "ㄹ",
+      "secondary": null,
+      "name": "리을",
+      "nameAliases": [
+        "ㄹ",
+        "리을"
+      ],
+      "sound": "TODO",
+      "ipa": "/ɾ/, /l/",
+      "romanization": "rieul"
+    },
+    {
+      "id": "mieum",
+      "char": "ㅁ",
+      "secondary": null,
+      "name": "미음",
+      "nameAliases": [
+        "ㅁ",
+        "미음"
+      ],
+      "sound": "TODO",
+      "ipa": "/m/",
+      "romanization": "mieum"
+    },
+    {
+      "id": "bieup",
+      "char": "ㅂ",
+      "secondary": null,
+      "name": "비읍",
+      "nameAliases": [
+        "ㅂ",
+        "비읍"
+      ],
+      "sound": "TODO",
+      "ipa": "/p/, /b/",
+      "romanization": "bieup"
+    },
+    {
+      "id": "siot",
+      "char": "ㅅ",
+      "secondary": null,
+      "name": "시옷",
+      "nameAliases": [
+        "ㅅ",
+        "시옷"
+      ],
+      "sound": "TODO",
+      "ipa": "/s/",
+      "romanization": "siot"
+    },
+    {
+      "id": "ieung",
+      "char": "ㅇ",
+      "secondary": null,
+      "name": "이응",
+      "nameAliases": [
+        "ㅇ",
+        "이응"
+      ],
+      "sound": "TODO",
+      "ipa": "silent / /ŋ/",
+      "romanization": "ieung"
+    },
+    {
+      "id": "jieut",
+      "char": "ㅈ",
+      "secondary": null,
+      "name": "지읒",
+      "nameAliases": [
+        "ㅈ",
+        "지읒"
+      ],
+      "sound": "TODO",
+      "ipa": "/tɕ/",
+      "romanization": "jieut"
+    },
+    {
+      "id": "chieut",
+      "char": "ㅊ",
+      "secondary": null,
+      "name": "치읓",
+      "nameAliases": [
+        "ㅊ",
+        "치읓"
+      ],
+      "sound": "TODO",
+      "ipa": "/tɕʰ/",
+      "romanization": "chieut"
+    },
+    {
+      "id": "kieuk",
+      "char": "ㅋ",
+      "secondary": null,
+      "name": "키읔",
+      "nameAliases": [
+        "ㅋ",
+        "키읔"
+      ],
+      "sound": "TODO",
+      "ipa": "/kʰ/",
+      "romanization": "kieuk"
+    },
+    {
+      "id": "tieut",
+      "char": "ㅌ",
+      "secondary": null,
+      "name": "티읕",
+      "nameAliases": [
+        "ㅌ",
+        "티읕"
+      ],
+      "sound": "TODO",
+      "ipa": "/tʰ/",
+      "romanization": "tieut"
+    },
+    {
+      "id": "pieup",
+      "char": "ㅍ",
+      "secondary": null,
+      "name": "피읖",
+      "nameAliases": [
+        "ㅍ",
+        "피읖"
+      ],
+      "sound": "TODO",
+      "ipa": "/pʰ/",
+      "romanization": "pieup"
+    },
+    {
+      "id": "hieut",
+      "char": "ㅎ",
+      "secondary": null,
+      "name": "히읗",
+      "nameAliases": [
+        "ㅎ",
+        "히읗"
+      ],
+      "sound": "TODO",
+      "ipa": "/h/",
+      "romanization": "hieut"
+    },
+    {
+      "id": "a",
+      "char": "ㅏ",
+      "secondary": null,
+      "name": "아",
+      "nameAliases": [
+        "ㅏ",
+        "아"
+      ],
+      "sound": "TODO",
+      "ipa": "/a/",
+      "romanization": "a"
+    },
+    {
+      "id": "ya",
+      "char": "ㅑ",
+      "secondary": null,
+      "name": "야",
+      "nameAliases": [
+        "ㅑ",
+        "야"
+      ],
+      "sound": "TODO",
+      "ipa": "/ja/",
+      "romanization": "ya"
+    },
+    {
+      "id": "eo",
+      "char": "ㅓ",
+      "secondary": null,
+      "name": "어",
+      "nameAliases": [
+        "ㅓ",
+        "어"
+      ],
+      "sound": "TODO",
+      "ipa": "/ʌ/",
+      "romanization": "eo"
+    },
+    {
+      "id": "yeo",
+      "char": "ㅕ",
+      "secondary": null,
+      "name": "여",
+      "nameAliases": [
+        "ㅕ",
+        "여"
+      ],
+      "sound": "TODO",
+      "ipa": "/jʌ/",
+      "romanization": "yeo"
+    },
+    {
+      "id": "o",
+      "char": "ㅗ",
+      "secondary": null,
+      "name": "오",
+      "nameAliases": [
+        "ㅗ",
+        "오"
+      ],
+      "sound": "TODO",
+      "ipa": "/o/",
+      "romanization": "o"
+    },
+    {
+      "id": "yo",
+      "char": "ㅛ",
+      "secondary": null,
+      "name": "요",
+      "nameAliases": [
+        "ㅛ",
+        "요"
+      ],
+      "sound": "TODO",
+      "ipa": "/jo/",
+      "romanization": "yo"
+    },
+    {
+      "id": "u",
+      "char": "ㅜ",
+      "secondary": null,
+      "name": "우",
+      "nameAliases": [
+        "ㅜ",
+        "우"
+      ],
+      "sound": "TODO",
+      "ipa": "/u/",
+      "romanization": "u"
+    },
+    {
+      "id": "yu",
+      "char": "ㅠ",
+      "secondary": null,
+      "name": "유",
+      "nameAliases": [
+        "ㅠ",
+        "유"
+      ],
+      "sound": "TODO",
+      "ipa": "/ju/",
+      "romanization": "yu"
+    },
+    {
+      "id": "eu",
+      "char": "ㅡ",
+      "secondary": null,
+      "name": "으",
+      "nameAliases": [
+        "ㅡ",
+        "으"
+      ],
+      "sound": "TODO",
+      "ipa": "/ɯ/",
+      "romanization": "eu"
+    },
+    {
+      "id": "i",
+      "char": "ㅣ",
+      "secondary": null,
+      "name": "이",
+      "nameAliases": [
+        "ㅣ",
+        "이"
+      ],
+      "sound": "TODO",
+      "ipa": "/i/",
+      "romanization": "i"
+    }
+  ]
+}

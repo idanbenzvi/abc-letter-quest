@@ -135,11 +135,6 @@ permission, contact me through [my GitHub profile](https://github.com/idanbenzvi
 These parts belong to others and remain under their own licenses. The
 proprietary license above does not apply to them:
 
-- **Ocean and sky shader** (`app/src/three/oceanSky.ts`): adapted from
-  ["Oceanara"](https://codepen.io/Julibe/pen/GgjjpeB) by Julibe, whose core
-  is ["Seascape"](https://www.shadertoy.com/view/Ms2SD1) by Alexander
-  Alekseev (TDM), licensed
-  [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 - **Albatross photograph** (`app/public/art/albatross-photo.jpg`):
   [JJ Harrison](https://commons.wikimedia.org/wiki/File:Diomedea_exulans_-_SE_Tasmania.jpg),
   [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/).

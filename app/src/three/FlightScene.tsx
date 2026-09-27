@@ -889,9 +889,8 @@ export function FlightScene({
 
     // Dev ocean/sky tuning takes the camera away from the automatic
     // flight-cam entirely — OrbitControls (below) owns it via mouse
-    // drag/scroll instead, matching the original Oceanara CodePen's own
-    // free-look/orbit/zoom, which the tuning panel otherwise lacked
-    // (sliders only). Skipping this block is enough; OceanSky already
+    // drag/scroll instead, a free-look/orbit/zoom the tuning panel
+    // otherwise lacked (sliders only). Skipping this block is enough; OceanSky already
     // reads whatever the "real" camera is doing each frame regardless
     // of who's driving it.
     // Chase-cam weight: the camera's own lateral position trails the
@@ -956,9 +955,8 @@ export function FlightScene({
   return (
     <>
       {devOcean && (
-        // Free mouse-drag orbit + scroll-to-zoom, exactly what the
-        // original Oceanara CodePen had for inspecting its scene — the
-        // tuning panel's sliders alone weren't a substitute for being
+        // Free mouse-drag orbit + scroll-to-zoom for inspecting the
+        // scene — the tuning panel's sliders alone weren't a substitute for being
         // able to actually look around. Seeded from wherever the
         // automatic flight-cam last pointed (lookTarget), so opening
         // the panel doesn't yank the view somewhere unrelated.

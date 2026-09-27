@@ -1,22 +1,32 @@
 // Raymarched sky + ocean shader — see docs/07-architecture.md#flight-game.
 //
-// Ported and trimmed from "Oceanara" by Julibe (https://codepen.io/Julibe/pen/GgjjpeB),
-// whose sea/sky raymarching core is itself the classic "Seascape" shader
-// by TDM (Shadertoy: https://www.shadertoy.com/view/Ms2SD1) — a
-// widely-taught, freely-adapted reference technique. This port strips
-// Oceanara's demo-only scaffolding (the reflective beach ball + its
-// physics, the GSAP-tweened sidebar controls, mouse-drag camera) and
-// keeps exactly the sky + ocean raymarch, re-exposed as plain uniforms
-// for a React Three Fiber component to drive (see OceanSky.tsx).
+// Written from scratch for this project. The techniques are the standard,
+// long-published ones for a procedural ocean backdrop — none of the code
+// comes from any other shader:
+//   - Sea surface: a sum of directional travelling waves with sharpened
+//     crests (h = A * exp(c * (sin(phase) - 1))), deep-water dispersion
+//     for their speeds, and analytic derivatives for the normals.
+//   - Intersection: march the ray through the slab the waves can occupy,
+//     then refine the first crossing by bisection.
+//   - Shading: Schlick Fresnel between a reflected sky and a tinted water
+//     body, a specular sun glint, and distance haze into the horizon.
+//   - Sky: a zenith-to-horizon gradient blended by the sun's elevation,
+//     a directional dusk glow, sun/moon discs and hashed stars.
 //
 // This is a FULLSCREEN effect, not real 3D geometry: a 2-triangle quad
-// whose fragment shader raymarches an implicit height-field ocean and a
-// procedural sky per pixel. The "camera" that ray-marches through it is
+// whose fragment shader traces an implicit height-field ocean and a
+// procedural sky per pixel. The "camera" that traces through it is
 // entirely described by the uniforms below (position via
-// uCameraOffset/uCameraHeight + time*uCameraSpeed, look direction via
-// uCameraRotX/Y/Z + uZoom) — OceanSky.tsx keeps those in sync with the
-// scene's real Three.js camera every frame, so real 3D objects (the
-// bird, the letter-clouds) line up with this painted backdrop.
+// uCameraOffset/uCameraHeight, look direction via uCameraRotX/Y/Z +
+// uZoom) — OceanSky.tsx keeps those in sync with the scene's real
+// Three.js camera every frame, so real 3D objects (the bird, the
+// letter-clouds) line up with this painted backdrop.
+//
+// Camera convention (kept identical to what OceanSky.tsx sends):
+// uCameraRotZ is yaw (atan2(fwd.x, -fwd.z)), uCameraRotY is pitch with
+// the painted sea MIRRORED (forward.y = -sin(uCameraRotY) — the game's
+// framing was tuned on that look; see OceanSky.tsx's truePitchRef), and
+// uCameraRotX is roll.
 
 export const oceanVertexShader = /* glsl */ `
   void main() {
@@ -26,8 +36,8 @@ export const oceanVertexShader = /* glsl */ `
 
 /**
  * The raymarch's cost knobs — steps to find the sea surface per pixel,
- * plus wave octaves for the coarse (vertex-equivalent) and fine
- * (normal/lighting) height field. This is a fullscreen fragment shader
+ * plus how many waves shape the surface the ray hits (geometry) and
+ * how many shade it (normals/lighting). This is a fullscreen fragment shader
  * (see the file-header comment above), so its cost scales with screen
  * pixels, not scene complexity — exactly the kind of shader mobile GPUs
  * struggle with at desktop settings. Reported directly by the user
@@ -47,10 +57,10 @@ export interface OceanQuality {
  * recompile, which would itself be a visible hitch.
  */
 export const OCEAN_QUALITY_HIGH: OceanQuality = { numSteps: 32, iterGeometry: 3, iterFragment: 5 };
-/** The least detail calibration will go to — still recognisably the same sea (the two big swell octaves always stay). */
+/** The least detail calibration will go to — still recognisably the same sea (the big swells always stay). */
 const OCEAN_DETAIL_FLOOR: OceanQuality = { numSteps: 10, iterGeometry: 2, iterFragment: 2.5 };
 
-/** Maps a 0..1 detail level to the shader's live loop budgets. Octave counts are fractional on purpose: the last octave's weight fades rather than popping. */
+/** Maps a 0..1 detail level to the shader's live loop budgets. Wave counts are fractional on purpose: the last wave's weight fades rather than popping. */
 export function oceanDetailUniforms(detail: number): OceanQuality {
   const lerp = (a: number, b: number) => a + (b - a) * detail;
   return {
@@ -103,8 +113,7 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
 
   // Streak-reward rainbow (see OceanSky.tsx's \`rainbow\` prop). Drawn
   // HERE rather than as a mesh because the ocean's reflections are
-  // computed in this shader — the same reason Oceanara's beach ball
-  // lived in its shader: anything outside it can't show up in the water.
+  // computed in this shader: anything outside it can't show up in the water.
   // A child's rainbow: six solid bands, red outside to purple inside.
   uniform float uRainbowAlpha;      // 0 = off (whole feature skipped), 1 = fully faded in
   uniform vec3 uRainbowCenter;      // arc centre, world space; the arc faces +z (toward the camera)
@@ -114,197 +123,231 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
   uniform float uRainbowBreath;     // 0..1, the glow's current swell
   uniform vec3 uRainbowColors[6];   // outermost first, pre-compensated for mainImage's output curve
 
-  const int NUM_STEPS = ${quality.numSteps};
-  const float PI      = 3.141592;
-  const float EPSILON = 1e-3;
-  #define EPSILON_NRM (0.1 / iResolution.x)
+  const float PI = 3.14159265359;
+  // Compiled loop ceilings; the loops stop early at the live uniforms.
+  const int MAX_MARCH = ${quality.numSteps};
+  const int MAX_GEO_WAVES = ${Math.ceil(quality.iterGeometry * 3)};
+  const int MAX_DETAIL_WAVES = ${Math.ceil(quality.iterFragment * 4)};
+  const float TAU = 6.28318530718;
+  const float FAR = 900.0;
 
-  const int ITER_GEOMETRY = ${quality.iterGeometry};
-  const int ITER_FRAGMENT = ${quality.iterFragment};
-  #define SEA_TIME (1.0 + iTime * uSeaSpeed)
-  const mat2 octave_m = mat2(1.6,1.2,-1.2,1.6);
+  // ---- hashing (integer avalanche hash, unlike the usual sin-fract) ----
+  uint hashU(uint x) {
+      x ^= x >> 16; x *= 0x7feb352du;
+      x ^= x >> 15; x *= 0x846ca68bu;
+      x ^= x >> 16;
+      return x;
+  }
+  float hash3(vec3 p) {
+      uvec3 q = uvec3(ivec3(floor(p)) + 32768);
+      return float(hashU(q.x ^ hashU(q.y ^ hashU(q.z)))) / 4294967295.0;
+  }
+  float hash2(vec2 p) { return hash3(vec3(p, 17.0)); }
 
-  mat3 fromEuler(vec3 ang) {
-      vec2 a1 = vec2(sin(ang.x),cos(ang.x));
-      vec2 a2 = vec2(sin(ang.y),cos(ang.y));
-      vec2 a3 = vec2(sin(ang.z),cos(ang.z));
-      mat3 m;
-      m[0] = vec3(a1.y*a3.y+a1.x*a2.x*a3.x,a1.y*a2.x*a3.x+a3.y*a1.x,-a2.y*a3.x);
-      m[1] = vec3(-a2.y*a1.x,a1.y*a2.y,a2.x);
-      m[2] = vec3(a3.y*a1.x*a2.x+a1.y*a3.x,a1.x*a3.x-a1.y*a3.y*a2.x,a2.y*a3.y);
-      return m;
+  // Smooth 2D value noise — only used for the moon's surface markings.
+  float valueNoise(vec2 p) {
+      vec2 i = floor(p), f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash2(i), hash2(i + vec2(1, 0)), u.x),
+                 mix(hash2(i + vec2(0, 1)), hash2(i + vec2(1, 1)), u.x), u.y);
   }
 
-  float hash( vec2 p ) {
-      float h = dot(p,vec2(127.1,311.7));
-      return fract(sin(h)*43758.5453123);
+  // ---- sun & moon placement from the clock ----
+  // The sun rises on the right (+x), climbs ahead of the flight path
+  // (-z) and sets on the left. The moon rises opposite the setting sun,
+  // on the right, and by night rides high enough to clear the
+  // letter-clouds dead ahead while staying in frame on a portrait phone.
+  vec3 sunDirection() {
+      float a = (uTimeOfDay - 6.0) / 12.0 * PI;
+      return normalize(vec3(cos(a) * 0.9, sin(a) * 0.8, -1.15));
+  }
+  vec3 moonDirection() {
+      float t = uTimeOfDay < 12.0 ? uTimeOfDay + 24.0 : uTimeOfDay;
+      float a = (t - 16.0) / 14.0 * PI;
+      return normalize(vec3(cos(a) * 0.75 + 0.15, sin(a) * 0.62, -1.1));
   }
 
-  float noise( in vec2 p ) {
-      vec2 i = floor( p );
-      vec2 f = fract( p );
-      vec2 u = f*f*(3.0-2.0*f);
-      return -1.0+2.0*mix( mix( hash( i + vec2(0.0,0.0) ),
-                            hash( i + vec2(1.0,0.0) ), u.x),
-                      mix( hash( i + vec2(0.0,1.0) ),
-                            hash( i + vec2(1.0,1.0) ), u.x), u.y);
+  // 0 at night, 1 in full day; and a bump while the sun is near the horizon.
+  float daylight(vec3 sun) { return smoothstep(-0.12, 0.3, sun.y); }
+  float duskness(vec3 sun) { return 1.0 - smoothstep(0.0, 0.32, abs(sun.y - 0.03)); }
+
+  // ---- sky ----
+  vec3 skyGradient(vec3 dir, vec3 sun, float day, float dusk) {
+      float up = max(dir.y, 0.0);
+      vec3 zenith = mix(uNightSkyColor, uDaySkyColor, day);
+      vec3 horizon = mix(uNightSkyColor * 1.8 + vec3(0.02, 0.025, 0.04),
+                         mix(uDaySkyColor, vec3(0.92, 0.95, 1.0), 0.6), day);
+      // Dusk warms the horizon, strongest on the sun's side of the sky.
+      vec2 flatDir = normalize(dir.xz + vec2(1e-5));
+      vec2 flatSun = normalize(sun.xz + vec2(1e-5));
+      float sunSide = 0.35 + 0.65 * max(dot(flatDir, flatSun), 0.0);
+      horizon = mix(horizon, uSunsetSkyColor, dusk * sunSide * 0.85);
+      zenith = mix(zenith, mix(uSunsetSkyColor, uNightSkyColor, 0.6), dusk * 0.35);
+      return mix(zenith, horizon, pow(1.0 - up, 3.5));
   }
 
-  float diffuse(vec3 n,vec3 l,float p) {
-      return pow(dot(n,l) * 0.4 + 0.6,p);
-  }
+  vec3 skyColor(vec3 dir, bool withDiscs) {
+      vec3 sun = sunDirection();
+      vec3 moon = moonDirection();
+      float day = daylight(sun);
+      float dusk = duskness(sun);
+      vec3 col = skyGradient(dir, sun, day, dusk);
 
-  float specular(vec3 n,vec3 l,vec3 e,float s) {
-      float nrm = (s + 8.0) / (PI * 8.0);
-      return pow(max(dot(reflect(e,n),l),0.0),s) * nrm;
-  }
-
-  // levelY is the ray's vertical angle measured with yaw removed (pitch
-  // only), so the atmospheric horizon band stays a level, fixed-height
-  // gradient on screen instead of tracing a curve whenever the camera
-  // yaws (turning the ship). Sun/moon/star placement below still uses
-  // the real, fully-rotated e direction so they track true heading.
-  vec3 getSkyColor(vec3 e, vec3 lightDir, float levelY) {
-      float e_y = max(levelY, 0.0);
-
-      float sun_cycle = sin((uTimeOfDay / 24.0) * PI * 2.0 - PI/2.0);
-      float day_blend = clamp(sun_cycle * 2.0, 0.0, 1.0);
-      float sunset_blend = clamp(1.0 - abs(sun_cycle * 3.0), 0.0, 1.0);
-
-      vec3 horizon_color = mix(vec3(1.0, 1.0, 1.0), uDaySkyColor, 0.3);
-      vec3 day_sky = mix(horizon_color, uDaySkyColor, e_y) * 1.1;
-
-      vec3 night_sky = uNightSkyColor - e_y * 0.02;
-      vec3 sunset_sky = uSunsetSkyColor * (1.0 - e_y);
-
-      vec3 sky = mix(night_sky, day_sky, day_blend);
-      sky = mix(sky, sunset_sky, sunset_blend * max(0.0, 1.0 - e_y * 2.0));
-
-      float theta = (uTimeOfDay / 24.0) * PI * 2.0;
-      float cos_t = cos(theta);
-      float sin_t = sin(theta);
-      mat2 rot_matrix = mat2(cos_t, -sin_t, sin_t, cos_t);
-
-      vec3 star_e = e;
-      star_e.xy = rot_matrix * star_e.xy;
-
-      float star_noise = hash(star_e.xy * 300.0 + star_e.z * 300.0);
-      float stars = pow(clamp(star_noise - 0.998, 0.0, 1.0) * 500.0, 2.0);
-      stars *= (0.5 + 0.5 * sin(iTime * 2.0 + star_noise * 100.0));
-      sky += vec3(stars) * uStarIntensity * max(0.0, 1.0 - day_blend - sunset_blend * 0.5);
-
-      float sun_dot = clamp(dot(e, lightDir), 0.0, 1.0);
-      float sun_disk = smoothstep(1.0 - uSunSize, 1.0 - uSunSize + 0.002, sun_dot);
-      float sun_glow = pow(sun_dot, 25.0);
-      sky += uSunColor * sun_disk * 2.0 * max(0.0, day_blend);
-      sky += vec3(1.0, 0.6, 0.2) * sun_glow * sunset_blend * 1.5;
-      sky += vec3(1.0, 0.8, 0.5) * pow(sun_dot, 50.0) * 0.8 * max(0.0, day_blend);
-
-      // Same general direction as the sun (lightDir), not diametrically
-      // opposite it: the camera in this game always faces roughly
-      // toward wherever the sun sits (that's the whole "flying into the
-      // sunset" framing), so a moon placed opposite the sun sits
-      // directly behind the camera all game — mathematically present,
-      // never actually seen. Placing it near the sun's own direction
-      // (elevated a bit higher) is what makes it read as "the moon
-      // replaces the sun" instead of "the moon exists somewhere I'm
-      // not looking."
-      // Elevation lowered (was -ly*0.3+0.55, ~40-60deg up): the chase
-      // cam's 60deg vertical FOV only ever caught the moon's halo in a
-      // top corner, never the disc itself — checked in night captures.
-      vec3 moon_dir = normalize(vec3(lightDir.x, -lightDir.y * 0.15 + 0.34, lightDir.z));
-      float b = dot(e, moon_dir);
-      float c = 1.0 - (uMoonSize * uMoonSize);
-      float d = b * b - c;
-
-      if (d > 0.0 && b > 0.0) {
-          float t = b - sqrt(d);
-          vec3 p = e * t;
-          vec3 n = normalize(p - moon_dir);
-
-          float nse = noise(n.xy * 15.0) * 0.5 + 0.5;
-          nse *= noise(n.yz * 30.0) * 0.5 + 0.5;
-
-          // A storybook full moon lit from the viewer's side (limb
-          // darkening from the sphere normal vs. the view ray), not a
-          // fixed side-light: the original half-lit shading put a pure
-          // black unlit hemisphere against the dusk sky, which read as a
-          // black hole punched into the orange (seen in real captures at
-          // t~6.5 and t~19-20, not theorized).
-          float dif = max(dot(n, -e), 0.0);
-          vec3 moon_base_col = uMoonColor * (0.35 + 0.65 * dif) * (0.7 + 0.3 * nse) * 1.15;
-          // Only the disc blends in (soft limb), the halo below stays
-          // additive; cubic falloff on day_blend means it's gone by
-          // mid-morning instead of lingering as a ~40% grey ghost, and
-          // the sunset term keeps it out of the orange band.
-          float moon_night = max(0.0, 1.0 - day_blend);
-          float moon_vis = moon_night * moon_night * moon_night * (1.0 - sunset_blend * 0.85);
-          float limb = smoothstep(0.0, 0.18, dif);
-          sky = mix(sky, moon_base_col, moon_vis * limb);
-      } else {
-          float moon_dot = clamp(dot(e, moon_dir), 0.0, 1.0);
-          float moon_glow = pow(moon_dot, 80.0);
-          sky += vec3(0.3, 0.4, 0.6) * moon_glow * 0.8 * max(0.0, 1.0 - day_blend) * (1.0 - sunset_blend * 0.85);
+      // Sun: a wide soft glow plus a bright core, fading out below the horizon.
+      float sunUp = smoothstep(-0.08, 0.04, sun.y);
+      float cs = max(dot(dir, sun), 0.0);
+      vec3 sunTint = mix(uSunColor, uSunsetSkyColor + vec3(0.25, 0.2, 0.1), dusk * 0.6);
+      col += sunTint * (pow(cs, 6.0) * 0.18 + pow(cs, 60.0) * 0.35) * sunUp;
+      if (withDiscs) {
+          float sunDisc = smoothstep(uSunSize * 0.7, uSunSize * 0.3, 1.0 - cs);
+          col = mix(col, sunTint * 1.6 + 0.3, sunDisc * sunUp);
       }
 
-      return sky;
+      // Moon and stars fade in as the daylight goes.
+      float night = 1.0 - day;
+      float moonUp = smoothstep(-0.02, 0.06, moon.y) * smoothstep(0.35, 0.05, day);
+      float cm = max(dot(dir, moon), 0.0);
+      col += uMoonColor * pow(cm, 40.0) * 0.12 * moonUp;
+      if (withDiscs && moonUp > 0.0) {
+          float moonRadius = uMoonSize * 1.2;
+          float ang = acos(clamp(cm, -1.0, 1.0));
+          float disc = smoothstep(moonRadius, moonRadius * 0.9, ang);
+          if (disc > 0.0) {
+              vec3 side = normalize(cross(moon, vec3(0.0, 1.0, 0.0)));
+              vec3 upv = cross(side, moon);
+              vec2 uv = vec2(dot(dir, side), dot(dir, upv)) / moonRadius;
+              float marks = valueNoise(uv * 3.0 + 4.0) * 0.6 + valueNoise(uv * 7.0) * 0.4;
+              vec3 face = uMoonColor * (0.8 + 0.35 * marks);
+              col = mix(col, face, disc * moonUp);
+          }
+      }
+      if (withDiscs && night > 0.0 && dir.y > 0.0) {
+          vec3 cell = dir * 160.0;
+          float h = hash3(cell);
+          if (h > 0.9965) {
+              vec3 f = fract(cell) - 0.5;
+              float point = smoothstep(0.35, 0.0, length(f));
+              float twinkle = 0.65 + 0.35 * sin(iTime * (1.5 + h * 40.0) + h * 300.0);
+              col += vec3(point * twinkle * uStarIntensity * 0.5 * night * smoothstep(0.0, 0.25, dir.y));
+          }
+      }
+      return col;
   }
 
-  vec3 getSkyColor(vec3 e, vec3 lightDir) {
-      return getSkyColor(e, lightDir, e.y);
+  // ---- sea surface ----
+  // Wave i of the set: direction, wavenumber, amplitude and phase offset.
+  // Directions scatter around the wind (toward the camera, +z) by the
+  // golden angle so no two waves line up; each wave is a bit shorter and
+  // much lower than the last.
+  void waveParams(int i, out vec2 d, out float k, out float amp, out float phase0) {
+      float fi = float(i);
+      float a = 1.05 * sin(fi * 2.39996323) + 0.15;
+      d = vec2(sin(a), cos(a));
+      k = uSeaFreq * 2.6 * pow(1.21, fi);
+      amp = uSeaHeight * 0.7 * pow(0.8, fi);
+      phase0 = fi * 1.618 * TAU;
   }
 
-  float sea_octave(vec2 uv, float choppy) {
-      uv += noise(uv);
-      vec2 wv = 1.0-abs(sin(uv));
-      vec2 swv = abs(cos(uv));
-      wv = mix(wv,swv,wv);
-      return pow(1.0-pow(wv.x * wv.y,0.65),choppy);
+  float crestSharpness() { return 0.45 * uSeaChoppy; }
+
+  // Mean of exp(c * (sin x - 1)) over a period, e^-c * I0(c), so each
+  // wave can be centred on y = 0 (the bird skims the mean sea level).
+  float crestMean(float c) {
+      float c2 = c * c;
+      float i0 = 1.0 + c2 / 4.0 + c2 * c2 / 64.0 + c2 * c2 * c2 / 2304.0;
+      return exp(-c) * i0;
   }
 
-  float map(vec3 p) {
-      float freq = uSeaFreq;
-      float amp = uSeaHeight;
-      float choppy = uSeaChoppy;
-      vec2 uv = p.xz; uv.x *= 0.75;
+  float waveTime() { return iTime * uSeaSpeed; }
 
-      float d, h = 0.0;
-      for(int i = 0; i < ITER_GEOMETRY; i++) {
-          float w = clamp(uIterGeometry - float(i), 0.0, 1.0);
+  // Height only — used by the march, over the (fewer) geometry waves.
+  float seaHeight(vec2 xz) {
+      float c = crestSharpness();
+      float mean = crestMean(c);
+      float t = waveTime();
+      float h = 0.0;
+      for (int i = 0; i < MAX_GEO_WAVES; i++) {
+          float w = clamp(uIterGeometry * 3.0 - float(i), 0.0, 1.0);
           if (w <= 0.0) break;
-          d = sea_octave((uv+SEA_TIME)*freq,choppy);
-          d += sea_octave((uv-SEA_TIME)*freq,choppy);
-          h += d * amp * w;
-          uv *= octave_m; freq *= 1.9; amp *= 0.22;
-          choppy = mix(choppy,1.0,0.2);
+          vec2 d; float k, amp, ph;
+          waveParams(i, d, k, amp, ph);
+          float phase = k * dot(d, xz) - sqrt(9.8 * k) * 0.45 * t + ph;
+          h += w * amp * (exp(c * (sin(phase) - 1.0)) - mean);
       }
-      return p.y - h;
+      return h;
   }
 
-  float map_detailed(vec3 p) {
-      float freq = uSeaFreq;
-      float amp = uSeaHeight;
-      float choppy = uSeaChoppy;
-      vec2 uv = p.xz; uv.x *= 0.75;
-
-      float d, h = 0.0;
-      for(int i = 0; i < ITER_FRAGMENT; i++) {
-          float w = clamp(uIterFragment - float(i), 0.0, 1.0);
+  // Height, gradient (in .yz) and a crest measure (in .w) over the detail
+  // waves. Waves too short to resolve at this distance fade out instead
+  // of shimmering.
+  vec4 seaDetail(vec2 xz, float footprint) {
+      float c = crestSharpness();
+      float mean = crestMean(c);
+      float t = waveTime();
+      float h = 0.0, crest = 0.0;
+      vec2 grad = vec2(0.0);
+      for (int i = 0; i < MAX_DETAIL_WAVES; i++) {
+          float w = clamp(uIterFragment * 4.0 - float(i), 0.0, 1.0);
           if (w <= 0.0) break;
-          d = sea_octave((uv+SEA_TIME)*freq,choppy);
-          d += sea_octave((uv-SEA_TIME)*freq,choppy);
-          h += d * amp * w;
-          uv *= octave_m; freq *= 1.9; amp *= 0.22;
-          choppy = mix(choppy,1.0,0.2);
+          vec2 d; float k, amp, ph;
+          waveParams(i, d, k, amp, ph);
+          w *= smoothstep(2.0, 6.0, (TAU / k) / footprint);
+          if (w <= 0.0) continue;
+          float phase = k * dot(d, xz) - sqrt(9.8 * k) * 0.45 * t + ph;
+          float s = exp(c * (sin(phase) - 1.0));
+          h += w * amp * (s - mean);
+          grad += w * amp * c * cos(phase) * s * k * d;
+          crest += w * amp * s;
       }
-
       if (uSeaRipples > 0.0) {
-          h += sin(uv.x * 25.0 + iTime * 4.0) * cos(uv.y * 25.0 + iTime * 4.0) * (uSeaRipples * 0.005);
+          // Fine, fast cat's-paw ripples — normals only, never geometry.
+          float r = uSeaRipples * 0.06 * smoothstep(0.6, 0.05, footprint);
+          vec2 q = xz * 3.1 + vec2(iTime * 0.9, -iTime * 0.7);
+          grad += r * vec2(cos(q.x) * cos(q.y * 1.3), -sin(q.x) * sin(q.y * 1.3) * 1.3);
       }
-
-      return p.y - h;
+      return vec4(h, grad, crest);
   }
 
+  float slabHalfHeight() {
+      // Upper bound on |h| for the geometry waves.
+      float total = 0.0;
+      for (int i = 0; i < MAX_GEO_WAVES; i++) total += uSeaHeight * 0.7 * pow(0.8, float(i));
+      return total + 0.05;
+  }
+
+  // Distance along the ray to the sea surface, or -1 for a sky pixel.
+  float traceSea(vec3 ori, vec3 dir) {
+      float top = slabHalfHeight();
+      if (dir.y >= -1e-4 && ori.y > top) return -1.0;
+      float tEnter = ori.y > top ? (ori.y - top) / -dir.y : 0.0;
+      float tExit = dir.y < -1e-4 ? (ori.y + top) / -dir.y : FAR;
+      tExit = min(tExit, FAR);
+      if (tEnter >= tExit) return -1.0;
+
+      // Steps bunch up near the camera (quadratic spacing), where the
+      // surface covers the most pixels.
+      float prevT = tEnter;
+      float steps = max(uMarchSteps, 2.0);
+      for (int i = 1; i <= MAX_MARCH; i++) {
+          if (float(i) > steps) break;
+          float f = float(i) / steps;
+          float t = mix(tEnter, tExit, f * f);
+          vec3 p = ori + dir * t;
+          if (p.y < seaHeight(p.xz)) {
+              // Bisect between the last point above and this one below.
+              float lo = prevT, hi = t;
+              for (int j = 0; j < 6; j++) {
+                  float mid = 0.5 * (lo + hi);
+                  vec3 m = ori + dir * mid;
+                  if (m.y < seaHeight(m.xz)) hi = mid; else lo = mid;
+              }
+              return 0.5 * (lo + hi);
+          }
+          prevT = t;
+      }
+      // Never crossed within the budget: the ray grazes the far sea.
+      return dir.y < 0.0 ? tExit : -1.0;
+  }
   // The rainbow as seen along one ray (direct view, or reflected off the
   // sea): one ray-plane intersection against the arc's vertical plane,
   // cheap enough to run twice per pixel. Deliberately a child's drawing
@@ -354,136 +397,85 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
       return vec4((col * a + halo) * uRainbowAlpha, a * uRainbowAlpha);
   }
 
-  vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
-      float fresnel = clamp(1.0 - dot(n, -eye), 0.0, 1.0);
-      fresnel = min(fresnel * fresnel * fresnel, 0.5);
-
-      vec3 reflected_dir = reflect(eye, n);
-      vec3 reflected = getSkyColor(reflected_dir, l);
-      // Reflected off the real wave normal, so the rainbow's image in the
-      // water breaks up and shimmers with the swell rather than being a
-      // flat mirrored copy.
-      float tReflRainbow;
-      vec4 reflRainbow = rainbowSample(p, reflected_dir, tReflRainbow);
-      reflected = reflected * (1.0 - reflRainbow.a) + reflRainbow.rgb;
-
-      float sun_cycle = sin((uTimeOfDay / 24.0) * PI * 2.0 - PI/2.0);
-      float day_blend = clamp(sun_cycle * 2.0 + 0.2, 0.0, 1.0);
-
-      vec3 current_base = mix(vec3(0.0, 0.01, 0.04), uSeaBaseColor, day_blend);
-      vec3 current_water = mix(vec3(0.1, 0.15, 0.2), uSeaWaterColor, day_blend);
-
-      vec3 refracted = current_base + diffuse(n, l, 80.0) * current_water * 0.12;
-
-      vec3 color = mix(refracted, reflected, fresnel);
-      // Fresnel alone (capped at 0.5 above) leaves a far-off object's
-      // reflection as scattered glints; a little extra on top lets the
-      // rainbow's mirror image read as a shape in the water, like the
-      // original demo's ball did.
-      color += reflRainbow.rgb * 0.35;
-
-      float atten = max(1.0 - dot(dist, dist) * 0.001, 0.0);
-      color += current_water * (p.y - uSeaHeight) * 0.18 * atten;
-
-      color += specular(n, l, eye, 600.0 * inversesqrt(dot(dist,dist)));
-
-      return color;
+  // Sky seen along a ray, with the rainbow composited over it when the
+  // rainbow's plane is nearer than blockedAt (the sea, for a direct ray).
+  vec3 skyWithRainbow(vec3 ori, vec3 dir, bool withDiscs, float blockedAt) {
+      vec3 col = skyColor(dir, withDiscs);
+      float tR;
+      vec4 rb = rainbowSample(ori, dir, tR);
+      if (rb.a > 0.0 && tR < blockedAt) col = col * (1.0 - rb.a) + rb.rgb;
+      return col;
   }
 
-  vec3 getNormal(vec3 p, float eps) {
-      vec3 n;
-      n.y = map_detailed(p);
-      n.x = map_detailed(vec3(p.x+eps,p.y,p.z)) - n.y;
-      n.z = map_detailed(vec3(p.x,p.y,p.z+eps)) - n.y;
-      n.y = eps;
-      return normalize(n);
+  vec3 shadeSea(vec3 ori, vec3 dir, vec3 p, float t, float pixelAngle) {
+      vec3 sun = sunDirection();
+      vec3 moon = moonDirection();
+      float day = daylight(sun);
+
+      vec4 sd = seaDetail(p.xz, max(t * pixelAngle, 1e-4));
+      vec3 n = normalize(vec3(-sd.y, 1.0, -sd.z));
+      vec3 view = -dir;
+
+      // Reflection: the sky (and the rainbow) mirrored in the surface.
+      vec3 r = reflect(dir, n);
+      r.y = abs(r.y);
+      vec3 reflected = skyWithRainbow(p, r, false, 1e9);
+
+      // Water body: deep colour, lifted on the crests where the light
+      // passes through the thin water, scaled by how much light there is.
+      float light = max(day, 0.12 * smoothstep(-0.02, 0.1, moon.y));
+      float crest = clamp(sd.w / max(uSeaHeight * 0.7, 1e-3), 0.0, 1.0);
+      float facing = max(dot(n, normalize(sun + vec3(0.0, 0.4, 0.0))), 0.0);
+      vec3 body = uSeaBaseColor * (0.35 + 0.65 * light)
+                + uSeaWaterColor * 0.05 * pow(crest, 2.0) * (0.4 + 0.6 * facing) * light;
+
+      float fresnel = 0.02 + 0.98 * pow(1.0 - max(dot(n, view), 0.0), 5.0);
+      vec3 col = mix(body, reflected, clamp(fresnel, 0.0, 0.85));
+
+      // Sun and moon glints.
+      float sunUp = smoothstep(-0.05, 0.05, sun.y);
+      col += uSunColor * pow(max(dot(r, sun), 0.0), 350.0) * 3.0 * sunUp;
+      float moonUp = smoothstep(-0.02, 0.06, moon.y) * (1.0 - day);
+      col += uMoonColor * pow(max(dot(r, moon), 0.0), 250.0) * 1.2 * moonUp;
+
+      // Haze into the horizon colour with distance.
+      vec3 horizonDir = normalize(vec3(dir.x, 0.0, dir.z));
+      float haze = 1.0 - exp(-t * 0.006);
+      return mix(col, skyColor(horizonDir, false), haze * haze);
   }
 
-  float heightMapTracing(vec3 ori, vec3 dir, out vec3 p) {
-      float tm = 0.0;
-      float tx = 1000.0;
-      float hx = map(ori + dir * tx);
-      if(hx > 0.0) {
-          p = ori + dir * tx;
-          return tx;
-      }
-      float hm = map(ori);
-      for(int i = 0; i < NUM_STEPS; i++) {
-          if (float(i) >= uMarchSteps) break;
-          float tmid = mix(tm, tx, hm / (hm - hx));
-          p = ori + dir * tmid;
-          float hmid = map(p);
-          if(hmid < 0.0) {
-              tx = tmid;
-              hx = hmid;
-          } else {
-              tm = tmid;
-              hm = hmid;
-          }
-          if(abs(hmid) < EPSILON) break;
-      }
-      return mix(tm, tx, hm / (hm - hx));
+  vec3 renderPixel(vec2 fragCoord) {
+      vec2 uv = (2.0 * fragCoord - iResolution.xy) / iResolution.y;
+
+      // Camera basis from yaw (uCameraRotZ), mirrored pitch (uCameraRotY)
+      // and roll (uCameraRotX) — see the header comment.
+      float yaw = uCameraRotZ;
+      float pitch = -uCameraRotY;
+      vec3 fwd = vec3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch));
+      vec3 right = normalize(cross(fwd, vec3(0.0, 1.0, 0.0)));
+      vec3 up = cross(right, fwd);
+      float cr = cos(uCameraRotX), sr = sin(uCameraRotX);
+      vec3 rightR = cr * right + sr * up;
+      vec3 upR = -sr * right + cr * up;
+      vec3 dir = normalize(fwd * uZoom + rightR * uv.x + upR * uv.y);
+
+      vec3 ori = vec3(uCameraOffset.x, uCameraHeight, uCameraOffset.y - iTime * uCameraSpeed);
+      // Angle one pixel subtends — for the waves' distance fade.
+      float pixelAngle = 2.0 / (iResolution.y * uZoom);
+
+      float t = traceSea(ori, dir);
+      if (t < 0.0) return skyWithRainbow(ori, dir, true, 1e9);
+      vec3 p = ori + dir * t;
+      vec3 col = shadeSea(ori, dir, p, t, pixelAngle);
+      // The rainbow's feet stand in the sea: drawn over it only where its
+      // plane is nearer than the water along this ray.
+      float tR;
+      vec4 rb = rainbowSample(ori, dir, tR);
+      if (rb.a > 0.0 && tR < t) col = col * (1.0 - rb.a) + rb.rgb;
+      return col;
   }
-
-  vec3 getPixel(in vec2 coord, float time) {
-      vec2 uv = coord / iResolution.xy;
-      uv = uv * 2.0 - 1.0;
-      uv.x *= iResolution.x / iResolution.y;
-
-      vec3 ang = vec3(uCameraRotX, uCameraRotY, uCameraRotZ);
-      vec3 ori = vec3(uCameraOffset.x, uCameraHeight, time * uCameraSpeed + uCameraOffset.y);
-
-      // The original Seascape/Oceanara shader added length(uv) * 0.14
-      // to dir.z here — a fisheye-style warp that pulls the ray toward
-      // the viewer more the farther a pixel is from screen center. It's
-      // radially symmetric, so on its own it reads as a barrel/dome
-      // curve; combined with this scene's camera looking slightly
-      // downward (chasing the bird from above-behind) the effect's
-      // center doesn't line up with the frame's visual center, which is
-      // what actually read as "the horizon is tilted" — not a camera
-      // rotation bug at all (removing/reducing every rotation term
-      // changed nothing, which is what pointed here instead). Dropped
-      // for a standard, undistorted perspective ray.
-      vec3 dir = normalize(vec3(uv.xy, -uZoom));
-      dir = normalize(dir) * fromEuler(ang);
-
-      // Pitch-only version of the same ray, for the horizon's vertical
-      // position on screen — see getSkyColor's levelY comment above.
-      // fromEuler's axis order is (roll, pitch, yaw): keep roll (ang.x,
-      // always 0) and pitch (ang.y), drop yaw (ang.z) to zero.
-      vec3 dirLevel = normalize(vec3(uv.xy, -uZoom));
-      dirLevel = normalize(dirLevel) * fromEuler(vec3(ang.x, ang.y, 0.0));
-
-      vec3 p;
-      float tSea = heightMapTracing(ori,dir,p);
-      vec3 dist = p - ori;
-
-      float theta = (uTimeOfDay / 24.0) * PI * 2.0 - PI/2.0;
-      vec3 light = normalize(vec3(cos(theta) * 1.5, sin(theta) * 1.2, -1.5));
-
-      float eps = max(0.005, dot(dist, dist) * EPSILON_NRM);
-      vec3 n = getNormal(p, eps);
-      vec3 sea_color = getSeaColor(p, n, light, dir, dist);
-
-      vec3 base_color = mix(
-          getSkyColor(dir, light, dirLevel.y),
-          sea_color,
-          pow(smoothstep(0.0,-0.02,dirLevel.y),0.2)
-      );
-
-      // Only where the rainbow's plane is nearer than the sea along this
-      // ray — the arc's feet sit just under the waterline, so the swell
-      // in front of them occludes them the way it would a real object.
-      float tRainbow;
-      vec4 rainbow = rainbowSample(ori, dir, tRainbow);
-      if (tRainbow < tSea) base_color = base_color * (1.0 - rainbow.a) + rainbow.rgb;
-
-      return base_color;
-  }
-
   void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
-      float time = iTime;
-      vec3 color = getPixel(fragCoord, time);
+      vec3 color = renderPixel(fragCoord);
       if (uStorm > 0.0) {
           // Storm light: grey, dark and cool — sky and sea alike.
           float lum = dot(color, vec3(0.299, 0.587, 0.114));
@@ -503,7 +495,7 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
 `;
 }
 
-/** Sensible defaults, close to Oceanara's own — a clear-day palette; OceanSky.tsx's day/sunset/night blending comes entirely from uTimeOfDay. */
+/** Sensible defaults — a clear-day palette; OceanSky.tsx's day/sunset/night blending comes entirely from uTimeOfDay. */
 export const OCEAN_SKY_DEFAULTS: {
   timeOfDay: number;
   starIntensity: number;

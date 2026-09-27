@@ -1,0 +1,17 @@
+.fps-meter {
+  position: fixed;
+  top: max(1px, env(safe-area-inset-top));
+  left: max(4px, env(safe-area-inset-left));
+  z-index: 10000;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #3ddc84;
+  font: 600 11px/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  pointer-events: none;
+  user-select: none;
+}
+
+.fps-meter--slow {
+  color: #ff5a52;
+}

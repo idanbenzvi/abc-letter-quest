@@ -6,10 +6,14 @@ import { Dashboard } from './screens/Dashboard';
 import { NestScreen } from './screens/Nest';
 import { FlightGameScreen } from './three/FlightGameScreen';
 import { ScreenTransition } from './components/ScreenTransition';
+import { FpsMeter } from './components/FpsMeter';
 
 // Dev-only and raw three.js — a static import here dragged the entire
 // three.js library into the first-load chunk for every player, for a
 // screen only reachable via `?rig`. Lazy so it costs nothing otherwise.
+// `?debug` shows a frames-per-second meter, top left, on every screen.
+const SHOW_FPS = new URLSearchParams(window.location.search).has('debug');
+
 const RigTool = lazy(() => import('./three/RigTool').then((m) => ({ default: m.RigTool })));
 
 // World Map + Letter Learning (reveal/trace/quiz) + their Celebration/
@@ -66,5 +70,10 @@ export default function App() {
     screen = <FlightGameScreen onOpenDashboard={() => setView({ type: 'dashboard' })} onOpenNest={() => setView({ type: 'nest' })} />;
   }
 
-  return <ScreenTransition transitionKey={screenKey}>{screen}</ScreenTransition>;
+  return (
+    <>
+      <ScreenTransition transitionKey={screenKey}>{screen}</ScreenTransition>
+      {SHOW_FPS && <FpsMeter />}
+    </>
+  );
 }

@@ -113,18 +113,35 @@ the morph itself).
 
 ### 2. Sky + ocean — `three/oceanSky.ts` + `three/OceanSky.tsx`
 
-Ported (MIT-adjacent, see attribution comment in `oceanSky.ts`) from
-the CodePen the user linked ("Oceanara" by Julibe,
-https://codepen.io/Julibe/pen/GgjjpeB), whose core is itself the
-classic "Seascape" raymarched shader by TDM
-(https://www.shadertoy.com/view/Ms2SD1) — a widely-taught reference
-technique, not proprietary to the CodePen author. This is a
-**fullscreen fragment shader**, not real 3D geometry: a 2-triangle quad
-raymarches an implicit-height-field ocean and a procedural sky
-(day/sunset/night blend, sun, moon, stars) per pixel, driven entirely
-by uniforms. Trimmed from the original: removed the demo's reflective
-beach-ball + its physics, GSAP-tweened sidebar, and mouse-drag camera —
-kept exactly the sky+ocean raymarch.
+Written from scratch for this project (Sep 2026). The first version
+was a port of a CodePen demo whose core was the "Seascape" Shadertoy
+shader, licensed CC BY-NC-SA 3.0. That license forbids commercial use
+and requires derivatives to carry the same license, which conflicts
+with this project's proprietary license, so the shader was replaced
+with an independent implementation. Nothing from the old shader's wave,
+tracing or shading code was carried over; only this project's own
+additions (the rainbow, the storm/flash grading) and the uniform
+interface survive. The history sections below still mention the old
+shader's `fromEuler()`: they describe bugs in that earlier version.
+
+This is a **fullscreen fragment shader**, not real 3D geometry: a
+2-triangle quad traces an implicit height-field ocean and a procedural
+sky (day/sunset/night blend, sun, moon, stars) per pixel, driven
+entirely by uniforms:
+
+- **Waves:** a sum of directional travelling waves with sharpened crests
+  (`A * exp(c * (sin(phase) - 1))`), spread around the wind by the
+  golden angle, with deep-water dispersion for their speeds and analytic
+  derivatives for the normals. Waves too short to resolve at a pixel's
+  distance fade out instead of shimmering.
+- **Intersection:** march through the slab the waves can occupy (steps
+  bunched near the camera), then bisect the first crossing.
+- **Shading:** Schlick Fresnel between the reflected sky and a water body
+  lifted on the crests, sun/moon glints, and distance haze.
+- **Sky:** zenith-to-horizon gradient blended by sun elevation, a
+  directional dusk glow, sun and moon discs, hashed twinkling stars. The
+  sun rises right, sets left; the moon rises opposite the setting sun and
+  stays off-centre so it never sits behind the letter-clouds.
 
 **Camera sync architecture** (the actual integration challenge, since
 a fullscreen shader has no real 3D camera of its own): `OceanSky`
@@ -134,9 +151,8 @@ letting the shader drive an independent implicit camera as the original
 demo did. The real camera is the single source of truth — real 3D
 objects (bird, letter-clouds) and the painted backdrop are guaranteed
 to agree on where "here" is because they're reading the same camera.
-Rotation sync is an approximation (shader's hand-rolled `fromEuler()`
-isn't proven equivalent to Three's Euler convention) — acceptable
-because the flight only ever banks the camera gently.
+The shader builds its camera basis from yaw, pitch and roll uniforms
+(convention in `oceanSky.ts`'s header).
 
 **The dev tuning panel's camera — restored the demo's mouse-drag orbit
 and scroll-zoom.** `DevOceanPanel.tsx`'s sliders alone weren't a
@@ -1084,8 +1100,7 @@ colour from three labelled swatches at the bottom of the screen.
   `breakStreak`, no `recordLetterMiss`, and letter mastery is untouched.
   A right pick gives +2 stars and doesn't feed the streak, so a rainbow
   can't summon the next one.
-- **Rendered in the ocean shader, not as a mesh.** The same reason the
-  original Oceanara beach ball lived in its shader: reflections are
+- **Rendered in the ocean shader, not as a mesh.** Reflections are
   computed there, so nothing outside it can appear in the water.
   `rainbowSample()` in `oceanSky.ts` does one ray-plane intersection for
   the view ray and one for the wave-reflected ray. The reflection

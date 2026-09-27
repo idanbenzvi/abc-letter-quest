@@ -65,9 +65,9 @@ interface OceanSkyProps {
   qualityRef?: React.RefObject<number>;
   /**
    * 0..1 — how much of the TRUE camera pitch to hand the shader. The
-   * shader's fromEuler() applies pitch with the opposite sign to three.js
-   * (for the forward ray it yields y = -sin(pitch)), so historically the
-   * painted horizon has been mirrored: a camera tilted down draws the sea
+   * shader applies pitch with the opposite sign to three.js (for the
+   * forward ray, y = -sin(pitch) — see oceanSky.ts's header), so the
+   * painted horizon is mirrored: a camera tilted down draws the sea
    * tilted up. The whole game's framing was tuned on that look, so it's
    * left as-is by default (0); the rainbow skim's drone shot blends to 1,
    * where the bird must visibly sit ON the painted sea.
@@ -90,12 +90,10 @@ interface OceanSkyProps {
  * this component reads the SCENE'S REAL active camera every frame and
  * feeds its actual position/rotation/fov in as the equivalent
  * uniforms — the real camera is the single source of truth, or the
- * backdrop and the real 3D objects would drift apart. Rotation is
- * passed through camera.rotation.x/y/z directly, which is an
- * approximation (the shader's fromEuler() is a hand-rolled matrix, not
- * guaranteed to exactly match Three's Euler convention) — acceptable
- * because the flight scene only ever banks the camera gently; a full
- * matrix-equivalence proof isn't worth it for a few degrees of tilt.
+ * backdrop and the real 3D objects would drift apart. Orientation is
+ * passed as yaw/pitch derived from the camera's forward vector plus its
+ * explicit roll — see the useFrame below and oceanSky.ts's header for
+ * the exact convention the shader builds its camera basis from.
  *
  * IMPORTANT gotcha that cost real debugging time: R3F's `uniforms` prop
  * on `<shaderMaterial>` does NOT hand the material your object by
@@ -296,11 +294,10 @@ export function OceanSky({
     // orientation from lookAt() into sequential Euler angles can produce a
     // spurious nonzero component even though the camera itself never rolls).
     //
-    // The shader's fromEuler(ang) uses a non-standard axis mapping (verified
-    // by expanding its matrix per-axis): ang.x is roll, ang.y is pitch, and
-    // ang.z is yaw — NOT the (x=pitch, y=yaw, z=roll) order these uniform
-    // names suggest. Mismatching this previously fed pitch into the shader's
-    // roll axis, tilting the horizon by an amount proportional to pitch.
+    // Axis mapping the shader expects (see oceanSky.ts's header):
+    // uCameraRotX is roll, uCameraRotY is pitch and uCameraRotZ is yaw —
+    // NOT the (x=pitch, y=yaw, z=roll) order these uniform names suggest.
+    // The names are kept so the dev panel and older docs still line up.
     camera.getWorldDirection(worldDir);
     const yaw = Math.atan2(worldDir.x, -worldDir.z);
     const pitch = Math.asin(THREE.MathUtils.clamp(worldDir.y, -1, 1));

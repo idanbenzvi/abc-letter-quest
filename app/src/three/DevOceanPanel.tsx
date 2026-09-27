@@ -54,10 +54,8 @@ interface DevOceanPanelProps {
 }
 
 /**
- * Dev-only sea/sky tuning sidebar — the control panel the original
- * "Oceanara" CodePen demo had (GSAP-tweened sliders) before this app
- * stripped it during the port (see docs/10-flight-game.md). Brought
- * back specifically for tuning, not for players: toggled with the `
+ * Dev-only sea/sky tuning sidebar, specifically for tuning, not for
+ * players: toggled with the `
  * (backtick) key, never shown otherwise. "Copy params" exports the
  * current palette as JSON so a good-looking combination found here can
  * be pasted into OCEAN_SKY_DEFAULTS (oceanSky.ts) as the new baked-in

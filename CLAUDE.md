@@ -97,8 +97,8 @@ rendered first with no depth; real 3D objects draw over it.
 - **Weather and detail:** storm tint and lightning flash are shader uniforms. Wave and march
   detail are uniforms driven live by `AdaptiveQuality.tsx` (fps-based calibration), so don't
   reintroduce compile-time quality tiers.
-- **Mirrored horizon:** the shader's `fromEuler()` applies pitch with the opposite sign to
-  three.js, so the painted horizon is mirrored relative to 3D geometry. The whole game's
+- **Mirrored horizon:** the shader applies pitch with the opposite sign to three.js
+  (forward ray `y = -sin(uCameraRotY)`), so the painted horizon is mirrored relative to 3D geometry. The whole game's
   framing was tuned on that, so it is left as-is by default. `truePitchRef` blends in the
   correct pitch only for the rainbow's drone shot.
 

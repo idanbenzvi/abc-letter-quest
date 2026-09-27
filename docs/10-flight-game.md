@@ -1220,17 +1220,36 @@ given the wrong colour.
 
 This replaces the old fixed "touch device → low ocean tier + dpr 1"
 decision. `AdaptiveQuality.tsx` measures fps in half-second windows and
-nudges one 0–1 `quality` value, which drives two levers in order
+nudges one 0–1 `quality` value, which drives these levers, top down
 (`adaptiveQuality.ts`):
 
-1. **Ocean detail** (quality 1 → 0.25): march steps 32→10, geometry
-   octaves 3→2, fragment octaves 5→2.5. These are now **uniforms**
+1. **Ocean supersampling** (quality 1 → 0.8): the sea renders at up to
+   1.5x the canvas resolution (never beyond 2 rendered pixels per CSS
+   pixel), smoothing the glints' shimmer. Only reached by climbing, on a
+   machine with fps to spare: the "high def" sea for a strong PC.
+2. **Ocean detail** (0.8 → 0.3): march steps 16→8, geometry waves 9→6,
+   detail waves 20→10. These are **uniforms**
    (`uMarchSteps`/`uIterGeometry`/`uIterFragment`) that the loops break
-   on, under the compiled ceilings. Octave counts are fractional, and the
-   last octave's weight fades, so detail glides with no recompile hitch.
+   on, under the compiled ceilings. Counts are fractional, and the last
+   wave's weight fades, so detail glides with no recompile hitch.
    `OceanSky` also eases toward the target.
-2. **Resolution** (below 0.25), in discrete steps because every change
-   reallocates the canvas: native (≤2) → 1.5 → 1 → 0.75.
+3. **Ocean resolution** (0.3 → 0.12): the sea alone renders at down to
+   half resolution and is upscaled, while the letters, bird and UI stay
+   sharp. On a weak tablet this roughly halves the frame time before
+   anything else has to blur.
+4. **Canvas resolution** (below 0.12), in discrete steps because every
+   change reallocates the canvas: native (≤2) → 1.5 → 1 → 0.75. The last
+   resort, because it softens everything.
+
+Levers 1 and 3 work by rendering the ocean into its own render target
+and copying it to the screen with a plain textured quad (neither shader
+converts colour spaces, so the copy is exact). At scale 1 the sea draws
+straight to the screen as before. The scale is quantised to eighths, so
+the target is reallocated only on a step change.
+
+`?quality=0..1` in the URL pins the level and turns calibration off, for
+comparing tiers on a real device: 1 supersampled, 0.8 full detail, 0.3
+detail floor, 0.12 half-resolution sea.
 
 Rules: under **40 fps** quality steps down fast (−0.08 per window, −0.15
 under 30). At ≥55 fps sustained for 2s it creeps back up (+0.03 per
@@ -1238,8 +1257,9 @@ window, about 15s from floor to full). A level that caused a drop
 becomes a ceiling for 20s, so it doesn't see-saw. Frames over 1s (tab
 switch) are ignored. An earlier 0.25s cutoff froze calibration on a
 device truly running at 3–4 fps, caught in a SwiftShader run. Touch
-devices start at 0.45 (≈ the old low tier) and desktops at 1. In dev,
-`window.__flightQuality` shows `{ fps, quality, dpr }`.
+devices start at 0.42 (≈ the old low tier) and desktops at 0.8 (full
+detail, not yet supersampled). In dev, `window.__flightQuality` shows
+`{ fps, quality, dpr, oceanScale }`.
 
 Verified in headless SwiftShader: a large window dropped to the floor
 (quality 0, dpr 0.75). With the thresholds temporarily shifted to

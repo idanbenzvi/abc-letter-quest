@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { dprFromQuality } from './adaptiveQuality';
+import { dprFromQuality, oceanScaleFromQuality, PINNED_QUALITY } from './adaptiveQuality';
 
 // The calibration loop itself — see adaptiveQuality.ts for the levers it drives.
 
@@ -50,7 +50,9 @@ export function AdaptiveQuality({ qualityRef }: { qualityRef: React.RefObject<nu
     s.time = 0;
 
     let q = qualityRef.current;
-    if (fps < FPS_FLOOR) {
+    if (PINNED_QUALITY !== null) {
+      // Pinned from the URL: report, never adjust.
+    } else if (fps < FPS_FLOOR) {
       // Remember the level that couldn't hold, so the climb back stops just short of it.
       s.ceiling = Math.max(0, q - RISE_STEP);
       s.ceilingFor = CEILING_SECONDS;
@@ -69,7 +71,7 @@ export function AdaptiveQuality({ qualityRef }: { qualityRef: React.RefObject<nu
       s.dpr = dpr;
       setDpr(dpr);
     }
-    if (import.meta.env.DEV) (window as unknown as { __flightQuality?: object }).__flightQuality = { fps: Math.round(fps), quality: +q.toFixed(3), dpr };
+    if (import.meta.env.DEV) (window as unknown as { __flightQuality?: object }).__flightQuality = { fps: Math.round(fps), quality: +q.toFixed(3), dpr, oceanScale: oceanScaleFromQuality(q, dpr) };
   });
 
   return null;

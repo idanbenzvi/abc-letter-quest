@@ -1,8 +1,8 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { oceanVertexShader, buildOceanFragmentShader, oceanDetailUniforms, OCEAN_SKY_DEFAULTS, OCEAN_QUALITY_HIGH, type OceanQuality } from './oceanSky';
-import { oceanDetailFromQuality } from './adaptiveQuality';
+import { oceanDetailFromQuality, oceanScaleFromQuality } from './adaptiveQuality';
 import { RAINBOW_COLORS } from '../engine/rainbowChoice';
 
 /** The streak-reward rainbow, drawn inside the ocean shader so it reflects in the water — see oceanSky.ts's rainbowSample. */
@@ -131,7 +131,8 @@ export function OceanSky({
   stormRef,
   flashRef,
 }: OceanSkyProps) {
-  const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
+  const displayRef = useRef<THREE.Mesh>(null);
   // Built once per mount, keyed off `quality` — swapping it later would
   // need `material.needsUpdate = true` to force a shader recompile,
   // which nothing here does (device tier is decided once, at spawn).
@@ -230,6 +231,52 @@ export function OceanSky({
     [],
   );
 
+  // Built here rather than as JSX so the same material can draw either
+  // straight to the screen or into the sea's own render target.
+  const oceanMaterial = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: oceanVertexShader,
+        fragmentShader,
+        uniforms: initialUniforms,
+        depthTest: false,
+        depthWrite: false,
+      }),
+    [fragmentShader, initialUniforms],
+  );
+  materialRef.current = oceanMaterial;
+
+  // The sea at its own resolution (see adaptiveQuality.ts's
+  // oceanScaleFromQuality): rendered into this target, then copied to the
+  // screen by a plain textured quad, bilinear-filtered. Neither shader
+  // does any colour-space conversion, so the copy is exact. At scale 1
+  // none of this runs — the sea draws straight to the screen as before.
+  const offscreen = useMemo(() => {
+    const target = new THREE.WebGLRenderTarget(1, 1, { depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+    const scene = new THREE.Scene();
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), oceanMaterial);
+    quad.frustumCulled = false;
+    scene.add(quad);
+    const copyMaterial = new THREE.ShaderMaterial({
+      uniforms: { tSea: { value: target.texture } },
+      vertexShader: 'varying vec2 vUv; void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position, 1.0); }',
+      fragmentShader: 'uniform sampler2D tSea; varying vec2 vUv; void main() { gl_FragColor = texture2D(tSea, vUv); }',
+      depthTest: false,
+      depthWrite: false,
+    });
+    // The vertex shaders ignore the camera entirely; any camera will do.
+    return { target, scene, quad, copyMaterial, camera: new THREE.OrthographicCamera() };
+  }, [oceanMaterial]);
+  useEffect(
+    () => () => {
+      offscreen.target.dispose();
+      offscreen.quad.geometry.dispose();
+      offscreen.copyMaterial.dispose();
+      oceanMaterial.dispose();
+    },
+    [offscreen, oceanMaterial],
+  );
+
   useFrame(({ clock, camera, gl }, delta) => {
     const u = materialRef.current?.uniforms;
     if (!u) return;
@@ -266,7 +313,6 @@ export function OceanSky({
     }
 
     u.iTime.value = clock.getElapsedTime();
-    u.iResolution.value.set(gl.domElement.width, gl.domElement.height, 1);
 
     const p = latest.current;
     u.uTimeOfDay.value = timeOfDayRef ? timeOfDayRef.current : p.timeOfDay;
@@ -320,19 +366,30 @@ export function OceanSky({
     if (camera instanceof THREE.PerspectiveCamera) {
       u.uZoom.value = 1 / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
     }
+
+    const width = gl.domElement.width;
+    const height = gl.domElement.height;
+    const scale = qualityRef ? oceanScaleFromQuality(qualityRef.current ?? 1, gl.getPixelRatio()) : 1;
+    const display = displayRef.current;
+    if (scale === 1) {
+      u.iResolution.value.set(width, height, 1);
+      if (display) display.material = oceanMaterial;
+      return;
+    }
+    const w = Math.max(1, Math.round(width * scale));
+    const h = Math.max(1, Math.round(height * scale));
+    if (offscreen.target.width !== w || offscreen.target.height !== h) offscreen.target.setSize(w, h);
+    u.iResolution.value.set(w, h, 1);
+    const previous = gl.getRenderTarget();
+    gl.setRenderTarget(offscreen.target);
+    gl.render(offscreen.scene, offscreen.camera);
+    gl.setRenderTarget(previous);
+    if (display) display.material = offscreen.copyMaterial;
   });
 
   return (
-    <mesh renderOrder={-1000} frustumCulled={false}>
+    <mesh ref={displayRef} renderOrder={-1000} frustumCulled={false} material={oceanMaterial}>
       <planeGeometry args={[2, 2]} />
-      <shaderMaterial
-        ref={materialRef}
-        vertexShader={oceanVertexShader}
-        fragmentShader={fragmentShader}
-        uniforms={initialUniforms}
-        depthTest={false}
-        depthWrite={false}
-      />
     </mesh>
   );
 }

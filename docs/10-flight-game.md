@@ -129,19 +129,33 @@ This is a **fullscreen fragment shader**, not real 3D geometry: a
 sky (day/sunset/night blend, sun, moon, stars) per pixel, driven
 entirely by uniforms:
 
-- **Waves:** a sum of directional travelling waves with sharpened crests
-  (`A * exp(c * (sin(phase) - 1))`), spread around the wind by the
-  golden angle, with deep-water dispersion for their speeds and analytic
-  derivatives for the normals. Waves too short to resolve at a pixel's
-  distance fade out instead of shimmering.
-- **Intersection:** march through the slab the waves can occupy (steps
-  bunched near the camera), then bisect the first crossing.
-- **Shading:** Schlick Fresnel between the reflected sky and a water body
-  lifted on the crests, sun/moon glints, and distance haze.
+- **Waves:** 20 directional travelling waves with sharpened crests
+  (`A * exp(c * (sin(phase) - 1))`). Long swells come from near the wind
+  direction and shorter chop spreads wider, scattered by the golden
+  angle. Speeds follow deep-water dispersion, and normals use analytic
+  derivatives. The first 9 waves shape the surface the ray hits; all 20
+  shade it. Waves too short to resolve at a pixel's distance are skipped.
+- **Wave table baked as code:** `buildWaveTable` emits one straight-line
+  block per wave with its numbers inlined. A `const` array indexed by
+  the loop counter measured *slower* than recomputing every parameter,
+  because ANGLE's translator can copy the whole array on each dynamic
+  index.
+- **Intersection:** a short coarse march (16 steps at full quality,
+  evenly spaced for steep rays, bunched near the camera for grazing
+  ones) only brackets the first crossing; 4 Illinois false-position
+  steps then refine it. 8 and 32 steps render identically.
+- **Shading:** Schlick Fresnel between the reflected sky and the water
+  body; turquoise light scattered through the thin tops of waves
+  (strongest looking toward the sun); a Gaussian-slope sun/moon glint
+  whose roughness includes the detail too fine to draw, so the distant
+  sea turns into a shimmering sun road; foam flecks on the sharpest
+  nearby crests; distance haze.
 - **Sky:** zenith-to-horizon gradient blended by sun elevation, a
   directional dusk glow, sun and moon discs, hashed twinkling stars. The
-  sun rises right, sets left; the moon rises opposite the setting sun and
-  stays off-centre so it never sits behind the letter-clouds.
+  sun rises right, sets left; the moon rises opposite the setting sun.
+- **Cost:** in a standalone benchmark (640x360, SwiftShader, full
+  quality) the frame takes about 54 ms, against 71 ms for the old
+  shader.
 
 **Camera sync architecture** (the actual integration challenge, since
 a fullscreen shader has no real 3D camera of its own): `OceanSky`

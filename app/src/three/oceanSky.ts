@@ -56,9 +56,9 @@ export interface OceanQuality {
  * adaptiveQuality.ts's frame-rate calibration — with no shader
  * recompile, which would itself be a visible hitch.
  */
-export const OCEAN_QUALITY_HIGH: OceanQuality = { numSteps: 32, iterGeometry: 3, iterFragment: 5 };
+export const OCEAN_QUALITY_HIGH: OceanQuality = { numSteps: 16, iterGeometry: 3, iterFragment: 5 };
 /** The least detail calibration will go to — still recognisably the same sea (the big swells always stay). */
-const OCEAN_DETAIL_FLOOR: OceanQuality = { numSteps: 10, iterGeometry: 2, iterFragment: 2.5 };
+const OCEAN_DETAIL_FLOOR: OceanQuality = { numSteps: 8, iterGeometry: 2, iterFragment: 2.5 };
 
 /** Maps a 0..1 detail level to the shader's live loop budgets. Wave counts are fractional on purpose: the last wave's weight fades rather than popping. */
 export function oceanDetailUniforms(detail: number): OceanQuality {
@@ -70,7 +70,59 @@ export function oceanDetailUniforms(detail: number): OceanQuality {
   };
 }
 
+/** Relative wave set: wavenumber and amplitude of the longest wave, and how each next one shrinks. */
+const WAVE_K0 = 2.6;
+const WAVE_K_RATIO = 1.25;
+const WAVE_A0 = 0.95;
+const WAVE_A_RATIO = 0.74;
+
+/**
+ * Bakes the wave set into the shader as straight-line code, one block per
+ * wave with its direction, wavenumber, amplitude, speed and phase inlined
+ * as literals. The inner loops then cost a dot product, a sin and an exp
+ * per wave. (A const array indexed by the loop counter looked equivalent,
+ * but measured slower than recomputing everything: ANGLE's translator can
+ * copy the whole array on every dynamic index.) Long swells come from
+ * close to the wind direction; shorter chop spreads wider, scattered by
+ * the golden angle so no two waves line up. Waves are sorted longest
+ * first, so once one is too short to resolve, every later one is too.
+ */
+function buildWaveTable(count: number, geoCount: number) {
+  const f = (x: number) => x.toFixed(6);
+  const heightBlocks: string[] = [];
+  const detailBlocks: string[] = [];
+  const slope: number[] = [];
+  let geoAmpSum = 0;
+  for (let i = 0; i < count; i++) {
+    const spread = 0.3 + 0.95 * (i / Math.max(count - 1, 1));
+    const a = 0.15 + spread * Math.sin(i * 2.39996323);
+    const k = WAVE_K0 * WAVE_K_RATIO ** i;
+    const amp = WAVE_A0 * WAVE_A_RATIO ** i;
+    slope.push((k * amp) ** 2);
+    const dir = `vec2(${f(Math.sin(a))}, ${f(Math.cos(a))})`;
+    const phase = `uSeaFreq * ${f(k)} * dot(${dir}, xz) - gW * ${f(Math.sqrt(k))} + ${f(((i * 0.61803398875) % 1) * 2 * Math.PI)}`;
+    if (i < geoCount) {
+      geoAmpSum += amp;
+      heightBlocks.push(`      w = clamp(n - ${f(i)}, 0.0, 1.0) * smoothstep(1.0, 3.0, q * ${f(1 / k)});
+      if (w <= 0.0) return h * uSeaHeight;
+      h += w * ${f(amp)} * (exp(gC * (sin(${phase}) - 1.0)) - gMean);`);
+    }
+    detailBlocks.push(`      w = clamp(n - ${f(i)}, 0.0, 1.0) * smoothstep(2.0, 6.0, q * ${f(1 / k)});
+      if (w <= 0.0) { slopeVar += TAIL_${i}; return h; }
+      ph = ${phase};
+      e = exp(gC * (sin(ph) - 1.0));
+      h.x += w * ${f(amp)} * (e - gMean);
+      h.yz += w * ${f(amp * k)} * gC * cos(ph) * e * ${dir};
+      slopeVar += (1.0 - w) * ${f(slope[i])};`);
+  }
+  const tail = new Array<number>(count + 1).fill(0);
+  for (let i = count - 1; i >= 0; i--) tail[i] = tail[i + 1] + slope[i];
+  const tailConsts = tail.map((v, i) => `  const float TAIL_${i} = ${f(v)};`).join('\n');
+  return { heightCode: heightBlocks.join('\n'), detailCode: detailBlocks.join('\n'), tailConsts, geoAmpSum: f(geoAmpSum) };
+}
+
 export function buildOceanFragmentShader(quality: OceanQuality): string {
+  const table = buildWaveTable(Math.ceil(quality.iterFragment * 4), Math.ceil(quality.iterGeometry * 3));
   return /* glsl */ `
   uniform vec3 iResolution;
   uniform float iTime;
@@ -126,8 +178,6 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
   const float PI = 3.14159265359;
   // Compiled loop ceilings; the loops stop early at the live uniforms.
   const int MAX_MARCH = ${quality.numSteps};
-  const int MAX_GEO_WAVES = ${Math.ceil(quality.iterGeometry * 3)};
-  const int MAX_DETAIL_WAVES = ${Math.ceil(quality.iterFragment * 4)};
   const float TAU = 6.28318530718;
   const float FAR = 900.0;
 
@@ -235,119 +285,123 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
   }
 
   // ---- sea surface ----
-  // Wave i of the set: direction, wavenumber, amplitude and phase offset.
-  // Directions scatter around the wind (toward the camera, +z) by the
-  // golden angle so no two waves line up; each wave is a bit shorter and
-  // much lower than the last.
-  void waveParams(int i, out vec2 d, out float k, out float amp, out float phase0) {
-      float fi = float(i);
-      float a = 1.05 * sin(fi * 2.39996323) + 0.15;
-      d = vec2(sin(a), cos(a));
-      k = uSeaFreq * 2.6 * pow(1.21, fi);
-      amp = uSeaHeight * 0.7 * pow(0.8, fi);
-      phase0 = fi * 1.618 * TAU;
+  // The wave set is baked in at build time as straight-line code — see
+  // buildWaveTable. TAIL_i is the mean-square slope (relative units) of
+  // wave i and every shorter one: added to the glint's roughness for the
+  // detail a pixel can't resolve.
+${table.tailConsts}
+  // Sum of the geometry waves' relative amplitudes, for the march's bounds.
+  const float GEO_AMP_SUM = ${table.geoAmpSum};
+  const float WAVE_A0_GLSL = ${WAVE_A0.toFixed(6)};
+
+  // Per-pixel wave constants, set once by initWaves().
+  float gC;      // crest sharpness
+  float gMean;   // mean of exp(gC * (sin x - 1)), so waves centre on y = 0
+  float gW;      // phase advance of a unit-speed wave at this moment
+
+  void initWaves() {
+      gC = 0.55 * uSeaChoppy;
+      // e^-c * I0(c), with I0 as its first four series terms — plenty for
+      // the choppiness range the dev panel offers. Centring each wave on
+      // y = 0 keeps the mean sea level where the bird skims.
+      float c2 = gC * gC;
+      gMean = exp(-gC) * (1.0 + c2 / 4.0 + c2 * c2 / 64.0 + c2 * c2 * c2 / 2304.0);
+      // Deep-water dispersion: speed scales with sqrt(wavenumber).
+      gW = sqrt(9.8 * uSeaFreq) * 0.45 * uSeaSpeed * iTime;
   }
 
-  float crestSharpness() { return 0.45 * uSeaChoppy; }
-
-  // Mean of exp(c * (sin x - 1)) over a period, e^-c * I0(c), so each
-  // wave can be centred on y = 0 (the bird skims the mean sea level).
-  float crestMean(float c) {
-      float c2 = c * c;
-      float i0 = 1.0 + c2 / 4.0 + c2 * c2 / 64.0 + c2 * c2 * c2 / 2304.0;
-      return exp(-c) * i0;
+  // Height only, for the march. footprint is the world size of one pixel
+  // here: distant samples skip waves they couldn't resolve, which is
+  // where most march steps land.
+  float seaHeight(vec2 xz, float footprint) {
+      float q = TAU / (uSeaFreq * footprint);
+      float n = uIterGeometry * 3.0;
+      float h = 0.0, w;
+${table.heightCode}
+      return h * uSeaHeight;
   }
 
-  float waveTime() { return iTime * uSeaSpeed; }
-
-  // Height only — used by the march, over the (fewer) geometry waves.
-  float seaHeight(vec2 xz) {
-      float c = crestSharpness();
-      float mean = crestMean(c);
-      float t = waveTime();
-      float h = 0.0;
-      for (int i = 0; i < MAX_GEO_WAVES; i++) {
-          float w = clamp(uIterGeometry * 3.0 - float(i), 0.0, 1.0);
-          if (w <= 0.0) break;
-          vec2 d; float k, amp, ph;
-          waveParams(i, d, k, amp, ph);
-          float phase = k * dot(d, xz) - sqrt(9.8 * k) * 0.45 * t + ph;
-          h += w * amp * (exp(c * (sin(phase) - 1.0)) - mean);
-      }
+  // Detail waves: height (x) and gradient (yz), in relative units, plus
+  // the mean-square slope of whatever was too fine to draw.
+  vec3 seaDetailWaves(vec2 xz, float footprint, out float slopeVar) {
+      float q = TAU / (uSeaFreq * footprint);
+      float n = uIterFragment * 4.0;
+      vec3 h = vec3(0.0);
+      float w, ph, e;
+      slopeVar = 0.0;
+${table.detailCode}
       return h;
   }
 
-  // Height, gradient (in .yz) and a crest measure (in .w) over the detail
-  // waves. Waves too short to resolve at this distance fade out instead
-  // of shimmering.
-  vec4 seaDetail(vec2 xz, float footprint) {
-      float c = crestSharpness();
-      float mean = crestMean(c);
-      float t = waveTime();
-      float h = 0.0, crest = 0.0;
-      vec2 grad = vec2(0.0);
-      for (int i = 0; i < MAX_DETAIL_WAVES; i++) {
-          float w = clamp(uIterFragment * 4.0 - float(i), 0.0, 1.0);
-          if (w <= 0.0) break;
-          vec2 d; float k, amp, ph;
-          waveParams(i, d, k, amp, ph);
-          w *= smoothstep(2.0, 6.0, (TAU / k) / footprint);
-          if (w <= 0.0) continue;
-          float phase = k * dot(d, xz) - sqrt(9.8 * k) * 0.45 * t + ph;
-          float s = exp(c * (sin(phase) - 1.0));
-          h += w * amp * (s - mean);
-          grad += w * amp * c * cos(phase) * s * k * d;
-          crest += w * amp * s;
-      }
+  vec3 seaDetail(vec2 xz, float footprint, out float slopeVar) {
+      vec3 h = seaDetailWaves(xz, footprint, slopeVar);
+      // Relative units -> world: amplitude by uSeaHeight, slope also by uSeaFreq.
+      // An exp-sine wave's RMS slope is about 0.3 * c * amplitude * wavenumber.
+      float slopeScale = uSeaHeight * uSeaFreq * gC * 0.3;
+      slopeVar *= slopeScale * slopeScale;
+      vec2 grad = h.yz * uSeaHeight * uSeaFreq;
       if (uSeaRipples > 0.0) {
           // Fine, fast cat's-paw ripples — normals only, never geometry.
-          float r = uSeaRipples * 0.06 * smoothstep(0.6, 0.05, footprint);
-          vec2 q = xz * 3.1 + vec2(iTime * 0.9, -iTime * 0.7);
-          grad += r * vec2(cos(q.x) * cos(q.y * 1.3), -sin(q.x) * sin(q.y * 1.3) * 1.3);
+          float near = smoothstep(0.6, 0.05, footprint);
+          float r = uSeaRipples * 0.06 * near;
+          vec2 p = xz * 3.1 + vec2(iTime * 0.9, -iTime * 0.7);
+          grad += r * vec2(cos(p.x) * cos(p.y * 1.3), -sin(p.x) * sin(p.y * 1.3) * 1.3);
+          slopeVar += uSeaRipples * 0.004 * (1.0 - near);
       }
-      return vec4(h, grad, crest);
-  }
-
-  float slabHalfHeight() {
-      // Upper bound on |h| for the geometry waves.
-      float total = 0.0;
-      for (int i = 0; i < MAX_GEO_WAVES; i++) total += uSeaHeight * 0.7 * pow(0.8, float(i));
-      return total + 0.05;
+      return vec3(h.x * uSeaHeight, grad);
   }
 
   // Distance along the ray to the sea surface, or -1 for a sky pixel.
-  float traceSea(vec3 ori, vec3 dir) {
-      float top = slabHalfHeight();
+  float traceSea(vec3 ori, vec3 dir, float pixelAngle) {
+      // The geometry waves can only occupy this slab: a point at its top
+      // is always above the water, one at its bottom always below.
+      float top = uSeaHeight * GEO_AMP_SUM * (1.0 - gMean) + 0.02;
+      float bottom = -uSeaHeight * GEO_AMP_SUM * gMean - 0.02;
       if (dir.y >= -1e-4 && ori.y > top) return -1.0;
       float tEnter = ori.y > top ? (ori.y - top) / -dir.y : 0.0;
-      float tExit = dir.y < -1e-4 ? (ori.y + top) / -dir.y : FAR;
-      tExit = min(tExit, FAR);
+      float tExit = dir.y < -1e-4 ? min((ori.y - bottom) / -dir.y, FAR) : FAR;
       if (tEnter >= tExit) return -1.0;
 
-      // Steps bunch up near the camera (quadratic spacing), where the
-      // surface covers the most pixels.
-      float prevT = tEnter;
+      // Coarse march, only to bracket the first crossing. Spacing is even
+      // for steep rays (whose crossing sits deep in the slab) and bunches
+      // toward the camera for grazing ones, whose slab spans hundreds of
+      // units.
       float steps = max(uMarchSteps, 2.0);
+      float bunch = mix(1.0, 2.0, clamp((tExit / max(tEnter, 0.5) - 2.0) / 10.0, 0.0, 1.0));
+      float lo = tEnter, dLo = max(ori.y + dir.y * tEnter, 0.01);
+      float hi = -1.0, dHi = 0.0;
       for (int i = 1; i <= MAX_MARCH; i++) {
           if (float(i) > steps) break;
-          float f = float(i) / steps;
-          float t = mix(tEnter, tExit, f * f);
+          float t = mix(tEnter, tExit, pow(float(i) / steps, bunch));
           vec3 p = ori + dir * t;
-          if (p.y < seaHeight(p.xz)) {
-              // Bisect between the last point above and this one below.
-              float lo = prevT, hi = t;
-              for (int j = 0; j < 6; j++) {
-                  float mid = 0.5 * (lo + hi);
-                  vec3 m = ori + dir * mid;
-                  if (m.y < seaHeight(m.xz)) hi = mid; else lo = mid;
-              }
-              return 0.5 * (lo + hi);
-          }
-          prevT = t;
+          float d = p.y - seaHeight(p.xz, t * pixelAngle);
+          if (d < 0.0) { hi = t; dHi = d; break; }
+          lo = t;
+          dLo = d;
       }
       // Never crossed within the budget: the ray grazes the far sea.
-      return dir.y < 0.0 ? tExit : -1.0;
+      if (hi < 0.0) return dir.y < 0.0 ? tExit : -1.0;
+
+      // Refine by false position; halving a stale endpoint's weight
+      // (the Illinois variant) keeps it from stalling on curved crests.
+      int side = 0;
+      for (int j = 0; j < 4; j++) {
+          float t = lo + (hi - lo) * dLo / (dLo - dHi);
+          vec3 p = ori + dir * t;
+          float d = p.y - seaHeight(p.xz, t * pixelAngle);
+          if (d < 0.0) {
+              hi = t; dHi = d;
+              if (side == -1) dLo *= 0.5;
+              side = -1;
+          } else {
+              lo = t; dLo = d;
+              if (side == 1) dHi *= 0.5;
+              side = 1;
+          }
+      }
+      return lo + (hi - lo) * dLo / (dLo - dHi);
   }
+
   // The rainbow as seen along one ray (direct view, or reflected off the
   // sea): one ray-plane intersection against the arc's vertical plane,
   // cheap enough to run twice per pixel. Deliberately a child's drawing
@@ -407,36 +461,70 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
       return col;
   }
 
+  // Gaussian slope distribution (Beckmann-style) for a light's glint:
+  // m2 is the mean-square slope, so unresolved detail widens the glint
+  // instead of vanishing — a distant sea turns into a shimmering path.
+  float glint(vec3 n, vec3 view, vec3 l, float m2) {
+      vec3 hv = normalize(l + view);
+      float ndh = max(dot(n, hv), 1e-3);
+      float ndh2 = ndh * ndh;
+      float d = exp(-(1.0 - ndh2) / (ndh2 * 2.0 * m2)) / (TAU * m2 * ndh2 * ndh2);
+      float fh = 0.02 + 0.98 * pow(1.0 - max(dot(view, hv), 0.0), 5.0);
+      float ndl = max(dot(n, l), 0.0);
+      return min(d * fh * ndl / (4.0 * max(dot(n, view), 0.1)), 60.0);
+  }
+
   vec3 shadeSea(vec3 ori, vec3 dir, vec3 p, float t, float pixelAngle) {
       vec3 sun = sunDirection();
       vec3 moon = moonDirection();
       float day = daylight(sun);
 
-      vec4 sd = seaDetail(p.xz, max(t * pixelAngle, 1e-4));
+      float slopeVar;
+      float footprint = max(t * pixelAngle, 1e-4);
+      vec3 sd = seaDetail(p.xz, footprint, slopeVar);
       vec3 n = normalize(vec3(-sd.y, 1.0, -sd.z));
       vec3 view = -dir;
+      float ndv = max(dot(n, view), 0.0);
 
       // Reflection: the sky (and the rainbow) mirrored in the surface.
       vec3 r = reflect(dir, n);
       r.y = abs(r.y);
       vec3 reflected = skyWithRainbow(p, r, false, 1e9);
 
-      // Water body: deep colour, lifted on the crests where the light
-      // passes through the thin water, scaled by how much light there is.
+      // Water body: the deep colour, plus light scattered through the
+      // thin top of each wave — strongest on the crests and when looking
+      // toward the sun through them.
       float light = max(day, 0.12 * smoothstep(-0.02, 0.1, moon.y));
-      float crest = clamp(sd.w / max(uSeaHeight * 0.7, 1e-3), 0.0, 1.0);
-      float facing = max(dot(n, normalize(sun + vec3(0.0, 0.4, 0.0))), 0.0);
-      vec3 body = uSeaBaseColor * (0.35 + 0.65 * light)
-                + uSeaWaterColor * 0.05 * pow(crest, 2.0) * (0.4 + 0.6 * facing) * light;
+      // 0 in the troughs, 1 on a typical crest (the longest wave's full height).
+      float lift = clamp(0.35 + sd.x / (uSeaHeight * WAVE_A0_GLSL + 1e-3), 0.0, 1.2);
+      vec3 toSun = normalize(vec3(sun.x, max(sun.y, 0.05), sun.z));
+      float through = pow(max(dot(dir, toSun), 0.0), 3.0);
+      float scatter = lift * lift * (0.3 + 1.4 * through) * (1.0 - 0.6 * ndv) * exp(-t * 0.02);
+      vec3 water = uSeaBaseColor * (0.3 + 0.7 * light)
+                 + uSeaWaterColor * 0.22 * scatter * light;
 
-      float fresnel = 0.02 + 0.98 * pow(1.0 - max(dot(n, view), 0.0), 5.0);
-      vec3 col = mix(body, reflected, clamp(fresnel, 0.0, 0.85));
+      float fresnel = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
+      vec3 col = mix(water, reflected, fresnel);
 
-      // Sun and moon glints.
+      // Sun and moon glints, rough by the unresolved detail.
+      float m2 = 0.0012 + slopeVar;
       float sunUp = smoothstep(-0.05, 0.05, sun.y);
-      col += uSunColor * pow(max(dot(r, sun), 0.0), 350.0) * 3.0 * sunUp;
+      vec3 sunTint = mix(uSunColor, uSunsetSkyColor + vec3(0.3, 0.25, 0.1), duskness(sun) * 0.5);
+      col += sunTint * glint(n, view, sun, m2) * 0.9 * sunUp;
       float moonUp = smoothstep(-0.02, 0.06, moon.y) * (1.0 - day);
-      col += uMoonColor * pow(max(dot(r, moon), 0.0), 250.0) * 1.2 * moonUp;
+      col += uMoonColor * glint(n, view, moon, m2) * 0.25 * moonUp;
+
+      // Foam on the sharpest crests, only close enough to read as foam
+      // rather than haze. Two scales of noise, turned off the hash grid's
+      // axes, break it into streaks instead of blocks.
+      float foamEdge = mix(1.1, 0.85, clamp(uSeaChoppy / 8.0, 0.0, 1.0));
+      float foam = smoothstep(foamEdge, foamEdge + 0.2, lift) * smoothstep(0.12, 0.02, footprint);
+      if (foam > 0.0) {
+          vec2 fp = mat2(0.8, -0.6, 0.6, 0.8) * p.xz + vec2(0.0, gW * 0.15);
+          float breakup = valueNoise(fp * vec2(3.0, 1.4)) * 0.6 + valueNoise(fp * 8.5) * 0.4;
+          foam *= smoothstep(0.5, 0.85, breakup);
+          col = mix(col, vec3(0.86, 0.9, 0.93) * (0.25 + 0.75 * light), foam * 0.5);
+      }
 
       // Haze into the horizon colour with distance.
       vec3 horizonDir = normalize(vec3(dir.x, 0.0, dir.z));
@@ -463,7 +551,8 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
       // Angle one pixel subtends — for the waves' distance fade.
       float pixelAngle = 2.0 / (iResolution.y * uZoom);
 
-      float t = traceSea(ori, dir);
+      initWaves();
+      float t = traceSea(ori, dir, pixelAngle);
       if (t < 0.0) return skyWithRainbow(ori, dir, true, 1e9);
       vec3 p = ori + dir * t;
       vec3 col = shadeSea(ori, dir, p, t, pixelAngle);

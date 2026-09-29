@@ -162,6 +162,9 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
   uniform float uMarchSteps;
   uniform float uIterGeometry;
   uniform float uIterFragment;
+  // 0..1: the sea's shimmer (glint bloom + sparkles), faded in only at
+  // top calibration quality — see OceanSky.tsx.
+  uniform float uShimmer;
 
   // Streak-reward rainbow (see OceanSky.tsx's \`rainbow\` prop). Drawn
   // HERE rather than as a mesh because the ocean's reflections are
@@ -202,6 +205,17 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
                  mix(hash2(i + vec2(0, 1)), hash2(i + vec2(1, 1)), u.x), u.y);
   }
 
+  // Fractal value noise, for soft cloudy structure.
+  float fbm(vec2 p) {
+      float v = 0.0, a = 0.5;
+      for (int i = 0; i < 4; i++) {
+          v += a * valueNoise(p);
+          p = mat2(1.6, -1.2, 1.2, 1.6) * p + 7.3;
+          a *= 0.5;
+      }
+      return v / 0.9375;
+  }
+
   // ---- sun & moon placement from the clock ----
   // The sun rises on the right (+x), climbs ahead of the flight path
   // (-z) and sets on the left. The moon rises opposite the setting sun,
@@ -234,6 +248,65 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
       horizon = mix(horizon, uSunsetSkyColor, dusk * sunSide * 0.85);
       zenith = mix(zenith, mix(uSunsetSkyColor, uNightSkyColor, 0.6), dusk * 0.35);
       return mix(zenith, horizon, pow(1.0 - up, 3.5));
+  }
+
+  // ---- stars ----
+  // One star's colour and twinkle, from seeds of its own. (The hash that
+  // decides a cell HAS a star is already squeezed into a sliver near 1,
+  // so it can't also pick the rhythm: when it did, every star pulsed at
+  // nearly the same rate, like dots painted on.) Colours run through
+  // real star temperatures, a little richer than life: blue-white,
+  // white, gold, orange and the odd rosy red. The twinkle is two
+  // unrelated sines, so no star repeats a simple beat and no two match.
+  vec3 starLight(vec3 cell) {
+      float c = hash3(cell + 71.0);
+      float s1 = hash3(cell + 113.0);
+      float s2 = hash3(cell + 157.0);
+      vec3 tint = c < 0.28 ? vec3(0.65, 0.78, 1.0)
+                : c < 0.55 ? vec3(1.0)
+                : c < 0.75 ? vec3(1.0, 0.88, 0.6)
+                : c < 0.9  ? vec3(1.0, 0.68, 0.42)
+                :            vec3(1.0, 0.5, 0.55);
+      float freq = mix(0.3, 4.0, s1 * s1);
+      float w = 0.6 * sin(iTime * freq + s2 * TAU) + 0.4 * sin(iTime * freq * 2.37 + s1 * 57.0);
+      return tint * (0.55 + 0.45 * w);
+  }
+
+  // ---- the Milky Way ----
+  // A soft band of light along one great circle, rising from the horizon
+  // just left of the flight path and leaning left — well clear of where
+  // the moon rides by night (30 degrees or more away all evening). Cloudy
+  // structure, a dark dust lane off its centreline, a haze of extra faint
+  // stars inside it, and a slow shimmer so the night sky feels alive.
+  const vec3 GALAXY_POLE = vec3(0.8683, 0.4884, -0.0868);
+  const vec3 GALAXY_E1 = vec3(-0.0995, 0.0, -0.9950);  // where it meets the horizon
+  vec3 milkyWay(vec3 dir) {
+      float lat = dot(dir, GALAXY_POLE);
+      if (abs(lat) > 0.4) return vec3(0.0);
+      vec3 e2 = cross(GALAXY_POLE, GALAXY_E1);
+      float along = atan(dot(dir, e2), dot(dir, GALAXY_E1));
+      // Width wanders along the band; brightest near the horizon, like
+      // the galactic core rising.
+      float width = 0.1 * (0.75 + 0.5 * valueNoise(vec2(along * 3.0, 1.7)));
+      float band = exp(-lat * lat / (2.0 * width * width));
+      if (band < 0.01) return vec3(0.0);
+      vec2 q = vec2(along * 7.0, lat * 14.0);
+      float clouds = fbm(q);
+      float glow = band * (0.35 + 0.9 * clouds * clouds) * (0.7 + 0.5 * smoothstep(1.2, 0.0, along));
+      float rift = exp(-pow(lat - 0.02 + 0.04 * (clouds - 0.5), 2.0) / 0.0012);
+      glow *= 1.0 - 0.65 * rift * smoothstep(0.3, 0.6, valueNoise(q * 0.5 + 3.0));
+      glow *= 0.8 + 0.2 * sin(iTime * 0.6 + clouds * 9.0);
+      // Cool blue-white with rosy and violet patches.
+      vec3 tint = mix(vec3(0.55, 0.65, 1.0), vec3(1.0, 0.7, 0.95), smoothstep(0.35, 0.75, fbm(q * 0.6 + 11.0)));
+      vec3 col = tint * glow * 0.15;
+      // Dense faint stars, thickest along the band.
+      vec3 cell = dir * 420.0;
+      float h = hash3(cell);
+      if (h > 1.0 - 0.02 * band) {
+          vec3 f = fract(cell) - 0.5;
+          col += starLight(floor(cell)) * smoothstep(0.4, 0.0, length(f)) * 0.35;
+      }
+      return col;
   }
 
   vec3 skyColor(vec3 dir, bool withDiscs) {
@@ -272,13 +345,15 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
           }
       }
       if (withDiscs && night > 0.0 && dir.y > 0.0) {
+          // Washed out near the horizon's haze and in the moon's glare.
+          float clear = night * night * smoothstep(0.0, 0.2, dir.y) * (1.0 - 0.8 * smoothstep(0.93, 0.995, cm) * moonUp);
+          col += milkyWay(dir) * uStarIntensity * 0.5 * clear;
           vec3 cell = dir * 160.0;
           float h = hash3(cell);
           if (h > 0.9965) {
               vec3 f = fract(cell) - 0.5;
               float point = smoothstep(0.35, 0.0, length(f));
-              float twinkle = 0.65 + 0.35 * sin(iTime * (1.5 + h * 40.0) + h * 300.0);
-              col += vec3(point * twinkle * uStarIntensity * 0.5 * night * smoothstep(0.0, 0.25, dir.y));
+              col += starLight(floor(cell)) * point * uStarIntensity * 0.5 * night * smoothstep(0.0, 0.25, dir.y);
           }
       }
       return col;
@@ -474,6 +549,16 @@ ${table.detailCode}
       return min(d * fh * ndl / (4.0 * max(dot(n, view), 0.1)), 60.0);
   }
 
+  // One blinking point per cellSize-wide cell of the sea surface.
+  float sparkle(vec2 xz, float cellSize) {
+      vec2 cp = xz / cellSize;
+      vec2 ci = floor(cp);
+      float h = hash2(ci + 91.0);
+      vec2 f = fract(cp) - 0.2 - 0.6 * vec2(h, fract(h * 53.0));
+      float spot = smoothstep(0.12, 0.0, length(f));
+      return spot * pow(max(sin(iTime * (2.5 + h * 4.0) + h * 60.0), 0.0), 6.0);
+  }
+
   vec3 shadeSea(vec3 ori, vec3 dir, vec3 p, float t, float pixelAngle) {
       vec3 sun = sunDirection();
       vec3 moon = moonDirection();
@@ -513,6 +598,29 @@ ${table.detailCode}
       col += sunTint * glint(n, view, sun, m2) * 0.9 * sunUp;
       float moonUp = smoothstep(-0.02, 0.06, moon.y) * (1.0 - day);
       col += uMoonColor * glint(n, view, moon, m2) * 0.25 * moonUp;
+
+      if (uShimmer > 0.0) {
+          // Bloom: the soft halo a camera throws around bright highlights,
+          // which turns the sun's (or moon's) path on the water into a
+          // glowing road. Taken off a FLAT surface with the whole sea's
+          // roughness rather than off this pixel's normal: through a lobe
+          // this wide, the waves' sharp crests read as a crosshatch.
+          vec3 flatN = vec3(0.0, 1.0, 0.0);
+          float m2w = 0.02 + slopeVar * 2.0;
+          float sunHalo = glint(flatN, view, sun, m2w) * sunUp;
+          float moonHalo = glint(flatN, view, moon, m2w) * moonUp;
+          vec3 halo = sunTint * sunHalo * 0.6 + uMoonColor * moonHalo * 0.45;
+          col += halo * uShimmer;
+          // Sparkles: one point per cell of the surface, each blinking on
+          // its own rhythm, lit only inside that glowing road. The cells
+          // grow with distance (in powers of two, cross-faded) so a
+          // sparkle stays a few pixels wide from the bow to the horizon.
+          float lv = log2(footprint * 24.0);
+          float l0 = floor(lv);
+          float spark = mix(sparkle(p.xz, exp2(l0)), sparkle(p.xz, exp2(l0 + 1.0)), lv - l0);
+          float lit = smoothstep(0.01, 0.25, dot(halo, vec3(0.33)));
+          col += vec3(1.0, 0.97, 0.9) * spark * lit * 3.0 * uShimmer;
+      }
 
       // Foam on the sharpest crests, only close enough to read as foam
       // rather than haze. Two scales of noise, turned off the hash grid's

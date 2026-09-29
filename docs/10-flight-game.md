@@ -1485,6 +1485,56 @@ flight.
   spoken summary, `nestSeen` saved (so they don't re-hatch), the tap-M
   card ("Em… mmmm… Moon"), on desktop and phone.
 
+## Sea shimmer at top quality, and a Milky Way at night (Sep 2026)
+
+Both live inside the ocean shader (`oceanSky.ts`), so no extra passes.
+
+**Sea shimmer (quality 1.0 only).** A new `uShimmer` uniform, which
+`OceanSky` eases 0↔1 over 1.5s whenever the calibration level is exactly 1
+(top of the supersampling band). Standalone previews without a `qualityRef` count as 1. It adds two things to `shadeSea`:
+
+- **Bloom:** a soft halo around the sun's or moon's glitter path, so it
+  reads as a glowing road. It's a wide glint lobe taken off a *flat*
+  surface with the sea's overall roughness, not off the pixel's normal.
+  The normal-based version was tried first. Through a lobe that wide, the
+  exp-sine waves' sharp crests showed as a visible crosshatch (found in a
+  debug render that output only the halo term).
+- **Sparkles:** one blinking point per surface cell, lit only inside that
+  halo. Cell size follows the pixel footprint in cross-faded powers of
+  two, so a sparkle stays a few pixels wide from near the bird out to
+  the horizon.
+
+**Milky Way.** A band along a fixed great circle (`GALAXY_POLE`) in
+`skyColor`, direct view only, not reflected. It has fbm cloud structure,
+a dark dust lane, a blue/rose tint, a denser layer of faint stars, and a
+slow shimmer. It rises from the horizon just left of dead ahead and leans
+left, so it shows on portrait phones too and stays at least ~30° from the
+moon through the evening (the angle was checked numerically against
+`moonDirection()` at 19h–24h). It fades in with `night²`, so it arrives
+later than the plain stars. It's dimmed near the horizon haze and in the
+moon's glare, and it scales with `uStarIntensity`.
+
+**Coloured, independently twinkling stars.** The stars used to look
+painted on. Each one took its twinkle rate from the same hash that
+decides whether a cell has a star at all. That hash only passes above
+0.9965, so every star's rate fell into the same narrow range and they
+all pulsed together. `starLight()` now gives each star three seeds of its
+own:
+- **Colour:** a star-temperature tint (blue-white, white, gold, orange,
+  or the odd rosy red).
+- **Rate:** anywhere from 0.3 to 4 radians per second.
+- **Twinkle:** two unrelated sine waves, so no star repeats a simple
+  beat.
+
+The Milky Way's faint stars use it too.
+
+Verified with a temporary harness page that mounted the real `OceanSky`
+with a fixed camera in the game's chase pose. It was rendered headlessly
+at 9h/18h/20.5h/22h, quality 1 vs 0.9, in landscape (960×540) and
+portrait (390×844), with magnified crops of the glitter path. `npm run
+build` and `npm run lint` are clean (only the lint warnings that were
+already there).
+
 ## Not yet built
 
 - The STL has no color/material data — the flap animation is real

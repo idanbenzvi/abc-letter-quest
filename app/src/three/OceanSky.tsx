@@ -19,6 +19,9 @@ export interface OceanRainbow {
 }
 
 const RAINBOW_FADE_SECONDS = 0.8;
+// The sea's shimmer (glint bloom + sparkles) is a top-quality extra:
+// only at calibration level 1, fading in and out over about this long.
+const SHIMMER_FADE_SECONDS = 1.5;
 // One full breath (dim → bright → dim). Slow on purpose: a pulse a
 // 4-year-old can follow, not a flash.
 const RAINBOW_BREATH_SECONDS = 1.8;
@@ -217,6 +220,7 @@ export function OceanSky({
       uMarchSteps: { value: quality.numSteps },
       uIterGeometry: { value: quality.iterGeometry },
       uIterFragment: { value: quality.iterFragment },
+      uShimmer: { value: 0 },
       uStorm: { value: 0 },
       uFlash: { value: 0 },
       uRainbowAlpha: { value: 0 },
@@ -288,6 +292,9 @@ export function OceanSky({
     u.uMarchSteps.value = Math.min(detail.numSteps, quality.numSteps);
     u.uIterGeometry.value = Math.min(detail.iterGeometry, quality.iterGeometry);
     u.uIterFragment.value = Math.min(detail.iterFragment, quality.iterFragment);
+
+    const shimmerTarget = (qualityRef?.current ?? 1) >= 1 ? 1 : 0;
+    u.uShimmer.value = THREE.MathUtils.clamp(u.uShimmer.value + Math.sign(shimmerTarget - u.uShimmer.value) * (delta / SHIMMER_FADE_SECONDS), 0, 1);
 
     u.uStorm.value = stormRef?.current ?? 0;
     u.uFlash.value = flashRef?.current ?? 0;

@@ -293,7 +293,9 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
       vec2 q = vec2(along * 7.0, lat * 14.0);
       float clouds = fbm(q);
       float glow = band * (0.35 + 0.9 * clouds * clouds) * (0.7 + 0.5 * smoothstep(1.2, 0.0, along));
-      float rift = exp(-pow(lat - 0.02 + 0.04 * (clouds - 0.5), 2.0) / 0.0012);
+      // Squared by hand: pow() of a negative base is undefined in GLSL.
+      float riftOff = lat - 0.02 + 0.04 * (clouds - 0.5);
+      float rift = exp(-riftOff * riftOff / 0.0012);
       glow *= 1.0 - 0.65 * rift * smoothstep(0.3, 0.6, valueNoise(q * 0.5 + 3.0));
       glow *= 0.8 + 0.2 * sin(iTime * 0.6 + clouds * 9.0);
       // Cool blue-white with rosy and violet patches.

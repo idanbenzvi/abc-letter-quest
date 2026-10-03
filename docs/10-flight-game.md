@@ -1535,6 +1535,37 @@ portrait (390×844), with magnified crops of the glitter path. `npm run
 build` and `npm run lint` are clean (only the lint warnings that were
 already there).
 
+## Letter sounds off until recorded, wider picture cards, shooting stars
+
+- **Letter sounds.** Speech synthesis can't say an isolated sound: the
+  spelled approximations in `data/letterSounds.ts` came out as "ef ef ef"
+  and "es es es". `speakLetterSound` now plays only a recorded clip from
+  `public/audio/sounds/`. With no clip it says the letter's name instead,
+  so the word, storm and Storm Vowels rounds still voice the letter.
+  `sayLetter(…, 'both')` stops after the name when there's no clip, so the
+  name isn't said twice. The Dashboard's Letter Voice card says so. Once
+  `generate-audio.mjs --only=sounds` has produced clips, sounds come back
+  with no code change.
+- **Picture-choice cards** sit a little further from the letter cloud:
+  flanks at ±7.6 (was ±6.8), crown at +5.5 (was +4.8). The cards'
+  generous hit proxies were reaching the letter's, so a tap meant for a
+  picture could land on the letter.
+- **Shooting stars** (`shootingStar()` in `oceanSky.ts`). They're drawn in
+  the sky shader, beside the stars and Milky Way, and fade in with them.
+  The schedule is pure hashing on `iTime`: 9-second slots, two in five
+  get a 0.9 s meteor, which works out to about one every 20 s of night.
+  Each meteor starts within ~45° of straight ahead, 9–26° up, and falls
+  sideways and down.
+
+Verified headlessly. A scratch page rendered the real fragment shader at
+23h with the game's fov and a slight downward pitch, and screenshots were
+taken at meteor times found with a JS mirror of the shader hash (streak
+and head clearly visible, well framed). The audio functions were checked
+in the browser with `speechSynthesis` and `HTMLMediaElement.play`
+stubbed: `speakLetterSound('F')` plays `letters/F.wav`,
+`sayLetter('S','both')` says just "Ess", and nothing reaches synthesis
+as a sound spelling. `npm run build` and lint are clean.
+
 ## Not yet built
 
 - The STL has no color/material data — the flap animation is real

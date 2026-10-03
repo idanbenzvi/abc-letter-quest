@@ -1039,10 +1039,13 @@ export function FlightScene({
           // Positioned directly relative to the letter's laneX and distance so they stay
           // reliably framed inside the camera's FOV on all screens (landscape & portrait)
           // without colliding with the letter cloud.
+          // Spaced a little wider than they once were (6.8 / 4.8): the cards'
+          // generous hit proxies used to reach the letter cloud's, so a tap
+          // meant for a picture could land on the letter.
           const SLOTS = [
-            { dx: -6.8, dy: 0.4 }, // Left flank
-            { dx: 6.8, dy: 0.4 },  // Right flank
-            { dx: 0, dy: 4.8 },    // Center-top crown
+            { dx: -7.6, dy: 0.4 }, // Left flank
+            { dx: 7.6, dy: 0.4 },  // Right flank
+            { dx: 0, dy: 5.5 },    // Center-top crown
           ];
           const slot = SLOTS[i % SLOTS.length];
           const seed = hashSeed(`${encounter.distance}:${choice.word.id}`);

@@ -308,7 +308,8 @@ export function Dashboard({ onBack, onSwitchPlayer }: { onBack: () => void; onSw
           <p className="dash-card-note">
             What the game says when {profile.name} meets a letter: its name ("bee"), its sound ("buh"), or both. Letter
             sounds are what reading is built on, so "Both" is recommended. Word games always blend with sounds unless
-            you choose "Names". Tap an option to hear it.
+            you choose "Names". Tap an option to hear it. Until recorded letter sounds are added, the game says the
+            letter's name in their place.
           </p>
           <div className="dash-segmented" role="radiogroup" aria-label="Letter voice">
             {(

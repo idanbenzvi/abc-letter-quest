@@ -311,6 +311,45 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
       return col;
   }
 
+  // ---- shooting stars ----
+  // Once in a while at night a meteor streaks across the sky ahead. Time
+  // is cut into SHOOT_PERIOD-second slots; a hash decides whether a slot
+  // gets one (two in five: about one every 20 seconds of night), and more
+  // hashes pick when in the slot it flies, where it starts (within ~45
+  // degrees of straight ahead, 9-26 degrees up, where the flight camera
+  // sees sky) and which way it falls. A bright head with a tail that
+  // thins and fades behind it.
+  const float SHOOT_PERIOD = 9.0;
+  const float SHOOT_LIFE = 0.9;
+  const float SHOOT_ARC = 0.4;     // radians travelled over its life
+  const float SHOOT_TAIL = 0.14;   // radians of tail behind the head
+  vec3 shootingStar(vec3 dir) {
+      float slot = floor(iTime / SHOOT_PERIOD);
+      if (hash3(vec3(slot, 0.5, 9.0)) > 0.4) return vec3(0.0);
+      float t0 = hash3(vec3(slot, 1.5, 9.0)) * (SHOOT_PERIOD - SHOOT_LIFE);
+      float p = (iTime - slot * SHOOT_PERIOD - t0) / SHOOT_LIFE;
+      if (p < 0.0 || p > 1.0) return vec3(0.0);
+      float az = (hash3(vec3(slot, 2.5, 9.0)) - 0.5) * 1.6;
+      float el = mix(0.15, 0.45, hash3(vec3(slot, 3.5, 9.0)));
+      vec3 s = vec3(sin(az) * cos(el), sin(el), -cos(az) * cos(el));
+      // Travel: sideways (either way) and downward, along the sky.
+      vec3 across = vec3(cos(az), 0.0, sin(az));
+      vec3 down = normalize(s * s.y - vec3(0.0, 1.0, 0.0));
+      float side = hash3(vec3(slot, 4.5, 9.0)) < 0.5 ? -1.0 : 1.0;
+      vec3 t = normalize(across * side * 0.8 + down * 0.6);
+      float off = dot(dir, cross(s, t));
+      if (abs(off) > 0.006) return vec3(0.0);
+      float behind = SHOOT_ARC * p - atan(dot(dir, t), dot(dir, s));
+      if (behind < -0.004 || behind > SHOOT_TAIL) return vec3(0.0);
+      float tail = smoothstep(SHOOT_TAIL, 0.0, behind);
+      float width = mix(0.0004, 0.0013, tail);
+      float streak = exp(-off * off / (2.0 * width * width)) * tail * tail * smoothstep(-0.004, 0.0, behind);
+      float headGlow = exp(-(behind * behind + off * off) / 0.000008);
+      float life = smoothstep(0.0, 0.12, p) * smoothstep(1.0, 0.55, p);
+      vec3 tint = mix(vec3(0.6, 0.75, 1.0), vec3(1.0, 0.96, 0.88), tail);
+      return tint * (streak + headGlow) * life * 1.6;
+  }
+
   vec3 skyColor(vec3 dir, bool withDiscs) {
       vec3 sun = sunDirection();
       vec3 moon = moonDirection();
@@ -350,6 +389,7 @@ export function buildOceanFragmentShader(quality: OceanQuality): string {
           // Washed out near the horizon's haze and in the moon's glare.
           float clear = night * night * smoothstep(0.0, 0.2, dir.y) * (1.0 - 0.8 * smoothstep(0.93, 0.995, cm) * moonUp);
           col += milkyWay(dir) * uStarIntensity * 0.5 * clear;
+          col += shootingStar(dir) * uStarIntensity * 0.5 * clear;
           vec3 cell = dir * 160.0;
           float h = hash3(cell);
           if (h > 0.9965) {
